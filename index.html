@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>SFK ClassBoard</title>
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <main class="app">
+
+    <div id="bellAlert" class="bell-alert hidden">
+      ⏰ CLASS CHANGE SOON
+    </div>
+    
+    <header class="topbar">
+      <div class="brandBox">
+        <h1 id="dashboardTitle">SFK ClassBoard</h1>
+        <p id="sectionText">Grade 8 - St. Faustina Kowalska</p>
+      </div>
+
+      <div class="topbarHeart">🫶</div>
+
+      <div class="topQuoteBox">
+        <span class="quoteLabel">Daily Kindness Quote</span>
+        <p id="dailyQuote">Loading...</p>
+        <small id="quoteAuthor"></small>
+      </div>
+
+      <div class="timeBox">
+        <h2 id="timeText">--:-- --</h2>
+        <p id="dateText">Loading date...</p>
+      </div>
+    </header>
+
+    <section class="heroGrid">
+	<div class="card current">
+	  <p class="label">Current Subject</p>
+	  <h2 id="currentSubject">Loading...</h2>
+	  <p id="currentDetails">Please wait</p>
+	  <div id="currentCountdownText" class="countdown currentCountdown">Ends in: --</div>
+	</div>
+
+      <div class="card next">
+        <p class="label">Next Subject</p>
+        <h2 id="nextSubject">Loading...</h2>
+        <p id="nextDetails">Please wait</p>
+        <div id="countdownText" class="countdown">Starts in: --</div>
+      </div>
+
+      <div class="card prayer">
+        <p class="label">Prayer Leader</p>
+        <h2 id="prayerLeader">Loading...</h2>
+
+        <div class="cleanersMini">
+          <span>Cleaners Today</span>
+          <strong id="cleanersToday">Loading...</strong>
+        </div>
+      </div>
+
+      <div class="card birthdayCard">
+        <div class="birthdayHeader">
+		  <p class="label">Birthday Corner</p>
+		  <span id="birthdayDateText" class="birthdayHeaderDate">--</span>
+		</div>
+        <div id="birthdayList" class="birthdayList">
+          <div class="noBirthday">
+            <span>🎂</span>
+            <p>No birthday celebrants today.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="mainGrid">
+      <div class="card scheduleCard">
+        <h2>Today's Schedule</h2>
+        <div id="scheduleList"></div>
+      </div>
+
+      <div class="card announcementsCard">
+        <h2 id="announcementTitle">Subject Announcements</h2>
+        <div id="announcementList"></div>
+      </div>
+
+      <div class="card sideCard">
+        <h2>Things to Bring</h2>
+        <div id="thingsList"></div>
+      </div>
+
+      <div class="card sideCard">
+        <h2>Adviser Reminders</h2>
+        <div id="reminderList"></div>
+      </div>
+    </section>
+
+    <footer class="ticker">
+      <div id="tickerText">Loading announcements...</div>
+    </footer>
+
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

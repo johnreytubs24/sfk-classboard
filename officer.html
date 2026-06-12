@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>SFK Officers Panel</title>
+
+  <link rel="stylesheet" href="officer.css" />
+</head>
+
+<body>
+  <main class="officerApp">
+
+    <!-- LOGIN SCREEN -->
+    <section id="officerLoginScreen" class="loginScreen">
+      <div class="loginCard">
+        <div class="koalaMark">🐨</div>
+
+        <h1>SFK Officers Panel</h1>
+        <p>For Grade 8 - St. Faustina Kowalska Officers only.</p>
+
+        <input
+          id="officerPin"
+          type="password"
+          placeholder="Enter Officer PIN"
+          autocomplete="off"
+        />
+
+        <button onclick="loginOfficer()">Login</button>
+
+        <small id="officerLoginMessage"></small>
+      </div>
+    </section>
+
+    <!-- OFFICER PANEL -->
+    <section id="officerPanel" class="officerPanel hidden">
+
+      <header class="officerTopbar">
+        <div>
+          <h1>SFK Officers Panel</h1>
+          <p>Grade 8 - St. Faustina Kowalska • S.Y. 2026–2027 • #BeKind</p>
+        </div>
+
+        <button class="logoutBtn" onclick="logoutOfficer()">Logout</button>
+      </header>
+
+      <section class="noticeBox">
+        <strong>Officer Access:</strong>
+        Officers can add new records and hide existing records only. Editing and deleting are not allowed.
+      </section>
+
+      <!-- CREATE / ADD DATA -->
+      <section class="officerGrid">
+
+        <!-- SUBJECT ANNOUNCEMENT -->
+        <div class="formCard">
+          <h2>📢 Subject Announcement</h2>
+
+          <label for="officerAnnouncementDate">Date</label>
+          <input id="officerAnnouncementDate" type="date" />
+
+          <label for="officerAnnouncementSubject">Subject</label>
+          <select id="officerAnnouncementSubject">
+            <option value="">Select Subject</option>
+            <option value="English">English</option>
+            <option value="Mathematics">Mathematics</option>
+            <option value="Science">Science</option>
+            <option value="ICT">ICT</option>
+            <option value="Filipino">Filipino</option>
+            <option value="CLED">CLED</option>
+            <option value="AP">AP</option>
+            <option value="MAPEH">MAPEH</option>
+            <option value="LE">LE</option>
+          </select>
+
+          <label for="officerAnnouncementText">Announcement</label>
+          <textarea id="officerAnnouncementText" placeholder="Type subject announcement here..."></textarea>
+
+          <label for="officerAnnouncementTeacher">Teacher</label>
+          <select id="officerAnnouncementTeacher">
+            <option value="">Select Teacher</option>
+            <option value="Mr. John Rey Tubello">Mr. John Rey Tubello</option>
+            <option value="Ms. Chiarah De Castro">Ms. Chiarah De Castro</option>
+            <option value="Mrs. Melanie Sebastian">Mrs. Melanie Sebastian</option>
+            <option value="Ms. Hannah Lee Cillo">Ms. Hannah Lee Cillo</option>
+            <option value="Ms Christine Tolentino">Ms Christine Tolentino</option>
+            <option value="Ms. Kamille Lajom">Ms. Kamille Lajom</option>
+            <option value="Mr. Alexis Pastrana">Mr. Alexis Pastrana</option>
+            <option value="Ms. Gina Soriano">Ms. Gina Soriano</option>
+            <option value="Mr. Runmar Quipanes">Mr. Runmar Quipanes</option>
+          </select>
+
+          <label for="officerAnnouncementDeadline">Deadline</label>
+          <input id="officerAnnouncementDeadline" type="date" />
+
+          <label for="officerAnnouncementPriority">Priority</label>
+          <select id="officerAnnouncementPriority">
+            <option value="Reminder">Reminder</option>
+            <option value="Important">Important</option>
+            <option value="Urgent">Urgent</option>
+            <option value="For Submission">For Submission</option>
+          </select>
+
+          <label for="officerAnnouncementPublish">Publish</label>
+          <select id="officerAnnouncementPublish">
+            <option value="YES">YES</option>
+            <option value="NO">NO</option>
+          </select>
+
+          <button onclick="saveOfficerAnnouncement()">Save Announcement</button>
+        </div>
+
+        <!-- THINGS TO BRING -->
+        <div class="formCard">
+          <h2>🎒 Things to Bring</h2>
+
+          <label for="officerThingsDate">Date</label>
+          <input id="officerThingsDate" type="date" />
+
+          <label for="officerThingsSubject">Subject</label>
+          <select id="officerThingsSubject">
+            <option value="">Select Subject</option>
+            <option value="English">English</option>
+            <option value="Mathematics">Mathematics</option>
+            <option value="Science">Science</option>
+            <option value="ICT">ICT</option>
+            <option value="Filipino">Filipino</option>
+            <option value="CLED">CLED</option>
+            <option value="AP">AP</option>
+            <option value="MAPEH">MAPEH</option>
+            <option value="LE">LE</option>
+          </select>
+
+          <label for="officerThingsItem">Item / Reminder</label>
+          <textarea id="officerThingsItem" placeholder="Example: Bring notebook / project materials..."></textarea>
+
+          <label for="officerThingsPublish">Publish</label>
+          <select id="officerThingsPublish">
+            <option value="YES">YES</option>
+            <option value="NO">NO</option>
+          </select>
+
+          <button onclick="saveOfficerThings()">Save Things to Bring</button>
+        </div>
+
+        <!-- PRAYER LEADER -->
+        <div class="formCard">
+          <h2>🙏 Prayer Leader</h2>
+
+          <label for="officerPrayerDate">Date</label>
+          <input id="officerPrayerDate" type="date" />
+
+          <label for="officerPrayerName">Prayer Leader Name</label>
+          <input id="officerPrayerName" type="text" placeholder="Example: Juan Dela Cruz" />
+
+          <label for="officerPrayerPublish">Publish</label>
+          <select id="officerPrayerPublish">
+            <option value="YES">YES</option>
+            <option value="NO">NO</option>
+          </select>
+
+          <button onclick="saveOfficerPrayer()">Save Prayer Leader</button>
+        </div>
+
+        <!-- BIRTHDAY GREETINGS -->
+        <div class="formCard highlightCard">
+          <h2>🎂 Birthday Greetings</h2>
+
+          <label for="officerBirthdayName">Student Name</label>
+          <input id="officerBirthdayName" type="text" placeholder="Example: Juan Dela Cruz" />
+
+          <label for="officerBirthdayDate">Birthday</label>
+          <input id="officerBirthdayDate" type="date" />
+
+          <label for="officerBirthdayPublish">Publish</label>
+          <select id="officerBirthdayPublish">
+            <option value="YES">YES</option>
+            <option value="NO">NO</option>
+          </select>
+
+          <button onclick="saveOfficerBirthday()">Save Birthday Greeting</button>
+        </div>
+
+      </section>
+
+      <!-- MANAGE EXISTING DATA -->
+      <section class="managePanel">
+        <div class="manageHeader">
+          <div>
+            <h2>Manage Existing Data</h2>
+            <p>View existing records and hide items if needed. Edit and delete are disabled for officers.</p>
+          </div>
+
+          <button class="refreshBtn" onclick="refreshCurrentOfficerTable()">Refresh</button>
+        </div>
+
+        <div class="manageTabs">
+          <button onclick="loadOfficerTable('Announcements', this)">Announcements</button>
+          <button onclick="loadOfficerTable('ThingsToBring', this)">Things to Bring</button>
+          <button onclick="loadOfficerTable('PrayerLeaders', this)">Prayer Leaders</button>
+          <button onclick="loadOfficerTable('Birthdays', this)">Birthday Greetings</button>
+        </div>
+
+        <div id="officerManageStatus" class="manageStatus">
+          Select a category to view existing data.
+        </div>
+
+        <div class="tableWrap">
+          <table id="officerDataTable">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TOAST MESSAGE -->
+      <div id="officerToast" class="officerToast hidden">
+        Saved successfully.
+      </div>
+
+    </section>
+
+  </main>
+
+  <script src="officer.js"></script>
+</body>
+</html>
