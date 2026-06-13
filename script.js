@@ -22,7 +22,7 @@ const subjectIcons = {
   ict: "💻",
   filipino: "📖",
   filipno: "📖",
-  mapeh: "🎵🎨⚽❤️",
+  mapeh: "🎵",
   music: "🎵",
   arts: "🎨",
   pe: "⚽",
@@ -193,11 +193,31 @@ function getSubjectTextColor(subject) {
 
 function renderCurrentSubject(item) {
   const card = document.querySelector(".current");
+  const subjectEl = document.getElementById("currentSubject");
+  const detailsEl = document.getElementById("currentDetails");
+  const countdownEl = document.getElementById("currentCountdownText");
 
   if (item) {
     const color = item.Color || getSubjectColor(item.Subject);
+    const textColor = getReadableTextColor(color);
+
     card.style.background = color;
-    card.style.color = getReadableTextColor(color);
+    card.style.color = textColor;
+
+    subjectEl.style.color = textColor;
+    detailsEl.style.color = textColor;
+
+    if (countdownEl) {
+      countdownEl.style.color = textColor === "#111" ? "#111" : "#fff";
+      countdownEl.style.background =
+        textColor === "#111"
+          ? "rgba(255,255,255,.65)"
+          : "rgba(0,0,0,.45)";
+      countdownEl.style.borderColor =
+        textColor === "#111"
+          ? "rgba(0,0,0,.35)"
+          : "rgba(255,255,255,.35)";
+    }
 
     document.getElementById("currentSubject").textContent =
       `${iconFor(item.Subject)} ${item.Subject}`;
@@ -208,26 +228,45 @@ function renderCurrentSubject(item) {
     card.style.background = "#111";
     card.style.color = "#fff";
 
+    subjectEl.style.color = "#fff";
+    detailsEl.style.color = "#fff";
+
+    if (countdownEl) {
+      countdownEl.style.color = "#111";
+      countdownEl.style.background = "rgba(255, 215, 0, .95)";
+      countdownEl.style.borderColor = "rgba(0,0,0,.35)";
+    }
+
     document.getElementById("currentSubject").textContent =
       "No current subject";
 
     document.getElementById("currentDetails").textContent =
       "Free time / no class";
-
-    const currentCountdown = document.getElementById("currentCountdownText");
-    if (currentCountdown) {
-      currentCountdown.textContent = "No ongoing class";
-    }
   }
 }
-
 function renderNextSubject(item) {
   const card = document.querySelector(".next");
+  const subjectEl = document.getElementById("nextSubject");
+  const detailsEl = document.getElementById("nextDetails");
+  const countdownEl = document.getElementById("countdownText");
 
   if (item) {
     const color = item.Color || getSubjectColor(item.Subject);
+    const textColor = getReadableTextColor(color);
+
     card.style.background = color;
-    card.style.color = getReadableTextColor(color);
+    card.style.color = textColor;
+
+    subjectEl.style.color = textColor;
+    detailsEl.style.color = textColor;
+
+    if (countdownEl) {
+      countdownEl.style.color = textColor === "#111" ? "#111" : "#fff";
+      countdownEl.style.background =
+        textColor === "#111"
+          ? "rgba(255,255,255,.65)"
+          : "rgba(0,0,0,.45)";
+    }
 
     document.getElementById("nextSubject").textContent =
       `${iconFor(item.Subject)} ${item.Subject}`;
@@ -237,6 +276,14 @@ function renderNextSubject(item) {
   } else {
     card.style.background = "#fff7c7";
     card.style.color = "#111";
+
+    subjectEl.style.color = "#111";
+    detailsEl.style.color = "#111";
+
+    if (countdownEl) {
+      countdownEl.style.color = "#fff";
+      countdownEl.style.background = "rgba(0, 0, 0, .44)";
+    }
 
     document.getElementById("nextSubject").textContent =
       "No next subject";
@@ -274,14 +321,14 @@ function renderSchedule(items, currentSubject) {
       item.EndTime === currentSubject.EndTime;
 
     return `
-      <div class="schedule-item ${isCurrent ? "current-row" : ""}"
-           style="background:${color}; color:${textColor};">
-        ${isCurrent ? `<div class="current-badge">▶ CURRENT CLASS</div>` : ""}
-        <strong>${item.StartTime} - ${item.EndTime}</strong><br>
-        <span class="subject-name">${iconFor(item.Subject)} ${item.Subject}</span><br>
-        <small style="color:${textColor}; opacity:.85;">${item.Teacher} • ${item.Room}</small>
-      </div>
-    `;
+  <div class="schedule-item ${isCurrent ? "current-row" : ""}"
+       style="background:${color}; color:${textColor};">
+    ${isCurrent ? `<div class="current-badge">▶ CURRENT CLASS</div>` : ""}
+    <strong style="color:${textColor};">${item.StartTime} - ${item.EndTime}</strong><br>
+    <span class="subject-name" style="color:${textColor};">${iconFor(item.Subject)} ${item.Subject}</span><br>
+    <small style="color:${textColor}; opacity:.9;">${item.Teacher} • ${item.Room}</small>
+  </div>
+`;
   }).join("");
 
   scrollToCurrentSchedule();
