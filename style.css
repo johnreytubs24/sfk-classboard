@@ -1604,3 +1604,240 @@ small {
     transform: translateY(0);
   }
 }
+/* ================================
+   CURRENT / NEXT SUBJECT TEXT FIX
+   Make subject name visible again
+================================ */
+
+.current h2,
+.next h2 {
+  display: block !important;
+  border-bottom: none !important;
+  padding-bottom: 0 !important;
+  margin-bottom: 7px !important;
+
+  font-size: clamp(1.35rem, 2.1vw, 2rem) !important;
+  font-weight: 950 !important;
+  line-height: 1.05 !important;
+
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.current .label,
+.next .label {
+  margin-bottom: 4px !important;
+}
+
+.current #currentDetails,
+.next #nextDetails {
+  font-size: clamp(.82rem, 1vw, .98rem) !important;
+  line-height: 1.00 !important;
+}
+
+.currentCountdown,
+.countdown {
+  margin-top: 5px !important;
+}
+.current h2,
+.next h2 {
+  border-bottom: none !important;
+}
+
+/* ================================
+   CURRENT / NEXT SUBJECT DESCENDER FIX
+   Fix putol na letters like g, y, p
+================================ */
+
+.current h2,
+.next h2 {
+  line-height: 1.18 !important;
+  padding-bottom: 4px !important;
+  margin-bottom: 4px !important;
+
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.current #currentSubject,
+.next #nextSubject {
+  display: block !important;
+}
+
+/* ================================
+   THINGS TO BRING RESPONSIVE FIX
+   Subject + badge top-left,
+   item/material centered
+================================ */
+
+@media (max-width: 1200px) {
+  .thingsCard .thing-item {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    align-items: stretch !important;
+
+    padding: 12px 14px !important;
+    min-height: 84px !important;
+  }
+
+  .thingsCard .thing-topline {
+    width: 100% !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 6px !important;
+    flex-wrap: wrap !important;
+
+    margin-bottom: 10px !important;
+  }
+
+  .thingsCard .thing-subject {
+    flex: 0 0 auto !important;
+    text-align: left !important;
+
+    font-size: clamp(.95rem, 2.2vw, 1.15rem) !important;
+    line-height: 1.05 !important;
+    font-weight: 950 !important;
+  }
+
+  .thingsCard .bring-status {
+    flex: 0 0 auto !important;
+
+    font-size: clamp(.5rem, 1.5vw, .68rem) !important;
+    padding: 4px 8px !important;
+    min-height: 22px !important;
+    line-height: 1 !important;
+  }
+
+  .thingsCard .thing-detail {
+    display: block !important;
+    width: 100% !important;
+
+    text-align: center !important;
+    font-size: clamp(.9rem, 2.4vw, 1.05rem) !important;
+    font-weight: 800 !important;
+    line-height: 1.2 !important;
+
+    margin-top: auto !important;
+    margin-bottom: auto !important;
+    color: #111 !important;
+  }
+}
+
+@media (max-width: 700px) {
+  .thingsCard .thing-item {
+    min-height: 78px !important;
+    padding: 11px 12px !important;
+  }
+
+  .thingsCard .thing-topline {
+    margin-bottom: 8px !important;
+  }
+
+  .thingsCard .thing-subject {
+    font-size: 1rem !important;
+  }
+
+  .thingsCard .bring-status {
+    font-size: .58rem !important;
+    padding: 4px 7px !important;
+  }
+
+  .thingsCard .thing-detail {
+    font-size: .95rem !important;
+  }
+}
+
+/* ================================
+   THINGS TO BRING RESPONSIVE FIX V2
+   Subject + due badge top-left,
+   item/material centered
+================================ */
+
+@media (max-width: 1200px) {
+  .thingsCard .thing-item {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+
+    min-height: 98px !important;
+    padding: 12px 16px !important;
+  }
+
+  .thingsCard .thing-topline {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 7px !important;
+    flex-wrap: wrap !important;
+
+    width: 100% !important;
+    margin: 0 0 8px 0 !important;
+    padding: 0 !important;
+
+    text-align: left !important;
+  }
+
+  .thingsCard .thing-subject {
+    display: inline-flex !important;
+    flex: 0 0 auto !important;
+
+    width: auto !important;
+    max-width: none !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    text-align: left !important;
+    font-size: clamp(.95rem, 2vw, 1.12rem) !important;
+    line-height: 1.05 !important;
+    font-weight: 950 !important;
+  }
+
+  .thingsCard .bring-status {
+    display: inline-flex !important;
+    flex: 0 0 auto !important;
+
+    margin: 0 !important;
+    padding: 4px 8px !important;
+    min-height: 21px !important;
+
+    font-size: clamp(.5rem, 1.35vw, .65rem) !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+  }
+
+  .thingsCard .thing-detail {
+    flex: 1 !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 8px !important;
+
+    text-align: center !important;
+    font-size: clamp(.95rem, 2.3vw, 1.08rem) !important;
+    font-weight: 850 !important;
+    line-height: 1.2 !important;
+    color: #111 !important;
+  }
+}
+
+/* ================================
+   THINGS TO BRING ITEM TEXT LIGHTER
+   Applies to TV + other devices
+================================ */
+
+.thingsCard .thing-detail {
+  font-weight: 700 !important;
+  text-shadow: none !important;
+}
