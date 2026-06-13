@@ -1841,3 +1841,247 @@ small {
   font-weight: 700 !important;
   text-shadow: none !important;
 }
+
+/* ================================
+   PHONE LANDSCAPE / DESKTOP SITE FIX
+   For Android phone landscape even if Desktop Site is ON
+   TV / PC HDMI view is not affected
+================================ */
+
+@media (orientation: landscape) and (max-height: 600px) {
+  body {
+    overflow: auto !important;
+  }
+
+  .app {
+    height: auto !important;
+    min-height: 100vh !important;
+    display: block !important;
+    padding: 10px !important;
+  }
+
+  .topbar {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    padding: 8px 10px !important;
+    margin-bottom: 10px !important;
+  }
+
+  .topbarHeart {
+    display: none !important;
+  }
+
+  .topQuoteBox {
+    display: none !important;
+  }
+
+  .timeBox {
+    min-width: 0 !important;
+    width: 100% !important;
+    text-align: center !important;
+    padding: 7px 9px !important;
+  }
+
+  .timeBox h2 {
+    font-size: 1.15rem !important;
+  }
+
+  .timeBox p {
+    font-size: .7rem !important;
+  }
+
+  .topbar h1 {
+    font-size: 1.25rem !important;
+  }
+
+  .topbar p {
+    font-size: .72rem !important;
+  }
+
+  .heroGrid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    height: auto !important;
+    gap: 8px !important;
+    margin-bottom: 10px !important;
+  }
+
+  .current,
+  .next,
+  .prayer,
+  .birthdayCard {
+    min-height: 110px !important;
+    height: auto !important;
+  }
+
+  .mainGrid {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto !important;
+    gap: 10px !important;
+  }
+
+  .scheduleCard,
+  .announcementsCard,
+  .sideCard {
+    grid-column: auto !important;
+    grid-row: auto !important;
+    min-height: 250px !important;
+  }
+
+  #scheduleList,
+  #thingsList,
+  #reminderList {
+    max-height: 210px !important;
+    overflow-y: auto !important;
+  }
+
+  #announcementList {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .card {
+    padding: 10px !important;
+  }
+
+  .card h2 {
+    font-size: .95rem !important;
+  }
+
+  .thingsCard .thing-item {
+    min-height: 85px !important;
+    padding: 11px 13px !important;
+  }
+
+  .thingsCard .thing-topline {
+    display: flex !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    gap: 6px !important;
+    flex-wrap: wrap !important;
+    text-align: left !important;
+    margin-bottom: 8px !important;
+  }
+
+  .thingsCard .thing-subject {
+    font-size: .95rem !important;
+    text-align: left !important;
+  }
+
+  .thingsCard .bring-status {
+    font-size: .52rem !important;
+    padding: 4px 7px !important;
+    min-height: 20px !important;
+  }
+
+  .thingsCard .thing-detail {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    min-height: 38px !important;
+    text-align: center !important;
+
+    font-size: .9rem !important;
+    font-weight: 400 !important;
+    line-height: 1.2 !important;
+  }
+
+  .ticker {
+    margin-top: 10px !important;
+  }
+}
+/* ================================
+   SMALL DESKTOP / LAPTOP PREVIEW FIX
+   For browser widths below 1200px
+   but not phone portrait
+================================ */
+
+@media (min-width: 901px) and (max-width: 1200px) {
+  body {
+    overflow: auto !important;
+  }
+
+  .app {
+    height: auto !important;
+    min-height: 100vh !important;
+    display: block !important;
+    padding: 12px !important;
+  }
+
+  .topbar,
+  .heroGrid,
+  .mainGrid,
+  .ticker {
+    margin-bottom: 10px !important;
+  }
+
+  .topbar {
+    grid-template-columns: 1fr 1.15fr auto !important;
+    gap: 10px !important;
+  }
+
+  .topbarHeart {
+    display: none !important;
+  }
+
+  .heroGrid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    height: auto !important;
+    gap: 8px !important;
+  }
+
+  .current,
+  .next,
+  .prayer,
+  .birthdayCard {
+    min-height: 135px !important;
+    height: auto !important;
+  }
+
+  .mainGrid {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto !important;
+    gap: 10px !important;
+  }
+
+  .scheduleCard,
+  .announcementsCard,
+  .sideCard {
+    grid-column: auto !important;
+    grid-row: auto !important;
+    min-height: 320px !important;
+    overflow: hidden !important;
+  }
+
+  #scheduleList {
+    max-height: 260px !important;
+    overflow-y: auto !important;
+  }
+
+  #thingsList,
+  #reminderList {
+    max-height: 250px !important;
+    overflow-y: auto !important;
+  }
+
+  #announcementList {
+    height: auto !important;
+    min-height: 230px !important;
+    overflow: visible !important;
+  }
+
+  .announcement-item {
+    height: auto !important;
+    min-height: 230px !important;
+  }
+
+  .ticker {
+    position: relative !important;
+  }
+}
