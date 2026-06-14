@@ -32,7 +32,7 @@ const subjectIcons = {
   cled: "🙏",
   christian: "🙏",
   religion: "🙏",
-  le: "🙏",
+  le: "🍳",
   homeroom: "🏠",
   assembly: "📣",
   mass: "⛪",
