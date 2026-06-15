@@ -4,6 +4,10 @@ const OFFICER_PIN = "SFK2627";
 const OFFICER_LOGIN_KEY = "sfkOfficerLoggedIn";
 
 let currentOfficerSheet = "";
+let latestOfficerTableData = null;
+let selectedOfficerRows = new Set();
+
+const TEXT_FORMAT_OPTIONS = ["center", "left", "right", "bullets", "numbers"];
 
 document.addEventListener("DOMContentLoaded", () => {
   if (localStorage.getItem(OFFICER_LOGIN_KEY) === "YES") {
@@ -142,10 +146,13 @@ function clearOfficerFields(ids) {
 
 /* SUBJECT ANNOUNCEMENT */
 async function saveOfficerAnnouncement() {
+  const announcementText = document.getElementById("officerAnnouncementText").value.trim();
+  const announcementFormat = document.getElementById("officerAnnouncementFormat").value;
+
   const payload = {
     Date: document.getElementById("officerAnnouncementDate").value,
     Subject: document.getElementById("officerAnnouncementSubject").value,
-    Announcement: document.getElementById("officerAnnouncementText").value.trim(),
+    Announcement: applyTextFormat(announcementText, announcementFormat),
     Teacher: document.getElementById("officerAnnouncementTeacher").value,
     Deadline: document.getElementById("officerAnnouncementDeadline").value,
     Priority: document.getElementById("officerAnnouncementPriority").value,
@@ -164,6 +171,7 @@ async function saveOfficerAnnouncement() {
       "officerAnnouncementDate",
       "officerAnnouncementSubject",
       "officerAnnouncementText",
+      "officerAnnouncementFormat",
       "officerAnnouncementTeacher",
       "officerAnnouncementDeadline",
       "officerAnnouncementPriority",
@@ -174,10 +182,13 @@ async function saveOfficerAnnouncement() {
 
 /* THINGS TO BRING */
 async function saveOfficerThings() {
+  const itemText = document.getElementById("officerThingsItem").value.trim();
+  const itemFormat = document.getElementById("officerThingsFormat").value;
+
   const payload = {
     Date: document.getElementById("officerThingsDate").value,
     Subject: document.getElementById("officerThingsSubject").value,
-    Item: document.getElementById("officerThingsItem").value.trim(),
+    Item: applyTextFormat(itemText, itemFormat),
     Publish: document.getElementById("officerThingsPublish").value
   };
 
@@ -193,6 +204,7 @@ async function saveOfficerThings() {
       "officerThingsDate",
       "officerThingsSubject",
       "officerThingsItem",
+      "officerThingsFormat",
       "officerThingsPublish"
     ]);
   }
@@ -249,6 +261,7 @@ async function saveOfficerBirthday() {
 /* MANAGE EXISTING DATA - VIEW + HIDE ONLY */
 async function loadOfficerTable(sheetName, buttonEl) {
   currentOfficerSheet = sheetName;
+  selectedOfficerRows = new Set();
 
   setActiveOfficerTab(buttonEl);
   setOfficerManageStatus(`Loading ${formatSheetLabel(sheetName)}...`);
@@ -276,6 +289,7 @@ async function loadOfficerTable(sheetName, buttonEl) {
       return;
     }
 
+    latestOfficerTableData = result;
     renderOfficerTable(result);
 
   } catch (error) {
@@ -302,6 +316,7 @@ function renderOfficerTable(result) {
 
   tableHead.innerHTML = `
     <tr>
+      <th>Select</th>
       <th>Action</th>
       <th>Row</th>
       ${headers.map(header => `<th>${escapeHtml(header)}</th>`).join("")}
@@ -311,7 +326,7 @@ function renderOfficerTable(result) {
   if (rows.length === 0) {
     tableBody.innerHTML = `
       <tr>
-        <td colspan="${headers.length + 2}" class="emptyCell">
+        <td colspan="${headers.length + 3}" class="emptyCell">
           No data found.
         </td>
       </tr>
@@ -324,6 +339,10 @@ function renderOfficerTable(result) {
   tableBody.innerHTML = rows.map(row => {
     return `
       <tr>
+        <td class="selectCell">
+          <input type="checkbox" class="rowSelectInput" data-row="${row.rowNumber}" onchange="toggleOfficerRowSelection(${row.rowNumber}, this.checked)" />
+        </td>
+
         <td>
           <div class="actionCell">
             <button class="tableActionBtn hideBtn" onclick="hideOfficerRecord(${row.rowNumber})">Hide</button>
@@ -345,6 +364,113 @@ function renderOfficerTable(result) {
   }).join("");
 
   setOfficerManageStatus(`${formatSheetLabel(result.sheetName)} loaded. ${rows.length} record(s) found.`);
+  attachOfficerLongPressSelection();
+}
+
+function toggleOfficerRowSelection(rowNumber, checked) {
+  const numericRow = Number(rowNumber);
+
+  if (checked) {
+    selectedOfficerRows.add(numericRow);
+  } else {
+    selectedOfficerRows.delete(numericRow);
+  }
+
+  syncOfficerSelectedRows();
+}
+
+function syncOfficerSelectedRows() {
+  document.querySelectorAll("#officerDataTable tbody tr").forEach(row => {
+    const checkbox = row.querySelector(".rowSelectInput");
+    if (!checkbox) return;
+
+    const rowNumber = Number(checkbox.dataset.row);
+    const selected = selectedOfficerRows.has(rowNumber);
+    checkbox.checked = selected;
+    row.classList.toggle("selectedRow", selected);
+  });
+
+  const count = selectedOfficerRows.size;
+  if (currentOfficerSheet && latestOfficerTableData) {
+    setOfficerManageStatus(`${formatSheetLabel(currentOfficerSheet)} loaded. ${latestOfficerTableData.rows.length} record(s) found. ${count} selected.`);
+  }
+}
+
+function selectAllOfficerRows() {
+  if (!latestOfficerTableData || !latestOfficerTableData.rows) return;
+  selectedOfficerRows = new Set(latestOfficerTableData.rows.map(row => Number(row.rowNumber)));
+  syncOfficerSelectedRows();
+}
+
+function clearOfficerSelection() {
+  selectedOfficerRows = new Set();
+  syncOfficerSelectedRows();
+}
+
+function attachOfficerLongPressSelection() {
+  document.querySelectorAll("#officerDataTable tbody tr").forEach(row => {
+    const checkbox = row.querySelector(".rowSelectInput");
+    if (!checkbox) return;
+
+    const rowNumber = Number(checkbox.dataset.row);
+    let timer = null;
+
+    row.addEventListener("touchstart", () => {
+      timer = setTimeout(() => {
+        toggleOfficerRowSelection(rowNumber, !selectedOfficerRows.has(rowNumber));
+      }, 550);
+    }, { passive: true });
+
+    row.addEventListener("touchend", () => clearTimeout(timer));
+    row.addEventListener("touchmove", () => clearTimeout(timer));
+    row.addEventListener("touchcancel", () => clearTimeout(timer));
+  });
+}
+
+async function hideSelectedOfficerRecords() {
+  if (!currentOfficerSheet) {
+    showOfficerToast("Select a category first.");
+    return;
+  }
+
+  const rowNumbers = Array.from(selectedOfficerRows).sort((a, b) => a - b);
+
+  if (rowNumbers.length === 0) {
+    showOfficerToast("Select at least one record.");
+    return;
+  }
+
+  const confirmed = confirm(`Hide ${rowNumbers.length} selected record(s)?`);
+  if (!confirmed) return;
+
+  showOfficerToast("Hiding selected records...");
+
+  try {
+    const response = await fetch(OFFICER_API_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        type: "officerBatchHide",
+        payload: {
+          sheetName: currentOfficerSheet,
+          rowNumbers
+        }
+      })
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      showOfficerToast(result.message || "Selected records hidden.");
+      selectedOfficerRows = new Set();
+      refreshCurrentOfficerTable();
+      return;
+    }
+
+    showOfficerToast(result.message || "Failed to hide selected records.");
+  } catch (error) {
+    console.error(error);
+    showOfficerToast("Error hiding selected records.");
+  }
 }
 
 async function hideOfficerRecord(rowNumber) {
@@ -422,6 +548,21 @@ function setOfficerManageStatus(message) {
   if (status) {
     status.textContent = message;
   }
+}
+
+function applyTextFormat(text, format) {
+  const cleanText = stripTextFormatTag(text).trim();
+  const cleanFormat = TEXT_FORMAT_OPTIONS.includes(format) ? format : "left";
+
+  if (!cleanText) return "";
+
+  return `[${cleanFormat}]\n${cleanText}`;
+}
+
+function stripTextFormatTag(value) {
+  return String(value || "")
+    .replace(/\r/g, "")
+    .replace(/^\[(center|left|right|bullets|numbers)\]\s*\n?/i, "");
 }
 
 function formatSheetLabel(sheetName) {

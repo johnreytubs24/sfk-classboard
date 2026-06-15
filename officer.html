@@ -61,21 +61,19 @@
           <input id="officerAnnouncementDate" type="date" />
 
           <label for="officerAnnouncementSubject">Subject</label>
-          <select id="officerAnnouncementSubject">
-            <option value="">Select Subject</option>
-            <option value="English">English</option>
-            <option value="Mathematics">Mathematics</option>
-            <option value="Science">Science</option>
-            <option value="ICT">ICT</option>
-            <option value="Filipino">Filipino</option>
-            <option value="CLED">CLED</option>
-            <option value="AP">AP</option>
-            <option value="MAPEH">MAPEH</option>
-            <option value="LE">LE</option>
-          </select>
+          <input id="officerAnnouncementSubject" list="subjectOptions" type="text" placeholder="Select or type subject" />
 
           <label for="officerAnnouncementText">Announcement</label>
           <textarea id="officerAnnouncementText" placeholder="Type subject announcement here..."></textarea>
+
+          <label for="officerAnnouncementFormat">Text Format</label>
+          <select id="officerAnnouncementFormat">
+            <option value="center">Center</option>
+            <option value="left">Left</option>
+            <option value="right">Right</option>
+            <option value="bullets">Bullets</option>
+            <option value="numbers">Numbers</option>
+          </select>
 
           <label for="officerAnnouncementTeacher">Teacher</label>
           <select id="officerAnnouncementTeacher">
@@ -119,21 +117,19 @@
           <input id="officerThingsDate" type="date" />
 
           <label for="officerThingsSubject">Subject</label>
-          <select id="officerThingsSubject">
-            <option value="">Select Subject</option>
-            <option value="English">English</option>
-            <option value="Mathematics">Mathematics</option>
-            <option value="Science">Science</option>
-            <option value="ICT">ICT</option>
-            <option value="Filipino">Filipino</option>
-            <option value="CLED">CLED</option>
-            <option value="AP">AP</option>
-            <option value="MAPEH">MAPEH</option>
-            <option value="LE">LE</option>
-          </select>
+          <input id="officerThingsSubject" list="subjectOptions" type="text" placeholder="Select or type subject" />
 
           <label for="officerThingsItem">Item / Reminder</label>
           <textarea id="officerThingsItem" placeholder="Example: Bring notebook / project materials..."></textarea>
+
+          <label for="officerThingsFormat">Text Format</label>
+          <select id="officerThingsFormat">
+            <option value="left">Left</option>
+            <option value="center">Center</option>
+            <option value="right">Right</option>
+            <option value="bullets">Bullets</option>
+            <option value="numbers">Numbers</option>
+          </select>
 
           <label for="officerThingsPublish">Publish</label>
           <select id="officerThingsPublish">
@@ -184,6 +180,22 @@
 
       </section>
 
+      <datalist id="subjectOptions">
+        <option value="English"></option>
+        <option value="Mathematics"></option>
+        <option value="Science"></option>
+        <option value="ICT"></option>
+        <option value="Filipino"></option>
+        <option value="CLED"></option>
+        <option value="AP"></option>
+        <option value="MAPEH"></option>
+        <option value="LE"></option>
+        <option value="Homeroom"></option>
+        <option value="Morning Assembly"></option>
+        <option value="Class Meeting"></option>
+        <option value="Performance Task"></option>
+      </datalist>
+
       <!-- MANAGE EXISTING DATA -->
       <section class="managePanel">
         <div class="manageHeader">
@@ -204,6 +216,12 @@
 
         <div id="officerManageStatus" class="manageStatus">
           Select a category to view existing data.
+        </div>
+
+        <div class="batchActions">
+          <button onclick="selectAllOfficerRows()">Select All</button>
+          <button onclick="clearOfficerSelection()">Clear Selection</button>
+          <button onclick="hideSelectedOfficerRecords()">Hide Selected</button>
         </div>
 
         <div class="tableWrap">

@@ -638,6 +638,92 @@ small {
   overflow-wrap: anywhere;
 }
 
+.announcement-size-md .announcement-center-content {
+  gap: 9px;
+}
+
+.announcement-size-md .announcement-main-text {
+  font-size: clamp(.82rem, 1.35vw, 1.55rem);
+  line-height: 1.24;
+  max-width: 94%;
+}
+
+.announcement-size-sm .announcement-center-content {
+  gap: 7px;
+}
+
+.announcement-size-sm .announcement-main-text {
+  font-size: clamp(.78rem, 1.08vw, 1.18rem);
+  line-height: 1.22;
+  max-width: 95%;
+  font-weight: 760;
+}
+
+.announcement-size-xs .announcement-center-content {
+  gap: 6px;
+}
+
+.announcement-size-xs .announcement-main-text {
+  font-size: clamp(.72rem, .92vw, 1rem);
+  line-height: 1.18;
+  max-width: 96%;
+  font-weight: 760;
+}
+
+.announcement-size-sm .formattedText,
+.announcement-size-xs .formattedText {
+  line-height: inherit;
+}
+
+.announcement-size-sm ul.formattedText,
+.announcement-size-sm ol.formattedText,
+.announcement-size-xs ul.formattedText,
+.announcement-size-xs ol.formattedText {
+  padding-left: 1.15em;
+}
+
+.announcement-size-sm ul.formattedText li,
+.announcement-size-sm ol.formattedText li,
+.announcement-size-xs ul.formattedText li,
+.announcement-size-xs ol.formattedText li {
+  margin-bottom: .12em;
+}
+
+.announcement-size-sm .announcement-footer,
+.announcement-size-xs .announcement-footer {
+  font-size: clamp(.7rem, .86vw, .9rem);
+  line-height: 1.15;
+}
+
+.formattedText {
+  width: 100%;
+  line-height: 1.35;
+  white-space: normal;
+}
+
+.formattedText.align-left {
+  text-align: left;
+}
+
+.formattedText.align-center {
+  text-align: center;
+}
+
+.formattedText.align-right {
+  text-align: right;
+}
+
+ul.formattedText,
+ol.formattedText {
+  margin: 0;
+  padding-left: 1.25em;
+}
+
+ul.formattedText li,
+ol.formattedText li {
+  margin-bottom: .25em;
+}
+
 .announcement-footer {
   width: 100%;
   max-width: 96%;
@@ -2914,5 +3000,459 @@ small {
 
   .prayerPlayer {
     width: 100%;
+  }
+}
+
+/* Final update overrides */
+.weeklyUniformInfo {
+  min-width: 220px;
+}
+
+.prayerPlayerBox {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, .55), transparent 32%),
+    radial-gradient(circle at bottom right, rgba(255, 215, 0, .36), transparent 34%),
+    linear-gradient(135deg, #fff9d8, #ffd84d, #fff1a8);
+}
+
+.prayerPlayerBox::before {
+  content: "";
+  position: absolute;
+  inset: -45%;
+  background:
+    radial-gradient(circle, rgba(255,255,255,.52) 0 2px, transparent 3px),
+    radial-gradient(circle, rgba(255,215,0,.35) 0 3px, transparent 4px);
+  background-size: 82px 82px, 128px 128px;
+  animation: prayerGlowMove 20s linear infinite;
+  opacity: .55;
+  pointer-events: none;
+}
+
+.prayerPlayerBox::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 0%, rgba(255,255,255,.28) 42%, transparent 72%);
+  animation: prayerLightSweep 8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.prayerPlayerBox > * {
+  position: relative;
+  z-index: 2;
+}
+
+@keyframes prayerGlowMove {
+  from { transform: translate(0, 0) rotate(0deg); }
+  to { transform: translate(84px, 84px) rotate(360deg); }
+}
+
+@keyframes prayerLightSweep {
+  0%, 100% { transform: translateX(-125%); opacity: 0; }
+  45%, 62% { opacity: 1; }
+  100% { transform: translateX(125%); opacity: 0; }
+}
+
+@media (max-width: 1024px) {
+  body.mobileHidePeriodCards .heroGrid .current,
+  body.mobileHidePeriodCards .heroGrid .next {
+    display: none;
+  }
+}
+
+/* Weekly schedule compact daily info - final override */
+.weeklyScheduleContent {
+  overflow-y: auto !important;
+}
+
+.weeklyDayTitle {
+  position: static !important;
+  top: auto !important;
+  z-index: auto !important;
+  background: transparent !important;
+  padding: 0 0 8px !important;
+  margin: 0 0 8px !important;
+}
+
+.weeklyDayHeaderLine {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 4px 2px 6px;
+  border-bottom: 3px solid rgba(0,0,0,.12);
+}
+
+.weeklyDayHeaderLine h3 {
+  margin: 0 !important;
+  font-size: clamp(1.25rem, 2.4vw, 1.7rem) !important;
+  line-height: 1 !important;
+  white-space: nowrap;
+}
+
+.weeklyDayMeta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.weeklyDayMeta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #fff7c7;
+  color: #111;
+  border: 2px solid #111;
+  border-radius: 999px;
+  padding: 5px 9px;
+  font-size: clamp(.72rem, 1.15vw, .86rem);
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 1px 1px 0 rgba(0,0,0,.18);
+  max-width: 100%;
+}
+
+.weeklyDayMeta b {
+  color: #111;
+}
+
+.weeklyDaySummaryCompact {
+  display: none !important;
+}
+
+@media (max-width: 700px) {
+  .weeklyDayHeaderLine {
+    gap: 8px;
+  }
+
+  .weeklyDayHeaderLine h3 {
+    width: 100%;
+  }
+
+  .weeklyDayMeta {
+    width: 100%;
+    gap: 5px;
+  }
+
+  .weeklyDayMeta span {
+    padding: 5px 7px;
+    font-size: .72rem;
+  }
+}
+
+/* Prayer popup desktop layout fix */
+.prayerPopup {
+  padding: clamp(18px, 3vw, 38px) !important;
+}
+
+.prayerPopupBox.prayerPlayerBox {
+  width: min(980px, 96vw) !important;
+  max-height: 88vh !important;
+  min-height: min(520px, 82vh) !important;
+  display: grid !important;
+  grid-template-columns: 118px minmax(0, 1fr) !important;
+  align-items: center !important;
+  gap: clamp(22px, 3vw, 38px) !important;
+  padding: clamp(30px, 4vw, 48px) !important;
+  text-align: left !important;
+}
+
+.prayerPopupBox .prayerPopupIcon {
+  width: 104px !important;
+  height: 104px !important;
+  margin: 0 !important;
+  font-size: 2.8rem !important;
+}
+
+.prayerPopupBox .prayerPopupText {
+  width: 100% !important;
+  min-width: 0 !important;
+  display: grid !important;
+  gap: 14px !important;
+}
+
+.prayerPopupBox .prayerPopupText h2 {
+  max-width: 100% !important;
+  margin: 0 !important;
+  font-size: clamp(3rem, 5vw, 5.2rem) !important;
+  line-height: .95 !important;
+  word-break: normal !important;
+}
+
+.prayerPopupBox .prayerPopupText p {
+  max-width: 720px !important;
+  margin: 0 !important;
+  font-size: clamp(1.2rem, 1.7vw, 1.55rem) !important;
+  line-height: 1.25 !important;
+}
+
+.prayerPopupBox .prayerPopupText strong {
+  display: block !important;
+  width: fit-content !important;
+  max-width: 720px !important;
+  margin: 0 !important;
+  border-radius: 16px !important;
+  padding: 10px 14px !important;
+  font-size: clamp(1rem, 1.25vw, 1.18rem) !important;
+  line-height: 1.25 !important;
+  white-space: normal !important;
+}
+
+.prayerPopupBox .prayerPlayer {
+  width: min(720px, 100%) !important;
+  max-width: 100% !important;
+  margin: 2px 0 0 !important;
+  display: block !important;
+}
+
+.prayerPopupBox .prayerCloseBtn {
+  top: 18px !important;
+  right: 18px !important;
+  width: 54px !important;
+  height: 54px !important;
+}
+
+@media (max-width: 700px) {
+  .prayerPopupBox.prayerPlayerBox {
+    width: 94vw !important;
+    min-height: auto !important;
+    max-height: 88vh !important;
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+    padding: 24px 18px !important;
+    text-align: center !important;
+    overflow-y: auto !important;
+  }
+
+  .prayerPopupBox .prayerPopupIcon {
+    width: 82px !important;
+    height: 82px !important;
+    margin: 0 auto !important;
+    font-size: 2.2rem !important;
+  }
+
+  .prayerPopupBox .prayerPopupText h2 {
+    font-size: clamp(2rem, 10vw, 3.1rem) !important;
+  }
+
+  .prayerPopupBox .prayerPopupText p {
+    font-size: 1rem !important;
+  }
+
+  .prayerPopupBox .prayerPopupText strong {
+    width: 100% !important;
+    margin: 0 auto !important;
+  }
+}
+
+/* Prayer popup balanced final sizing */
+.prayerPopup {
+  padding: 18px !important;
+  overflow: hidden !important;
+}
+
+.prayerPopupBox.prayerPlayerBox {
+  width: min(760px, 92vw) !important;
+  min-height: 0 !important;
+  max-height: calc(100vh - 56px) !important;
+  display: grid !important;
+  grid-template-columns: 90px minmax(0, 1fr) !important;
+  gap: 22px !important;
+  align-items: center !important;
+  padding: 28px 30px !important;
+  text-align: left !important;
+  overflow: visible !important;
+}
+
+.prayerPopupBox .prayerPopupIcon {
+  width: 86px !important;
+  height: 86px !important;
+  font-size: 2.25rem !important;
+  margin: 0 !important;
+}
+
+.prayerPopupBox .prayerPopupText {
+  display: grid !important;
+  gap: 10px !important;
+}
+
+.prayerPopupBox .prayerPopupText h2 {
+  font-size: clamp(2.1rem, 3.4vw, 3.6rem) !important;
+  line-height: .98 !important;
+  margin: 0 !important;
+}
+
+.prayerPopupBox .prayerPopupText p {
+  font-size: clamp(1rem, 1.25vw, 1.2rem) !important;
+  line-height: 1.25 !important;
+  margin: 0 !important;
+}
+
+.prayerPopupBox .prayerPopupText strong {
+  display: inline-block !important;
+  width: fit-content !important;
+  max-width: 100% !important;
+  padding: 8px 12px !important;
+  border-radius: 999px !important;
+  font-size: clamp(.92rem, 1.05vw, 1rem) !important;
+  line-height: 1.2 !important;
+}
+
+.prayerPopupBox .prayerPlayer {
+  width: min(520px, 100%) !important;
+  margin: 0 !important;
+}
+
+.prayerPopupBox .prayerCloseBtn {
+  top: -14px !important;
+  right: -14px !important;
+  width: 46px !important;
+  height: 46px !important;
+}
+
+@media (max-width: 700px) {
+  .prayerPopup {
+    padding: 12px !important;
+    align-items: center !important;
+  }
+
+  .prayerPopupBox.prayerPlayerBox {
+    width: min(92vw, 520px) !important;
+    max-height: none !important;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+    padding: 22px 16px 18px !important;
+    text-align: center !important;
+    overflow: visible !important;
+  }
+
+  .prayerPopupBox .prayerPopupIcon {
+    width: 72px !important;
+    height: 72px !important;
+    font-size: 2rem !important;
+    margin: 0 auto !important;
+  }
+
+  .prayerPopupBox .prayerPopupText {
+    gap: 9px !important;
+  }
+
+  .prayerPopupBox .prayerPopupText h2 {
+    font-size: clamp(1.9rem, 8vw, 2.7rem) !important;
+    line-height: 1 !important;
+  }
+
+  .prayerPopupBox .prayerPopupText p {
+    font-size: .95rem !important;
+  }
+
+  .prayerPopupBox .prayerPopupText strong {
+    width: auto !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    border-radius: 14px !important;
+  }
+
+  .prayerPopupBox .prayerPlayer {
+    width: 100% !important;
+  }
+}
+
+/* Desktop-only prayer popup centering. Mobile rules above remain unchanged. */
+@media (min-width: 701px) {
+  .prayerPopupBox.prayerPlayerBox {
+    width: min(1060px, 92vw) !important;
+    min-height: 500px !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    justify-items: center !important;
+    align-items: center !important;
+    gap: 14px !important;
+    padding: 34px 42px 32px !important;
+    text-align: center !important;
+  }
+
+  .prayerPopupBox .prayerPopupIcon {
+    width: 92px !important;
+    height: 92px !important;
+    margin: 0 auto !important;
+    font-size: 2.45rem !important;
+  }
+
+  .prayerPopupBox .prayerPopupText {
+    width: 100% !important;
+    justify-items: center !important;
+    gap: 10px !important;
+  }
+
+  .prayerPopupBox .prayerPopupText h2 {
+    max-width: 100% !important;
+    font-size: clamp(2.5rem, 4.2vw, 4rem) !important;
+    line-height: .96 !important;
+    text-align: center !important;
+  }
+
+  .prayerPopupBox .prayerPopupText p {
+    max-width: 560px !important;
+    text-align: center !important;
+  }
+
+  .prayerPopupBox .prayerPopupText strong {
+    margin: 0 auto !important;
+    text-align: center !important;
+  }
+
+  .prayerPopupBox .prayerPlayer {
+    width: min(520px, 100%) !important;
+    margin: 0 auto !important;
+  }
+
+  .prayerPopupBox .prayerCloseBtn {
+    position: absolute !important;
+    top: 24px !important;
+    left: 24px !important;
+    right: auto !important;
+    bottom: auto !important;
+    margin: 0 !important;
+    transform: none !important;
+  }
+}
+
+/* Subject Announcement auto text sizing */
+.announcement-item.announcement-size-md .announcement-main-text {
+  font-size: clamp(.82rem, 1.35vw, 1.55rem) !important;
+  line-height: 1.24 !important;
+}
+
+.announcement-item.announcement-size-sm .announcement-main-text {
+  font-size: clamp(.78rem, 1.08vw, 1.18rem) !important;
+  line-height: 1.22 !important;
+}
+
+.announcement-item.announcement-size-xs .announcement-main-text {
+  font-size: clamp(.72rem, .92vw, 1rem) !important;
+  line-height: 1.18 !important;
+}
+
+.announcement-item.announcement-size-sm .announcement-footer,
+.announcement-item.announcement-size-xs .announcement-footer {
+  font-size: clamp(.7rem, .86vw, .9rem) !important;
+}
+
+@media (max-width: 700px) {
+  .announcement-item.announcement-size-md .announcement-main-text {
+    font-size: clamp(.86rem, 3.7vw, 1.05rem) !important;
+  }
+
+  .announcement-item.announcement-size-sm .announcement-main-text {
+    font-size: clamp(.78rem, 3.2vw, .92rem) !important;
+  }
+
+  .announcement-item.announcement-size-xs .announcement-main-text {
+    font-size: clamp(.7rem, 2.85vw, .82rem) !important;
   }
 }

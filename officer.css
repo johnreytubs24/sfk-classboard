@@ -343,6 +343,29 @@ select:focus {
   margin-bottom: 12px;
 }
 
+.batchActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.batchActions button {
+  background: white;
+  color: #111;
+  border: 2px solid #111;
+  border-radius: 999px;
+  padding: 9px 13px;
+  font-size: .82rem;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 rgba(0,0,0,.18);
+}
+
+.batchActions button:hover {
+  background: #ffd700;
+}
+
 .tableWrap {
   width: 100%;
   overflow-x: auto;
@@ -388,6 +411,22 @@ select:focus {
 
 #officerDataTable tbody tr:hover td {
   background: #fff7c7;
+}
+
+#officerDataTable tbody tr.selectedRow td {
+  background: #fff2a8;
+  outline: 2px solid rgba(0,0,0,.12);
+}
+
+.selectCell {
+  text-align: center !important;
+  vertical-align: middle !important;
+}
+
+.rowSelectInput {
+  width: 20px;
+  height: 20px;
+  accent-color: #111;
 }
 
 .rowNumberCell {

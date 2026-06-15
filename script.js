@@ -10,8 +10,8 @@ const CACHE_KEY = "sfkClassBoardData";
    Prayer popup appears at scheduled/test time with a manual audio player.
 */
 const PRAYER_TEST_TRIGGER_ENABLED = true;
-const PRAYER_TEST_HOUR = "00";
-const PRAYER_TEST_MINUTE = "59";
+const PRAYER_TEST_HOUR = "21";
+const PRAYER_TEST_MINUTE = "04";
 
 let latestData = null;
 let latestDataString = "";
@@ -20,8 +20,10 @@ let birthdayIndex = 0;
 let isFetching = false;
 let lastBirthdayDisplayKey = "";
 let weeklyScheduleData = [];
+let weeklyDailyInfoData = [];
 let activeWeeklyDay = "Monday";
 let lastPrayerTriggerKey = "";
+let lastScheduleAutoScrollKey = "";
 
 const subjectIcons = {
   english: "📘",
@@ -141,8 +143,11 @@ function renderDashboard(data) {
   document.getElementById("dateText").textContent =
     `${data.day}, ${data.date}`;
 
-  renderCurrentSubject(data.currentSubject);
-  renderNextSubject(data.nextSubject);
+  const periodState = getDisplayPeriodState(data.schedule || [], data.currentSubject, data.nextSubject);
+
+  renderCurrentSubject(periodState.currentPeriod);
+  renderNextSubject(periodState.nextPeriod);
+  updateMobilePeriodCardVisibility(periodState);
   renderPrayerLeader(data.prayerLeader);
   renderCleanersToday();
   renderSchedule(data.schedule, data.currentSubject);
@@ -153,6 +158,58 @@ function renderDashboard(data) {
   renderBirthdays(data.birthdays || []);
   renderTicker(data.ticker || []);
   updateCountdownAndBell();
+}
+
+function getDisplayPeriodState(schedule, currentSubject, nextSubject) {
+  const sortedSchedule = (schedule || [])
+    .filter(item => item && item.StartTime && item.EndTime)
+    .slice()
+    .sort((a, b) => timeToMinutes(a.StartTime) - timeToMinutes(b.StartTime));
+
+  const nowMinutes = getCurrentManilaMinutes();
+  const todayName = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    timeZone: "Asia/Manila"
+  });
+
+  const isWeekend = todayName === "Saturday" || todayName === "Sunday";
+  const firstPeriod = sortedSchedule[0] || null;
+  const lastPeriod = sortedSchedule[sortedSchedule.length - 1] || null;
+  const firstStart = firstPeriod ? timeToMinutes(firstPeriod.StartTime) : null;
+  const lastEnd = lastPeriod ? timeToMinutes(lastPeriod.EndTime) : null;
+  const secondPeriod = sortedSchedule[1] || null;
+  const oneHour = 60;
+
+  let currentPeriod = currentSubject || null;
+  let nextPeriod = nextSubject || null;
+
+  if (!currentPeriod && firstPeriod && firstStart !== null && nowMinutes >= firstStart - oneHour && nowMinutes < firstStart) {
+    currentPeriod = firstPeriod;
+    nextPeriod = secondPeriod;
+  }
+
+  if (!currentPeriod && !nextPeriod && lastPeriod && lastEnd !== null && nowMinutes >= lastEnd && nowMinutes < lastEnd + oneHour) {
+    currentPeriod = lastPeriod;
+  }
+
+  const shouldHideOnMobile =
+    isWeekend ||
+    sortedSchedule.length === 0 ||
+    (lastEnd !== null && nowMinutes >= lastEnd + oneHour) ||
+    (firstStart !== null && nowMinutes < firstStart - oneHour);
+
+  return {
+    currentPeriod,
+    nextPeriod,
+    shouldHideOnMobile
+  };
+}
+
+function updateMobilePeriodCardVisibility(periodState) {
+  document.body.classList.toggle(
+    "mobileHidePeriodCards",
+    Boolean(periodState && periodState.shouldHideOnMobile)
+  );
 }
 
 function renderCleanersToday() {
@@ -253,10 +310,10 @@ function renderCurrentSubject(item) {
     }
 
     document.getElementById("currentSubject").textContent =
-      "No current subject";
+      "No current period";
 
     document.getElementById("currentDetails").textContent =
-      "Free time / no class";
+      "Free time / no scheduled period";
   }
 }
 function renderNextSubject(item) {
@@ -301,13 +358,13 @@ function renderNextSubject(item) {
     }
 
     document.getElementById("nextSubject").textContent =
-      "No next subject";
+      "No next period";
 
     document.getElementById("nextDetails").textContent =
       "End of schedule";
 
     document.getElementById("countdownText").textContent =
-      "No upcoming class";
+      "No upcoming period";
   }
 }
 
@@ -321,9 +378,16 @@ function renderSchedule(items, currentSubject) {
 
   if (!items || items.length === 0) {
     box.innerHTML = `<p>No schedule for today.</p>`;
-    box.scrollTo({ top: 0, behavior: "smooth" });
+    if (!lastScheduleAutoScrollKey) {
+      box.scrollTo({ top: 0, behavior: "smooth" });
+    }
     return;
   }
+
+  const previousScrollTop = box.scrollTop;
+  const currentKey = currentSubject
+    ? `${currentSubject.Subject || ""}|${currentSubject.StartTime || ""}|${currentSubject.EndTime || ""}`
+    : "";
 
   box.innerHTML = items.map(item => {
     const color = item.Color || getSubjectColor(item.Subject);
@@ -338,7 +402,7 @@ function renderSchedule(items, currentSubject) {
     return `
   <div class="schedule-item ${isCurrent ? "current-row" : ""}"
        style="background:${color}; color:${textColor};">
-    ${isCurrent ? `<div class="current-badge">▶ CURRENT CLASS</div>` : ""}
+    ${isCurrent ? `<div class="current-badge">▶ CURRENT PERIOD</div>` : ""}
     <strong style="color:${textColor};">${item.StartTime} - ${item.EndTime}</strong><br>
     <span class="subject-name" style="color:${textColor};">${iconFor(item.Subject)} ${item.Subject}</span><br>
     <small style="color:${textColor}; opacity:.9;">${item.Teacher} • ${item.Room}</small>
@@ -346,7 +410,18 @@ function renderSchedule(items, currentSubject) {
 `;
   }).join("");
 
-  scrollToCurrentSchedule();
+  if (currentKey && currentKey !== lastScheduleAutoScrollKey) {
+    lastScheduleAutoScrollKey = currentKey;
+    scrollToCurrentSchedule();
+    return;
+  }
+
+  if (!currentKey && !lastScheduleAutoScrollKey) {
+    box.scrollTop = 0;
+    return;
+  }
+
+  box.scrollTop = previousScrollTop;
 }
 
 function scrollToCurrentSchedule() {
@@ -366,11 +441,6 @@ function scrollToCurrentSchedule() {
 
       scheduleBox.scrollTo({
         top: scheduleBox.scrollTop + offset,
-        behavior: "smooth"
-      });
-    } else {
-      scheduleBox.scrollTo({
-        top: 0,
         behavior: "smooth"
       });
     }
@@ -393,11 +463,14 @@ function renderAnnouncements(items) {
 
   const subjectColor = getSubjectColor(item.Subject);
   const subjectTextColor = getSubjectTextColor(item.Subject);
+  const announcementText = item.Announcement || "";
+  const formattedAnnouncement = formatBoardText(announcementText, "center");
+  const announcementSizeClass = getAnnouncementTextSizeClass(announcementText);
 
   title.textContent = `Subject Announcements (${currentNumber} / ${total})`;
 
   box.innerHTML = `
-    <div class="announcement-item rotating-announcement">
+    <div class="announcement-item rotating-announcement ${announcementSizeClass}">
 
       <div class="announcement-top-left">
         <span class="announcement-subject-pill"
@@ -412,7 +485,7 @@ function renderAnnouncements(items) {
 
       <div class="announcement-center-content">
         <div class="announcement-main-text">
-          ${item.Announcement || ""}
+          ${formattedAnnouncement}
         </div>
 
         <div class="announcement-footer">
@@ -427,6 +500,24 @@ function renderAnnouncements(items) {
 
     </div>
   `;
+}
+
+function getAnnouncementTextSizeClass(value) {
+  const text = stripBoardTextFormatTag(value);
+  const lines = text
+    .replace(/\r/g, "")
+    .split("\n")
+    .map(line => line.trim())
+    .filter(Boolean);
+
+  const charCount = text.replace(/\s+/g, " ").trim().length;
+  const lineCount = lines.length;
+
+  if (charCount > 420 || lineCount >= 8) return "announcement-size-xs";
+  if (charCount > 280 || lineCount >= 6) return "announcement-size-sm";
+  if (charCount > 160 || lineCount >= 4) return "announcement-size-md";
+
+  return "announcement-size-normal";
 }
 
 function rotateAnnouncements() {
@@ -500,7 +591,7 @@ function renderThings(items) {
 
   box.innerHTML = visibleItems.map(item => {
     const safeSubject = escapeHTML(item.subject);
-    const safeItemText = escapeHTML(item.itemText || "No item specified");
+    const formattedItemText = formatBoardText(item.itemText || "No item specified", "left");
     const subjectClass = getThingSubjectClass(item.subject);
 
     const statusLabel = item.status.label
@@ -514,7 +605,7 @@ function renderThings(items) {
           ${statusLabel}
         </div>
 
-        <small class="thing-detail">${safeItemText}</small>
+        <div class="thing-detail">${formattedItemText}</div>
       </div>
     `;
   }).join("");
@@ -747,6 +838,52 @@ function escapeHTML(value) {
     .replaceAll("'", "&#039;");
 }
 
+function formatBoardText(value, defaultAlign = "center") {
+  const rawLines = String(value || "")
+    .replace(/\r/g, "")
+    .split("\n")
+    .map(line => line.trim())
+    .filter(Boolean);
+
+  if (rawLines.length === 0) {
+    return "";
+  }
+
+  const firstLine = rawLines[0].toLowerCase();
+  const tagMatch = firstLine.match(/^\[(left|center|right|bullets|numbers)\]$/);
+  const mode = tagMatch ? tagMatch[1] : defaultAlign;
+  const contentLines = tagMatch ? rawLines.slice(1) : rawLines;
+  const safeLines = contentLines.map(line => escapeHTML(line));
+
+  if (safeLines.length === 0) {
+    return "";
+  }
+
+  if (mode === "bullets" || mode === "numbers") {
+    const tagName = mode === "numbers" ? "ol" : "ul";
+    return `
+      <${tagName} class="formattedText align-left">
+        ${safeLines.map(line => `<li>${line}</li>`).join("")}
+      </${tagName}>
+    `;
+  }
+
+  const alignClass =
+    mode === "right"
+      ? "align-right"
+      : mode === "left"
+        ? "align-left"
+        : "align-center";
+  return `<div class="formattedText ${alignClass}">${safeLines.join("<br>")}</div>`;
+}
+
+function stripBoardTextFormatTag(value) {
+  return String(value || "")
+    .replace(/\r/g, "")
+    .replace(/^\[(left|center|right|bullets|numbers)\]\s*\n?/i, "")
+    .trim();
+}
+
 function renderReminders(items) {
   const box = document.getElementById("reminderList");
 
@@ -762,7 +899,7 @@ function renderReminders(items) {
 
     return `
       <div class="reminder-item">
-        ${reminder}
+        ${formatBoardText(reminder, "left")}
       </div>
     `;
   }).join("");
@@ -1006,25 +1143,36 @@ function updateCountdownAndBell() {
   const alert = document.getElementById("bellAlert");
 
   const currentMinutes = getCurrentManilaMinutes();
+  const periodState = latestData
+    ? getDisplayPeriodState(latestData.schedule || [], latestData.currentSubject, latestData.nextSubject)
+    : { currentPeriod: null, nextPeriod: null };
+  const currentPeriod = periodState.currentPeriod;
+  const nextPeriod = periodState.nextPeriod;
 
   if (currentCountdown) {
-    if (!latestData || !latestData.currentSubject) {
-      currentCountdown.textContent = "No ongoing class";
+    if (!currentPeriod) {
+      currentCountdown.textContent = "No ongoing period";
     } else {
-      const endMinutes = timeToMinutes(latestData.currentSubject.EndTime);
-      const remaining = endMinutes - currentMinutes;
+      const endMinutes = timeToMinutes(currentPeriod.EndTime);
+      const startMinutes = timeToMinutes(currentPeriod.StartTime);
 
-      if (remaining <= 0) {
-        currentCountdown.textContent = "Ending soon";
+      if (currentMinutes < startMinutes) {
+        currentCountdown.textContent = `Starts in: ${formatMinutesCountdown(startMinutes - currentMinutes)}`;
       } else {
-        currentCountdown.textContent = `Ends in: ${formatMinutesCountdown(remaining)}`;
+        const remaining = endMinutes - currentMinutes;
+
+        if (remaining <= 0) {
+          currentCountdown.textContent = "Ending soon";
+        } else {
+          currentCountdown.textContent = `Ends in: ${formatMinutesCountdown(remaining)}`;
+        }
       }
     }
   }
 
-  if (!latestData || !latestData.nextSubject) {
+  if (!nextPeriod) {
     if (nextCountdown) {
-      nextCountdown.textContent = "No upcoming class";
+      nextCountdown.textContent = "No upcoming period";
     }
 
     if (alert) {
@@ -1034,7 +1182,7 @@ function updateCountdownAndBell() {
     return;
   }
 
-  const startMinutes = timeToMinutes(latestData.nextSubject.StartTime);
+  const startMinutes = timeToMinutes(nextPeriod.StartTime);
   const diff = startMinutes - currentMinutes;
 
   if (diff <= 0) {
@@ -1056,7 +1204,7 @@ function updateCountdownAndBell() {
   if (diff <= 5) {
     if (alert) {
       alert.textContent =
-        `⏰ ${latestData.nextSubject.Subject} starts in ${diff} minute${diff > 1 ? "s" : ""}`;
+        `⏰ ${nextPeriod.Subject} starts in ${diff} minute${diff > 1 ? "s" : ""}`;
 
       alert.classList.remove("hidden");
     }
@@ -1240,14 +1388,19 @@ async function loadWeeklySchedule() {
 
     if (Array.isArray(data)) {
       weeklyScheduleData = data;
+      weeklyDailyInfoData = [];
     } else if (Array.isArray(data.schedule)) {
       weeklyScheduleData = data.schedule;
+      weeklyDailyInfoData = Array.isArray(data.dailyInfo) ? data.dailyInfo : [];
     } else if (Array.isArray(data.data)) {
       weeklyScheduleData = data.data;
+      weeklyDailyInfoData = Array.isArray(data.dailyInfo) ? data.dailyInfo : [];
     } else if (Array.isArray(data.rows)) {
       weeklyScheduleData = data.rows;
+      weeklyDailyInfoData = Array.isArray(data.dailyInfo) ? data.dailyInfo : [];
     } else {
       weeklyScheduleData = [];
+      weeklyDailyInfoData = [];
     }
 
     console.log("Weekly schedule parsed:", weeklyScheduleData);
@@ -1307,12 +1460,25 @@ const dayItems = weeklyScheduleData
 
   const pasokTime = firstItem.StartTime || "--";
   const uwianTime = lastItem.EndTime || "--";
+  const dailyInfo = getWeeklyDailyInfo(day);
+  const entryGate = dailyInfo.EntryGate || dailyInfo.entryGate || "Gate 2";
+  const exitGate = dailyInfo.ExitGate || dailyInfo.exitGate || "SHS Gate";
+  const uniform = dailyInfo.Uniform || dailyInfo.uniform || "To be announced";
 
   content.innerHTML = `
     <div class="weeklyDayTitle">
-      <h3>${day}</h3>
+      <div class="weeklyDayHeaderLine">
+        <h3>${day}</h3>
+        <div class="weeklyDayMeta">
+          <span><b>Pasok:</b> ${pasokTime}</span>
+          <span><b>Uwian:</b> ${uwianTime}</span>
+          <span><b>Entry:</b> ${escapeHTML(entryGate)}</span>
+          <span><b>Exit:</b> ${escapeHTML(exitGate)}</span>
+          <span><b>Uniform:</b> ${escapeHTML(uniform)}</span>
+        </div>
+      </div>
 
-      <div class="weeklyDaySummary">
+      <div class="weeklyDaySummary weeklyDaySummaryCompact" aria-hidden="true">
         <div>
           <span>Pasok</span>
           <strong>${pasokTime}</strong>
@@ -1321,6 +1487,21 @@ const dayItems = weeklyScheduleData
         <div>
           <span>Uwian</span>
           <strong>${uwianTime}</strong>
+        </div>
+
+        <div>
+          <span>Entry Gate</span>
+          <strong>${escapeHTML(entryGate)}</strong>
+        </div>
+
+        <div>
+          <span>Exit Gate</span>
+          <strong>${escapeHTML(exitGate)}</strong>
+        </div>
+
+        <div class="weeklyUniformInfo">
+          <span>Uniform</span>
+          <strong>${escapeHTML(uniform)}</strong>
         </div>
       </div>
     </div>
@@ -1351,6 +1532,13 @@ const dayItems = weeklyScheduleData
       }).join("")}
     </div>
   `;
+}
+
+function getWeeklyDailyInfo(day) {
+  return (weeklyDailyInfoData || []).slice().reverse().find(item => {
+    const itemDay = String(item.Day || item.day || "").trim().toLowerCase();
+    return itemDay === String(day || "").trim().toLowerCase();
+  }) || {};
 }
 
 
@@ -1412,7 +1600,7 @@ function getCurrentPrayerTrigger() {
   if (PRAYER_TEST_TRIGGER_ENABLED && hour === PRAYER_TEST_HOUR && minute === PRAYER_TEST_MINUTE) {
     return {
       config: {
-        icon: "🧪",
+        icon: "🙏",
         title: "Angelus Test",
         subtitle: `${PRAYER_TEST_HOUR}:${PRAYER_TEST_MINUTE} test prayer player.`,
         audioSrc: "angelus.mp3"

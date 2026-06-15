@@ -6,6 +6,7 @@ const ADMIN_LOGIN_KEY = "sfkAdminLoggedIn";
 let currentAdminSheet = "";
 let editingRecord = null;
 let latestAdminTableData = null;
+let selectedAdminRows = new Set();
 
 const TEACHER_OPTIONS = [
   "Mr. John Rey Tubello",
@@ -18,6 +19,8 @@ const TEACHER_OPTIONS = [
   "Ms. Gina Soriano",
   "Mr. Runmar Quipanes"
 ];
+
+const TEXT_FORMAT_OPTIONS = ["center", "left", "right", "bullets", "numbers"];
 
 document.addEventListener("DOMContentLoaded", () => {
   if (localStorage.getItem(ADMIN_LOGIN_KEY) === "YES") {
@@ -103,7 +106,14 @@ async function sendAdminData(type, payload) {
       })
     });
 
-    const result = await response.json();
+    const responseText = await response.text();
+    let result = {};
+
+    try {
+      result = JSON.parse(responseText);
+    } catch (parseError) {
+      throw new Error(responseText.slice(0, 180) || "Invalid server response.");
+    }
 
     if (result.success) {
       showToast("Saved successfully.");
@@ -155,10 +165,13 @@ function clearFields(ids) {
 
 /* SUBJECT ANNOUNCEMENT */
 async function saveAnnouncement() {
+  const announcementText = document.getElementById("announcementText").value.trim();
+  const announcementFormat = document.getElementById("announcementFormat").value;
+
   const payload = {
     Date: document.getElementById("announcementDate").value,
     Subject: document.getElementById("announcementSubject").value,
-    Announcement: document.getElementById("announcementText").value.trim(),
+    Announcement: applyTextFormat(announcementText, announcementFormat),
     Teacher: document.getElementById("announcementTeacher").value,
     Deadline: document.getElementById("announcementDeadline").value,
     Priority: document.getElementById("announcementPriority").value,
@@ -177,6 +190,7 @@ async function saveAnnouncement() {
       "announcementDate",
       "announcementSubject",
       "announcementText",
+      "announcementFormat",
       "announcementTeacher",
       "announcementDeadline",
       "announcementPriority",
@@ -187,10 +201,13 @@ async function saveAnnouncement() {
 
 /* THINGS TO BRING */
 async function saveThingsToBring() {
+  const itemText = document.getElementById("thingsItem").value.trim();
+  const itemFormat = document.getElementById("thingsFormat").value;
+
   const payload = {
     Date: document.getElementById("thingsDate").value,
     Subject: document.getElementById("thingsSubject").value,
-    Item: document.getElementById("thingsItem").value.trim(),
+    Item: applyTextFormat(itemText, itemFormat),
     Publish: document.getElementById("thingsPublish").value
   };
 
@@ -206,6 +223,7 @@ async function saveThingsToBring() {
       "thingsDate",
       "thingsSubject",
       "thingsItem",
+      "thingsFormat",
       "thingsPublish"
     ]);
   }
@@ -213,9 +231,12 @@ async function saveThingsToBring() {
 
 /* ADVISER REMINDER */
 async function saveAdviserReminder() {
+  const reminderText = document.getElementById("adviserReminder").value.trim();
+  const reminderFormat = document.getElementById("adviserFormat").value;
+
   const payload = {
     Date: document.getElementById("adviserDate").value,
-    Reminder: document.getElementById("adviserReminder").value.trim(),
+    Reminder: applyTextFormat(reminderText, reminderFormat),
     Publish: document.getElementById("adviserPublish").value
   };
 
@@ -230,6 +251,7 @@ async function saveAdviserReminder() {
     clearFields([
       "adviserDate",
       "adviserReminder",
+      "adviserFormat",
       "adviserPublish"
     ]);
   }
@@ -332,9 +354,37 @@ async function saveTickerMessage() {
   }
 }
 
+/* DAILY SCHEDULE INFO */
+async function saveDailyInfo() {
+  const payload = {
+    Day: document.getElementById("dailyInfoDay").value,
+    EntryGate: document.getElementById("dailyInfoEntryGate").value.trim(),
+    ExitGate: document.getElementById("dailyInfoExitGate").value.trim(),
+    Uniform: document.getElementById("dailyInfoUniform").value.trim(),
+    Publish: document.getElementById("dailyInfoPublish").value
+  };
+
+  if (!payload.Day || !payload.EntryGate || !payload.ExitGate || !payload.Uniform) {
+    showToast("Day, entry gate, exit gate, and uniform are required.");
+    return;
+  }
+
+  const saved = await sendAdminData("dailyInfo", payload);
+
+  if (saved) {
+    clearFields([
+      "dailyInfoEntryGate",
+      "dailyInfoExitGate",
+      "dailyInfoUniform",
+      "dailyInfoPublish"
+    ]);
+  }
+}
+
 /* MANAGE EXISTING DATA - EDIT / HIDE / DELETE */
 async function loadAdminTable(sheetName, buttonEl) {
   currentAdminSheet = sheetName;
+  selectedAdminRows = new Set();
 
   setActiveManageTab(buttonEl);
   setManageStatus(`Loading ${formatSheetLabel(sheetName)}...`);
@@ -389,6 +439,7 @@ function renderAdminTable(result) {
 
   tableHead.innerHTML = `
     <tr>
+      <th>Select</th>
       <th>Actions</th>
       <th>Row</th>
       ${headers.map(header => `<th>${escapeHtml(header)}</th>`).join("")}
@@ -398,7 +449,7 @@ function renderAdminTable(result) {
   if (rows.length === 0) {
     tableBody.innerHTML = `
       <tr>
-        <td colspan="${headers.length + 2}" class="emptyCell">
+        <td colspan="${headers.length + 3}" class="emptyCell">
           No data found.
         </td>
       </tr>
@@ -411,6 +462,10 @@ function renderAdminTable(result) {
   tableBody.innerHTML = rows.map(row => {
     return `
       <tr>
+        <td class="selectCell">
+          <input type="checkbox" class="rowSelectInput" data-row="${row.rowNumber}" onchange="toggleAdminRowSelection(${row.rowNumber}, this.checked)" />
+        </td>
+
         <td>
           <div class="actionCell">
             <button class="tableActionBtn editBtn" onclick="openEditModal(${row.rowNumber})">Edit</button>
@@ -434,6 +489,128 @@ function renderAdminTable(result) {
   }).join("");
 
   setManageStatus(`${formatSheetLabel(result.sheetName)} loaded. ${rows.length} record(s) found.`);
+  attachAdminLongPressSelection();
+}
+
+function toggleAdminRowSelection(rowNumber, checked) {
+  const numericRow = Number(rowNumber);
+
+  if (checked) {
+    selectedAdminRows.add(numericRow);
+  } else {
+    selectedAdminRows.delete(numericRow);
+  }
+
+  syncAdminSelectedRows();
+}
+
+function syncAdminSelectedRows() {
+  document.querySelectorAll("#adminDataTable tbody tr").forEach(row => {
+    const checkbox = row.querySelector(".rowSelectInput");
+    if (!checkbox) return;
+
+    const rowNumber = Number(checkbox.dataset.row);
+    const selected = selectedAdminRows.has(rowNumber);
+    checkbox.checked = selected;
+    row.classList.toggle("selectedRow", selected);
+  });
+
+  const count = selectedAdminRows.size;
+  if (currentAdminSheet && latestAdminTableData) {
+    setManageStatus(`${formatSheetLabel(currentAdminSheet)} loaded. ${latestAdminTableData.rows.length} record(s) found. ${count} selected.`);
+  }
+}
+
+function selectAllAdminRows() {
+  if (!latestAdminTableData || !latestAdminTableData.rows) return;
+  selectedAdminRows = new Set(latestAdminTableData.rows.map(row => Number(row.rowNumber)));
+  syncAdminSelectedRows();
+}
+
+function clearAdminSelection() {
+  selectedAdminRows = new Set();
+  syncAdminSelectedRows();
+}
+
+function attachAdminLongPressSelection() {
+  document.querySelectorAll("#adminDataTable tbody tr").forEach(row => {
+    const checkbox = row.querySelector(".rowSelectInput");
+    if (!checkbox) return;
+
+    const rowNumber = Number(checkbox.dataset.row);
+    let timer = null;
+
+    row.addEventListener("touchstart", () => {
+      timer = setTimeout(() => {
+        toggleAdminRowSelection(rowNumber, !selectedAdminRows.has(rowNumber));
+      }, 550);
+    }, { passive: true });
+
+    row.addEventListener("touchend", () => clearTimeout(timer));
+    row.addEventListener("touchmove", () => clearTimeout(timer));
+    row.addEventListener("touchcancel", () => clearTimeout(timer));
+  });
+}
+
+async function hideSelectedAdminRecords() {
+  await runAdminBatchAction("adminBatchUnpublish", "hide");
+}
+
+async function deleteSelectedAdminRecords() {
+  await runAdminBatchAction("adminBatchDelete", "delete");
+}
+
+async function runAdminBatchAction(type, actionLabel) {
+  if (!currentAdminSheet) {
+    showToast("Select a category first.");
+    return;
+  }
+
+  const rowNumbers = Array.from(selectedAdminRows).sort((a, b) => a - b);
+
+  if (rowNumbers.length === 0) {
+    showToast("Select at least one record.");
+    return;
+  }
+
+  const confirmed = confirm(`${actionLabel === "delete" ? "Delete" : "Hide"} ${rowNumbers.length} selected record(s)?`);
+  if (!confirmed) return;
+
+  showToast(`${actionLabel === "delete" ? "Deleting" : "Hiding"} selected records...`);
+
+  try {
+    const response = await fetch(ADMIN_API_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        type,
+        payload: {
+          sheetName: currentAdminSheet,
+          rowNumbers
+        }
+      })
+    });
+
+    const responseText = await response.text();
+    let result = {};
+
+    try {
+      result = JSON.parse(responseText);
+    } catch (parseError) {
+      throw new Error(responseText.slice(0, 180) || "Invalid server response.");
+    }
+
+    if (result.success) {
+      showToast(result.message || "Batch action complete.");
+      selectedAdminRows = new Set();
+      refreshCurrentAdminTable();
+      return;
+    }
+
+    showToast(result.message || "Batch action failed.");
+  } catch (error) {
+    console.error(error);
+    showToast("Error running batch action.");
+  }
 }
 
 function openEditModal(rowNumber) {
@@ -473,12 +650,12 @@ function openEditModal(rowNumber) {
     const value = editingRecord.cells[index] || "";
     const lowerHeader = String(header).trim().toLowerCase();
 
-    const isLongText =
-      lowerHeader.includes("announcement") ||
-      lowerHeader.includes("reminder") ||
-      lowerHeader.includes("quote") ||
-      lowerHeader.includes("message") ||
-      lowerHeader.includes("item");
+    const isLongText = isFormattedTextField(
+      editingRecord.sheetName,
+      header,
+      index,
+      editingRecord.headers
+    );
 
     const isPublish =
 	  lowerHeader === "publish" ||
@@ -530,10 +707,15 @@ if (isTeacher) {
 }
 
     if (isLongText) {
+      const parsedFormat = parseTextFormat(value);
+
       return `
         <div class="${fieldClass}">
           <label>${escapeHtml(header)}</label>
-          <textarea class="editInput" data-index="${index}">${escapeHtml(value)}</textarea>
+          <select class="editFormatSelect" data-index="${index}">
+            ${renderTextFormatOptions(parsedFormat.format)}
+          </select>
+          <textarea class="editInput textFormatInput" data-format-enabled="YES" data-index="${index}">${escapeHtml(parsedFormat.text)}</textarea>
         </div>
       `;
     }
@@ -544,7 +726,7 @@ if (isTeacher) {
         <input 
           class="editInput"
           data-index="${index}"
-          value="${escapeAttribute(value)}"
+          value="${escapeAttribute(stripTextFormatTag(value))}"
         />
       </div>
     `;
@@ -573,7 +755,12 @@ async function saveEditedRecord() {
 
   inputs.forEach(input => {
     const index = Number(input.dataset.index);
-    updatedValues[index] = input.value;
+    if (input.dataset.formatEnabled === "YES") {
+      const formatSelect = document.querySelector(`.editFormatSelect[data-index="${index}"]`);
+      updatedValues[index] = applyTextFormat(input.value.trim(), formatSelect ? formatSelect.value : "left");
+    } else {
+      updatedValues[index] = input.value;
+    }
   });
 
   showToast("Saving changes...");
@@ -591,7 +778,14 @@ async function saveEditedRecord() {
       })
     });
 
-    const result = await response.json();
+    const responseText = await response.text();
+    let result = {};
+
+    try {
+      result = JSON.parse(responseText);
+    } catch (parseError) {
+      throw new Error(responseText.slice(0, 180) || "Invalid server response.");
+    }
 
     if (result.success) {
       showToast("Record updated.");
@@ -604,7 +798,7 @@ async function saveEditedRecord() {
 
   } catch (error) {
     console.error(error);
-    showToast("Error updating record.");
+    showToast(`Error updating record: ${error.message || "unknown error"}`);
   }
 }
 
@@ -725,6 +919,95 @@ function setManageStatus(message) {
   }
 }
 
+function isFormattedTextField(sheetName, header, index, headers = []) {
+  const cleanHeader = normalizeFieldName(header);
+  const hasIdColumn = normalizeFieldName(headers[0] || "") === "id";
+
+  if (sheetName === "Announcements") {
+    return hasIdColumn ? index === 3 : index === 2;
+  }
+
+  if (sheetName === "ThingsToBring") {
+    return index === 2;
+  }
+
+  if (sheetName === "AdviserReminders") {
+    return index === 1;
+  }
+
+  if (sheetName === "DailyQuotes") {
+    return index === 1;
+  }
+
+  if (sheetName === "TickerMessages") {
+    return index === 0;
+  }
+
+  const formattedFields = {
+    ThingsToBring: ["item", "things", "materials", "reminder", "description", "task"],
+    AdviserReminders: ["reminder", "message", "description"],
+    DailyQuotes: ["quote"],
+    TickerMessages: ["message"]
+  };
+
+  return (formattedFields[sheetName] || []).includes(cleanHeader);
+}
+
+function normalizeFieldName(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "")
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function applyTextFormat(text, format) {
+  const cleanText = stripTextFormatTag(text).trim();
+  const cleanFormat = TEXT_FORMAT_OPTIONS.includes(format) ? format : "left";
+
+  if (!cleanText) return "";
+
+  return `[${cleanFormat}]\n${cleanText}`;
+}
+
+function parseTextFormat(value) {
+  const raw = String(value || "").replace(/\r/g, "").trim();
+  const match = raw.match(/^\[(center|left|right|bullets|numbers)\]\s*\n?/i);
+
+  if (!match) {
+    return {
+      format: "left",
+      text: raw
+    };
+  }
+
+  return {
+    format: match[1].toLowerCase(),
+    text: raw.replace(match[0], "").trim()
+  };
+}
+
+function stripTextFormatTag(value) {
+  return String(value || "")
+    .replace(/\r/g, "")
+    .replace(/^\[(center|left|right|bullets|numbers)\]\s*\n?/i, "");
+}
+
+function renderTextFormatOptions(selectedValue) {
+  const labels = {
+    center: "Center",
+    left: "Left",
+    right: "Right",
+    bullets: "Bullets",
+    numbers: "Numbers"
+  };
+
+  return TEXT_FORMAT_OPTIONS.map(value => {
+    const selected = value === selectedValue ? "selected" : "";
+    return `<option value="${value}" ${selected}>${labels[value]}</option>`;
+  }).join("");
+}
+
 function formatSheetLabel(sheetName) {
   const labels = {
     Announcements: "Announcements",
@@ -733,7 +1016,8 @@ function formatSheetLabel(sheetName) {
     PrayerLeaders: "Prayer Leaders",
     DailyQuotes: "Daily Quotes",
     Birthdays: "Birthdays",
-    TickerMessages: "Ticker Messages"
+    TickerMessages: "Ticker Messages",
+    DailyInfo: "Daily Info"
   };
 
   return labels[sheetName] || sheetName;

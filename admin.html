@@ -56,21 +56,19 @@
           <input id="announcementDate" type="date" />
 
           <label for="announcementSubject">Subject</label>
-          <select id="announcementSubject">
-            <option value="">Select Subject</option>
-            <option value="English">English</option>
-            <option value="Mathematics">Mathematics</option>
-            <option value="Science">Science</option>
-            <option value="ICT">ICT</option>
-            <option value="Filipino">Filipino</option>
-            <option value="CLED">CLED</option>
-            <option value="AP">AP</option>
-            <option value="MAPEH">MAPEH</option>
-            <option value="LE">LE</option>
-          </select>
+          <input id="announcementSubject" list="subjectOptions" type="text" placeholder="Select or type subject" />
 
           <label for="announcementText">Announcement</label>
           <textarea id="announcementText" placeholder="Type announcement here..."></textarea>
+
+          <label for="announcementFormat">Text Format</label>
+          <select id="announcementFormat">
+            <option value="center">Center</option>
+            <option value="left">Left</option>
+            <option value="right">Right</option>
+            <option value="bullets">Bullets</option>
+            <option value="numbers">Numbers</option>
+          </select>
 
           <label for="announcementTeacher">Teacher</label>
 			<select id="announcementTeacher">
@@ -114,21 +112,19 @@
           <input id="thingsDate" type="date" />
 
           <label for="thingsSubject">Subject</label>
-          <select id="thingsSubject">
-            <option value="">Select Subject</option>
-            <option value="English">English</option>
-            <option value="Mathematics">Mathematics</option>
-            <option value="Science">Science</option>
-            <option value="ICT">ICT</option>
-            <option value="Filipino">Filipino</option>
-            <option value="CLED">CLED</option>
-            <option value="AP">AP</option>
-            <option value="MAPEH">MAPEH</option>
-            <option value="LE">LE</option>
-          </select>
+          <input id="thingsSubject" list="subjectOptions" type="text" placeholder="Select or type subject" />
 
           <label for="thingsItem">Item / Reminder</label>
           <textarea id="thingsItem" placeholder="Example: Bring laptop / notebook / materials..."></textarea>
+
+          <label for="thingsFormat">Text Format</label>
+          <select id="thingsFormat">
+            <option value="left">Left</option>
+            <option value="center">Center</option>
+            <option value="right">Right</option>
+            <option value="bullets">Bullets</option>
+            <option value="numbers">Numbers</option>
+          </select>
 
           <label for="thingsPublish">Publish</label>
           <select id="thingsPublish">
@@ -148,6 +144,15 @@
 
           <label for="adviserReminder">Reminder</label>
           <textarea id="adviserReminder" placeholder="Type adviser reminder here..."></textarea>
+
+          <label for="adviserFormat">Text Format</label>
+          <select id="adviserFormat">
+            <option value="left">Left</option>
+            <option value="center">Center</option>
+            <option value="right">Right</option>
+            <option value="bullets">Bullets</option>
+            <option value="numbers">Numbers</option>
+          </select>
 
           <label for="adviserPublish">Publish</label>
           <select id="adviserPublish">
@@ -234,7 +239,60 @@
           <button onclick="saveTickerMessage()">Save Ticker Message</button>
         </div>
 
+        <!-- DAILY SCHEDULE INFO -->
+        <div class="formCard">
+          <h2>🚪 Daily Schedule Info</h2>
+
+          <label for="dailyInfoDay">Day</label>
+          <select id="dailyInfoDay">
+            <option value="Monday">Monday</option>
+            <option value="Tuesday">Tuesday</option>
+            <option value="Wednesday">Wednesday</option>
+            <option value="Thursday">Thursday</option>
+            <option value="Friday">Friday</option>
+          </select>
+
+          <label for="dailyInfoEntryGate">Entry Gate</label>
+          <input id="dailyInfoEntryGate" type="text" placeholder="Example: Gate 2" />
+
+          <label for="dailyInfoExitGate">Exit Gate</label>
+          <input id="dailyInfoExitGate" type="text" placeholder="Example: SHS Gate" />
+
+          <label for="dailyInfoUniform">Prescribed Uniform</label>
+          <input id="dailyInfoUniform" list="uniformOptions" type="text" placeholder="Select or type uniform" />
+
+          <label for="dailyInfoPublish">Publish</label>
+          <select id="dailyInfoPublish">
+            <option value="YES">YES</option>
+            <option value="NO">NO</option>
+          </select>
+
+          <button onclick="saveDailyInfo()">Save Daily Info</button>
+        </div>
+
       </section>
+
+      <datalist id="subjectOptions">
+        <option value="English"></option>
+        <option value="Mathematics"></option>
+        <option value="Science"></option>
+        <option value="ICT"></option>
+        <option value="Filipino"></option>
+        <option value="CLED"></option>
+        <option value="AP"></option>
+        <option value="MAPEH"></option>
+        <option value="LE"></option>
+        <option value="Homeroom"></option>
+        <option value="Morning Assembly"></option>
+        <option value="Class Meeting"></option>
+        <option value="Performance Task"></option>
+      </datalist>
+
+      <datalist id="uniformOptions">
+        <option value="Complete School Uniform"></option>
+        <option value="Activity Shirt"></option>
+        <option value="PE Shirt"></option>
+      </datalist>
 
       <!-- MANAGE EXISTING DATA -->
       <section class="managePanel">
@@ -255,6 +313,14 @@
           <button onclick="loadAdminTable('DailyQuotes', this)">Daily Quotes</button>
           <button onclick="loadAdminTable('Birthdays', this)">Birthdays</button>
           <button onclick="loadAdminTable('TickerMessages', this)">Ticker Messages</button>
+          <button onclick="loadAdminTable('DailyInfo', this)">Daily Info</button>
+        </div>
+
+        <div class="batchActions">
+          <button onclick="selectAllAdminRows()">Select All</button>
+          <button onclick="clearAdminSelection()">Clear Selection</button>
+          <button onclick="hideSelectedAdminRecords()">Hide Selected</button>
+          <button class="dangerBatchBtn" onclick="deleteSelectedAdminRecords()">Delete Selected</button>
         </div>
 
         <div id="manageStatus" class="manageStatus">
