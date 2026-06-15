@@ -100,7 +100,7 @@
     </section>
 
     <section class="mainGrid">
-	<div class="card scheduleCard">
+	<div class="card scheduleCard todayScheduleCollapsed">
 	  <div class="scheduleHeader">
 		<h2>Today's Schedule</h2>
 
@@ -108,6 +108,10 @@
 		  View Whole Class Schedule
 		</button>
 	  </div>
+
+	  <button id="todayScheduleToggle" class="todayScheduleToggle" onclick="toggleTodaySchedule()">
+		▼ Show Today's Schedule
+	  </button>
 
 	  <div id="scheduleList"></div>
 	</div>

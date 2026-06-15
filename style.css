@@ -3456,3 +3456,138 @@ ol.formattedText li {
     font-size: clamp(.7rem, 2.85vw, .82rem) !important;
   }
 }
+
+/* Phone-only collapsible and compact Today's Schedule */
+.todayScheduleToggle {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .scheduleCard {
+    min-height: auto !important;
+  }
+
+  .scheduleHeader {
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+
+  .scheduleHeader h2 {
+    font-size: 1rem !important;
+  }
+
+  .scheduleHeader .weeklyScheduleBtn {
+    flex: 1 1 auto !important;
+    max-width: 64% !important;
+    padding: 7px 10px !important;
+    font-size: .68rem !important;
+    line-height: 1.05 !important;
+    white-space: normal !important;
+  }
+
+  .todayScheduleToggle {
+    display: flex !important;
+    width: 100% !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 6px 0 8px !important;
+    padding: 8px 12px !important;
+    border: 2px solid #111 !important;
+    border-radius: 999px !important;
+    background: #111 !important;
+    color: #ffd700 !important;
+    font-size: .78rem !important;
+    font-weight: 900 !important;
+    line-height: 1.05 !important;
+    box-shadow: 2px 2px 0 rgba(0,0,0,.25) !important;
+    cursor: pointer !important;
+  }
+
+  .scheduleCard.todayScheduleCollapsed {
+    min-height: 0 !important;
+  }
+
+  .scheduleCard.todayScheduleCollapsed #scheduleList {
+    display: none !important;
+  }
+
+  .scheduleCard:not(.todayScheduleCollapsed) {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 99998 !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    margin: 0 !important;
+    padding: 16px !important;
+    border-radius: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    background: #fffaf0 !important;
+    overflow: hidden !important;
+  }
+
+  .scheduleCard:not(.todayScheduleCollapsed) .scheduleHeader {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 3 !important;
+    background: #fffaf0 !important;
+    padding-bottom: 8px !important;
+  }
+
+  .scheduleCard:not(.todayScheduleCollapsed) .todayScheduleToggle {
+    position: sticky !important;
+    top: 56px !important;
+    z-index: 3 !important;
+    margin-bottom: 10px !important;
+  }
+
+  .scheduleCard:not(.todayScheduleCollapsed) #scheduleList {
+    display: block !important;
+    max-height: calc(100dvh - 128px) !important;
+    height: calc(100dvh - 128px) !important;
+    overflow-y: auto !important;
+    padding: 2px 4px 18px 0 !important;
+  }
+
+  .scheduleCard .schedule-item {
+    min-height: 54px !important;
+    margin-bottom: 6px !important;
+    padding: 8px 10px 8px 12px !important;
+    border-left-width: 4px !important;
+    border-top-left-radius: 14px !important;
+    border-bottom-left-radius: 14px !important;
+    border-top-right-radius: 13px !important;
+    border-bottom-right-radius: 13px !important;
+    line-height: 1.08 !important;
+  }
+
+  .scheduleCard .schedule-item strong {
+    font-size: .82rem !important;
+    line-height: 1.02 !important;
+  }
+
+  .scheduleCard .subject-name {
+    font-size: .88rem !important;
+    line-height: 1.04 !important;
+    margin-top: 1px !important;
+  }
+
+  .scheduleCard .schedule-item small {
+    font-size: .68rem !important;
+    line-height: 1.05 !important;
+  }
+
+  .scheduleCard .current-row {
+    min-height: 58px !important;
+    outline: 2px solid #111 !important;
+    box-shadow: 0 0 0 2px #ffd700 inset !important;
+  }
+
+  .scheduleCard .current-badge {
+    padding: 2px 6px !important;
+    font-size: .58rem !important;
+    line-height: 1 !important;
+    margin-bottom: 2px !important;
+  }
+}

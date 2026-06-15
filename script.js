@@ -10,8 +10,8 @@ const CACHE_KEY = "sfkClassBoardData";
    Prayer popup appears at scheduled/test time with a manual audio player.
 */
 const PRAYER_TEST_TRIGGER_ENABLED = true;
-const PRAYER_TEST_HOUR = "21";
-const PRAYER_TEST_MINUTE = "47";
+const PRAYER_TEST_HOUR = "00";
+const PRAYER_TEST_MINUTE = "59";
 
 let latestData = null;
 let latestDataString = "";
@@ -24,6 +24,7 @@ let weeklyDailyInfoData = [];
 let activeWeeklyDay = "Monday";
 let lastPrayerTriggerKey = "";
 let lastScheduleAutoScrollKey = "";
+let isTodayScheduleOpen = false;
 
 const subjectIcons = {
   english: "📘",
@@ -85,6 +86,9 @@ function initClassBoard() {
     startAutoScroll("thingsList");
     startAutoScroll("reminderList");
   }, 1500);
+
+  syncTodayScheduleToggle();
+  window.addEventListener("resize", syncTodayScheduleToggle);
 }
 
 async function loadClassBoard() {
@@ -378,6 +382,7 @@ function renderSchedule(items, currentSubject) {
 
   if (!items || items.length === 0) {
     box.innerHTML = `<p>No schedule for today.</p>`;
+    syncTodayScheduleToggle();
     if (!lastScheduleAutoScrollKey) {
       box.scrollTo({ top: 0, behavior: "smooth" });
     }
@@ -410,6 +415,8 @@ function renderSchedule(items, currentSubject) {
 `;
   }).join("");
 
+  syncTodayScheduleToggle();
+
   if (currentKey && currentKey !== lastScheduleAutoScrollKey) {
     lastScheduleAutoScrollKey = currentKey;
     scrollToCurrentSchedule();
@@ -424,8 +431,41 @@ function renderSchedule(items, currentSubject) {
   box.scrollTop = previousScrollTop;
 }
 
+function isCompactScheduleView() {
+  return window.matchMedia("(max-width: 700px)").matches;
+}
+
+function syncTodayScheduleToggle() {
+  const card = document.querySelector(".scheduleCard");
+  const button = document.getElementById("todayScheduleToggle");
+
+  if (!card || !button) return;
+
+  if (!isCompactScheduleView()) {
+    card.classList.remove("todayScheduleCollapsed");
+    button.textContent = "Today's Schedule";
+    return;
+  }
+
+  card.classList.toggle("todayScheduleCollapsed", !isTodayScheduleOpen);
+  button.textContent = isTodayScheduleOpen
+    ? "▲ Hide Today's Schedule"
+    : "▼ Show Today's Schedule";
+}
+
+function toggleTodaySchedule() {
+  isTodayScheduleOpen = !isTodayScheduleOpen;
+  syncTodayScheduleToggle();
+
+  if (isTodayScheduleOpen) {
+    setTimeout(scrollToCurrentSchedule, 120);
+  }
+}
+
 function scrollToCurrentSchedule() {
   const scheduleBox = document.getElementById("scheduleList");
+  if (!scheduleBox) return;
+
   const currentRow = scheduleBox.querySelector(".current-row");
 
   setTimeout(() => {
