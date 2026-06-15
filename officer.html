@@ -159,6 +159,28 @@
           <button onclick="saveOfficerPrayer()">Save Prayer Leader</button>
         </div>
 
+        <!-- DAILY KINDNESS QUOTE -->
+        <div class="formCard">
+          <h2>🫶 Daily Quote</h2>
+
+          <label for="officerQuoteDate">Date</label>
+          <input id="officerQuoteDate" type="date" />
+
+          <label for="officerQuoteText">Quote</label>
+          <textarea id="officerQuoteText" placeholder="Enter kindness quote..."></textarea>
+
+          <label for="officerQuoteAuthor">Author</label>
+          <input id="officerQuoteAuthor" type="text" placeholder="Example: St. Faustina / SFK Officers" />
+
+          <label for="officerQuotePublish">Publish</label>
+          <select id="officerQuotePublish">
+            <option value="YES">YES</option>
+            <option value="NO">NO</option>
+          </select>
+
+          <button onclick="saveOfficerQuote()">Save Daily Quote</button>
+        </div>
+
         <!-- BIRTHDAY GREETINGS -->
         <div class="formCard highlightCard">
           <h2>🎂 Birthday Greetings</h2>
@@ -211,6 +233,7 @@
           <button onclick="loadOfficerTable('Announcements', this)">Announcements</button>
           <button onclick="loadOfficerTable('ThingsToBring', this)">Things to Bring</button>
           <button onclick="loadOfficerTable('PrayerLeaders', this)">Prayer Leaders</button>
+          <button onclick="loadOfficerTable('DailyQuotes', this)">Daily Quotes</button>
           <button onclick="loadOfficerTable('Birthdays', this)">Birthday Greetings</button>
         </div>
 

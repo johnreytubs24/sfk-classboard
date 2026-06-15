@@ -68,6 +68,7 @@ function setTodayForOfficerDateInputs() {
     "officerAnnouncementDeadline",
     "officerThingsDate",
     "officerPrayerDate",
+    "officerQuoteDate",
     "officerBirthdayDate"
   ];
 
@@ -230,6 +231,32 @@ async function saveOfficerPrayer() {
       "officerPrayerDate",
       "officerPrayerName",
       "officerPrayerPublish"
+    ]);
+  }
+}
+
+/* DAILY KINDNESS QUOTE */
+async function saveOfficerQuote() {
+  const payload = {
+    Date: document.getElementById("officerQuoteDate").value,
+    Quote: document.getElementById("officerQuoteText").value.trim(),
+    Author: document.getElementById("officerQuoteAuthor").value.trim(),
+    Publish: document.getElementById("officerQuotePublish").value
+  };
+
+  if (!payload.Date || !payload.Quote) {
+    showOfficerToast("Date and quote are required.");
+    return;
+  }
+
+  const saved = await sendOfficerData("quote", payload);
+
+  if (saved) {
+    clearOfficerFields([
+      "officerQuoteDate",
+      "officerQuoteText",
+      "officerQuoteAuthor",
+      "officerQuotePublish"
     ]);
   }
 }
@@ -570,6 +597,7 @@ function formatSheetLabel(sheetName) {
     Announcements: "Announcements",
     ThingsToBring: "Things to Bring",
     PrayerLeaders: "Prayer Leaders",
+    DailyQuotes: "Daily Quotes",
     Birthdays: "Birthday Greetings"
   };
 

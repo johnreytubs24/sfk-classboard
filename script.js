@@ -11,7 +11,7 @@ const CACHE_KEY = "sfkClassBoardData";
 */
 const PRAYER_TEST_TRIGGER_ENABLED = true;
 const PRAYER_TEST_HOUR = "21";
-const PRAYER_TEST_MINUTE = "04";
+const PRAYER_TEST_MINUTE = "47";
 
 let latestData = null;
 let latestDataString = "";
