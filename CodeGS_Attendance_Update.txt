@@ -1,0 +1,288 @@
+/*
+  SFK KindTrack Apps Script update with Daily Attendance
+
+  Required sheets:
+  Students
+  ViolationTypes
+  Violations
+  Settings
+  Attendance
+
+  Attendance headers:
+  AttendanceID | StudentID | Date | Status | Remarks
+
+  Replace your Code.gs with this file, then deploy a NEW VERSION.
+*/
+
+function doGet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  const data = {
+    students: getSheetData(ss.getSheetByName('Students')),
+    violationTypes: getSheetData(ss.getSheetByName('ViolationTypes')),
+    violations: getSheetData(ss.getSheetByName('Violations')),
+    settings: getSheetData(ss.getSheetByName('Settings')),
+    attendance: getSheetData(ss.getSheetByName('Attendance'))
+  };
+
+  return jsonResponse(data);
+}
+
+function doPost(e) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const data = JSON.parse(e.postData.contents);
+
+  if (data.action === 'saveAttendance') {
+    return saveAttendanceRecords(ss, data);
+  }
+
+  const sheet = ss.getSheetByName('Violations');
+
+  ensureColumn(sheet, 'ActionTaken');
+  ensureColumn(sheet, 'ReflectionCommitment');
+  ensureColumn(sheet, 'FollowUpDate');
+  ensureColumn(sheet, 'FollowUpStatus');
+  ensureColumn(sheet, 'ParentContacted');
+
+  if (data.action === 'addViolation') {
+    const recordId = 'REC-' + new Date().getTime();
+
+    appendByHeaders(sheet, {
+      RecordID: recordId,
+      StudentID: data.studentId,
+      Date: data.date,
+      ViolationType: data.violationType,
+      Fee: data.fee,
+      Status: data.status,
+      ActionTaken: data.actionTaken || '',
+      ReflectionCommitment: data.reflection || '',
+      FollowUpDate: data.followUpDate || '',
+      FollowUpStatus: data.followUpStatus || 'Pending',
+      ParentContacted: data.parentContacted || 'No',
+      Notes: data.notes || '',
+      EncodedBy: data.encodedBy || 'Sir JR'
+    });
+
+    return jsonResponse({ success: true, recordId });
+  }
+
+  if (data.action === 'editViolation') {
+    const row = findRowByRecordId(sheet, data.recordId);
+
+    if (!row) {
+      return jsonResponse({ success: false, message: 'Record not found' });
+    }
+
+    updateByHeaders(sheet, row, {
+      Date: data.date,
+      ViolationType: data.violationType,
+      Fee: data.fee,
+      Status: data.status,
+      ActionTaken: data.actionTaken || '',
+      ReflectionCommitment: data.reflection || '',
+      FollowUpDate: data.followUpDate || '',
+      FollowUpStatus: data.followUpStatus || 'Pending',
+      ParentContacted: data.parentContacted || 'No',
+      Notes: data.notes || ''
+    });
+
+    return jsonResponse({ success: true });
+  }
+
+  if (data.action === 'deleteViolation') {
+    const row = findRowByRecordId(sheet, data.recordId);
+
+    if (!row) {
+      return jsonResponse({ success: false, message: 'Record not found' });
+    }
+
+    sheet.deleteRow(row);
+    return jsonResponse({ success: true });
+  }
+
+  return jsonResponse({ success: false, message: 'Invalid action' });
+}
+
+function saveAttendanceRecords(ss, data) {
+  const sheet = ensureSheetWithHeaders(ss, 'Attendance', [
+    'AttendanceID',
+    'StudentID',
+    'Date',
+    'Status',
+    'Remarks'
+  ]);
+
+  const date = normalizeDate(data.date);
+  const records = Array.isArray(data.records) ? data.records : [];
+  const savedRecords = [];
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const values = sheet.getDataRange().getValues();
+  const existingRows = values.length > 1 ? values.slice(1) : [];
+  const dateIndex = headers.indexOf('Date');
+  const rowsFromOtherDates = existingRows.filter(row =>
+    normalizeDate(row[dateIndex]) !== date
+  );
+
+  const rowsForSelectedDate = records.map(record => {
+    const studentId = String(record.studentId || record.StudentID || '').trim();
+    if (!studentId) return null;
+
+    const status = ['Present', 'Absent', 'Excused', 'Tardy'].includes(record.status)
+      ? record.status
+      : 'Present';
+    const attendanceId = 'ATT-' + date.replace(/-/g, '') + '-' + studentId;
+    const recordData = {
+      AttendanceID: attendanceId,
+      StudentID: studentId,
+      Date: date,
+      Status: status,
+      Remarks: record.remarks || ''
+    };
+
+    savedRecords.push({
+      attendanceId: attendanceId,
+      studentId: studentId,
+      date: date,
+      status: status,
+      remarks: record.remarks || ''
+    });
+
+    return headers.map(header => recordData[header] !== undefined ? recordData[header] : '');
+  }).filter(Boolean);
+
+  const outputRows = rowsFromOtherDates.concat(rowsForSelectedDate);
+
+  sheet.clearContents();
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+
+  if (outputRows.length > 0) {
+    sheet.getRange(2, 1, outputRows.length, headers.length).setValues(outputRows);
+  }
+
+  return jsonResponse({
+    success: true,
+    records: savedRecords
+  });
+}
+
+function getSheetData(sheet) {
+  if (!sheet) return [];
+
+  const values = sheet.getDataRange().getValues();
+  if (values.length < 2) return [];
+
+  const headers = values[0];
+
+  return values.slice(1).map(row => {
+    const obj = {};
+
+    headers.forEach((header, index) => {
+      obj[header] = row[index];
+    });
+
+    return obj;
+  });
+}
+
+function findRowByRecordId(sheet, recordId) {
+  const values = sheet.getDataRange().getValues();
+  const headers = values[0];
+  const recordIndex = headers.indexOf('RecordID');
+
+  if (recordIndex === -1) return null;
+
+  for (let i = 1; i < values.length; i++) {
+    if (String(values[i][recordIndex]) === String(recordId)) {
+      return i + 1;
+    }
+  }
+
+  return null;
+}
+
+function findAttendanceRow(sheet, studentId, date) {
+  const values = sheet.getDataRange().getValues();
+  if (values.length < 2) return null;
+
+  const headers = values[0];
+  const studentIndex = headers.indexOf('StudentID');
+  const dateIndex = headers.indexOf('Date');
+
+  if (studentIndex === -1 || dateIndex === -1) return null;
+
+  for (let i = 1; i < values.length; i++) {
+    const rowStudentId = String(values[i][studentIndex]).trim();
+    const rowDate = normalizeDate(values[i][dateIndex]);
+
+    if (rowStudentId === String(studentId).trim() && rowDate === date) {
+      return i + 1;
+    }
+  }
+
+  return null;
+}
+
+function ensureSheetWithHeaders(ss, sheetName, headers) {
+  let sheet = ss.getSheetByName(sheetName);
+
+  if (!sheet) {
+    sheet = ss.insertSheet(sheetName);
+  }
+
+  if (sheet.getLastColumn() === 0 || sheet.getLastRow() === 0) {
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    return sheet;
+  }
+
+  headers.forEach(header => ensureColumn(sheet, header));
+  return sheet;
+}
+
+function ensureColumn(sheet, columnName) {
+  const lastColumn = sheet.getLastColumn();
+
+  if (lastColumn === 0) {
+    sheet.getRange(1, 1).setValue(columnName);
+    return;
+  }
+
+  const headers = sheet.getRange(1, 1, 1, lastColumn).getValues()[0];
+
+  if (!headers.includes(columnName)) {
+    sheet.getRange(1, lastColumn + 1).setValue(columnName);
+  }
+}
+
+function appendByHeaders(sheet, data) {
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const row = headers.map(header => data[header] !== undefined ? data[header] : '');
+  sheet.appendRow(row);
+}
+
+function updateByHeaders(sheet, rowNumber, data) {
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+  Object.keys(data).forEach(key => {
+    const colIndex = headers.indexOf(key);
+
+    if (colIndex !== -1) {
+      sheet.getRange(rowNumber, colIndex + 1).setValue(data[key]);
+    }
+  });
+}
+
+function normalizeDate(value) {
+  if (!value) return '';
+
+  if (Object.prototype.toString.call(value) === '[object Date]' && !isNaN(value)) {
+    return Utilities.formatDate(value, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  }
+
+  return String(value).trim().split('T')[0];
+}
+
+function jsonResponse(data) {
+  return ContentService
+    .createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}

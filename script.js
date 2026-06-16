@@ -10,8 +10,8 @@ const CACHE_KEY = "sfkClassBoardData";
    Prayer popup appears at scheduled/test time with a manual audio player.
 */
 const PRAYER_TEST_TRIGGER_ENABLED = true;
-const PRAYER_TEST_HOUR = "00";
-const PRAYER_TEST_MINUTE = "59";
+const PRAYER_TEST_HOUR = "11";
+const PRAYER_TEST_MINUTE = "33";
 
 let latestData = null;
 let latestDataString = "";
@@ -267,6 +267,27 @@ function getSubjectTextColor(subject) {
   return getReadableTextColor(color);
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function renderPeriodDetails(element, item) {
+  if (!element || !item) return;
+
+  const time = `${item.StartTime || ""} - ${item.EndTime || ""}`;
+  const location = [item.Teacher, item.Room].filter(Boolean).join(" • ");
+
+  element.innerHTML = `
+    <span class="period-time">${escapeHtml(time)}</span>
+    <span class="period-location">${escapeHtml(location)}</span>
+  `;
+}
+
 function renderCurrentSubject(item) {
   const card = document.querySelector(".current");
   const subjectEl = document.getElementById("currentSubject");
@@ -298,8 +319,7 @@ function renderCurrentSubject(item) {
     document.getElementById("currentSubject").textContent =
       `${iconFor(item.Subject)} ${item.Subject}`;
 
-    document.getElementById("currentDetails").textContent =
-      `${item.StartTime} - ${item.EndTime} • ${item.Teacher} • ${item.Room}`;
+    renderPeriodDetails(detailsEl, item);
   } else {
     card.style.background = "#111";
     card.style.color = "#fff";
@@ -347,8 +367,7 @@ function renderNextSubject(item) {
     document.getElementById("nextSubject").textContent =
       `${iconFor(item.Subject)} ${item.Subject}`;
 
-    document.getElementById("nextDetails").textContent =
-      `${item.StartTime} - ${item.EndTime} • ${item.Teacher} • ${item.Room}`;
+    renderPeriodDetails(detailsEl, item);
   } else {
     card.style.background = "#fff7c7";
     card.style.color = "#111";
@@ -449,8 +468,8 @@ function syncTodayScheduleToggle() {
 
   card.classList.toggle("todayScheduleCollapsed", !isTodayScheduleOpen);
   button.textContent = isTodayScheduleOpen
-    ? "▲ Hide Today's Schedule"
-    : "▼ Show Today's Schedule";
+    ? "Hide Today ▲"
+    : "Show Today ▼";
 }
 
 function toggleTodaySchedule() {

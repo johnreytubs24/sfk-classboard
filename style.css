@@ -3591,3 +3591,683 @@ ol.formattedText li {
     margin-bottom: 2px !important;
   }
 }
+
+/* Final phone header: compact, readable, still branded */
+@media (max-width: 700px) {
+  .topbar {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    grid-template-areas:
+      "brand time"
+      "quote quote" !important;
+    align-items: center !important;
+    gap: 6px 8px !important;
+    padding: 8px 10px !important;
+    margin-bottom: 10px !important;
+    text-align: left !important;
+    border-width: 2px !important;
+    border-radius: 14px !important;
+    box-shadow: 3px 3px 0 rgba(0,0,0,.35) !important;
+  }
+
+  .brandBox {
+    grid-area: brand !important;
+    min-width: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .topbar h1 {
+    font-size: clamp(1.18rem, 5.4vw, 1.55rem) !important;
+    line-height: .98 !important;
+    margin: 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .topbar p {
+    margin-top: 2px !important;
+    font-size: clamp(.58rem, 2.7vw, .72rem) !important;
+    line-height: 1.05 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .topbarHeart {
+    display: none !important;
+  }
+
+  .timeBox {
+    grid-area: time !important;
+    width: auto !important;
+    min-width: 116px !important;
+    margin: 0 !important;
+    padding: 6px 8px !important;
+    border-radius: 11px !important;
+    text-align: center !important;
+  }
+
+  .timeBox h2 {
+    font-size: clamp(1.05rem, 5.1vw, 1.35rem) !important;
+    line-height: .95 !important;
+    white-space: nowrap !important;
+  }
+
+  .timeBox p {
+    margin-top: 2px !important;
+    font-size: clamp(.54rem, 2.45vw, .66rem) !important;
+    line-height: 1.05 !important;
+    white-space: nowrap !important;
+  }
+
+  .topQuoteBox {
+    grid-area: quote !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    padding: 5px 8px !important;
+    border-radius: 11px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 7px !important;
+    text-align: center !important;
+  }
+
+  .quoteLabel {
+    flex: 0 0 auto !important;
+    margin: 0 !important;
+    padding: 2px 7px !important;
+    font-size: .48rem !important;
+    line-height: 1 !important;
+    letter-spacing: .45px !important;
+  }
+
+  .topQuoteBox #dailyQuote {
+    min-width: 0 !important;
+    margin: 0 !important;
+    font-size: clamp(.66rem, 3vw, .82rem) !important;
+    line-height: 1.05 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .topQuoteBox #quoteAuthor {
+    display: none !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .topbar {
+    grid-template-columns: minmax(0, 1fr) 104px !important;
+    padding: 7px 8px !important;
+    gap: 5px 6px !important;
+  }
+
+  .timeBox {
+    min-width: 104px !important;
+    padding: 5px 6px !important;
+  }
+
+  .quoteLabel {
+    font-size: .43rem !important;
+    padding: 2px 6px !important;
+  }
+}
+
+/* Final phone header v2: balanced stacked layout */
+@media (max-width: 700px) {
+  .topbar {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    grid-template-areas:
+      "brand"
+      "time"
+      "quote" !important;
+    justify-items: center !important;
+    align-items: center !important;
+    gap: 6px !important;
+    padding: 8px 10px !important;
+    margin-bottom: 10px !important;
+    text-align: center !important;
+    border-width: 2px !important;
+    border-radius: 14px !important;
+    box-shadow: 3px 3px 0 rgba(0,0,0,.34) !important;
+  }
+
+  .brandBox {
+    grid-area: brand !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+  }
+
+  .topbar h1 {
+    font-size: clamp(1.28rem, 5.8vw, 1.62rem) !important;
+    line-height: 1 !important;
+    margin: 0 !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+  }
+
+  .topbar p {
+    max-width: 100% !important;
+    margin: 3px auto 0 !important;
+    font-size: clamp(.6rem, 2.85vw, .74rem) !important;
+    line-height: 1.08 !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+  }
+
+  .topbarHeart {
+    display: none !important;
+  }
+
+  .timeBox {
+    grid-area: time !important;
+    width: min(100%, 330px) !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 6px 10px !important;
+    border-radius: 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 10px !important;
+    text-align: center !important;
+  }
+
+  .timeBox h2 {
+    flex: 0 0 auto !important;
+    font-size: clamp(1.15rem, 5.5vw, 1.45rem) !important;
+    line-height: .95 !important;
+    white-space: nowrap !important;
+  }
+
+  .timeBox p {
+    flex: 0 1 auto !important;
+    margin: 0 !important;
+    font-size: clamp(.56rem, 2.45vw, .68rem) !important;
+    line-height: 1.05 !important;
+    white-space: normal !important;
+    color: #111 !important;
+  }
+
+  .topQuoteBox {
+    grid-area: quote !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    padding: 5px 8px !important;
+    border-radius: 12px !important;
+    display: grid !important;
+    grid-template-columns: auto minmax(0, auto) !important;
+    align-items: center !important;
+    justify-content: center !important;
+    column-gap: 7px !important;
+    text-align: center !important;
+  }
+
+  .quoteLabel {
+    margin: 0 !important;
+    padding: 2px 8px !important;
+    font-size: .48rem !important;
+    line-height: 1 !important;
+    letter-spacing: .45px !important;
+    white-space: nowrap !important;
+  }
+
+  .topQuoteBox #dailyQuote {
+    min-width: 0 !important;
+    margin: 0 !important;
+    font-size: clamp(.68rem, 3vw, .84rem) !important;
+    line-height: 1.05 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .topQuoteBox #quoteAuthor {
+    display: none !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .topbar {
+    gap: 5px !important;
+    padding: 7px 8px !important;
+  }
+
+  .timeBox {
+    width: 100% !important;
+    gap: 7px !important;
+    padding: 5px 8px !important;
+  }
+
+  .topQuoteBox {
+    grid-template-columns: 1fr !important;
+    row-gap: 3px !important;
+  }
+}
+
+/* Final phone header v3: clean compact bar */
+@media (max-width: 700px) {
+  .topbar {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    grid-template-areas: "brand time" !important;
+    align-items: center !important;
+    justify-items: stretch !important;
+    gap: 8px !important;
+    padding: 8px 10px !important;
+    margin-bottom: 10px !important;
+    text-align: left !important;
+    border: 2px solid #fff !important;
+    border-radius: 14px !important;
+    box-shadow: 3px 3px 0 rgba(0,0,0,.34) !important;
+  }
+
+  .brandBox {
+    grid-area: brand !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    padding: 0 !important;
+  }
+
+  .topbar h1 {
+    font-size: clamp(1.05rem, 5.2vw, 1.45rem) !important;
+    line-height: .98 !important;
+    margin: 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .topbar p {
+    margin: 3px 0 0 !important;
+    font-size: clamp(.55rem, 2.65vw, .7rem) !important;
+    line-height: 1.08 !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+  }
+
+  .topbarHeart,
+  .topQuoteBox {
+    display: none !important;
+  }
+
+  .timeBox {
+    grid-area: time !important;
+    width: auto !important;
+    min-width: 118px !important;
+    max-width: 138px !important;
+    margin: 0 !important;
+    padding: 6px 8px !important;
+    border-radius: 12px !important;
+    display: block !important;
+    text-align: center !important;
+  }
+
+  .timeBox h2 {
+    font-size: clamp(1rem, 4.9vw, 1.32rem) !important;
+    line-height: .95 !important;
+    white-space: nowrap !important;
+  }
+
+  .timeBox p {
+    margin-top: 3px !important;
+    font-size: clamp(.52rem, 2.35vw, .64rem) !important;
+    line-height: 1.05 !important;
+    white-space: normal !important;
+    color: #111 !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .topbar {
+    grid-template-columns: minmax(0, 1fr) 106px !important;
+    gap: 6px !important;
+    padding: 7px 8px !important;
+  }
+
+  .timeBox {
+    min-width: 106px !important;
+    max-width: 106px !important;
+    padding: 5px 6px !important;
+  }
+}
+
+/* Final phone hero layout: 2x2 compact status grid */
+@media (max-width: 700px) {
+  .heroGrid {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    grid-auto-rows: auto !important;
+    gap: 8px !important;
+    height: auto !important;
+    margin-bottom: 10px !important;
+    align-items: stretch !important;
+  }
+
+  .heroGrid .current,
+  .heroGrid .next,
+  .heroGrid .prayer,
+  .heroGrid .birthdayCard {
+    grid-column: auto !important;
+    min-width: 0 !important;
+    min-height: 112px !important;
+    height: auto !important;
+    padding: 9px 10px !important;
+    border-width: 2px !important;
+    border-radius: 14px !important;
+    box-shadow: 3px 3px 0 #111 !important;
+    justify-content: flex-start !important;
+  }
+
+  .heroGrid .birthdayCard {
+    border-left-width: 2px !important;
+  }
+
+  .heroGrid .current .label,
+  .heroGrid .next .label,
+  .heroGrid .prayer .label,
+  .heroGrid .birthdayCard .label {
+    font-size: clamp(.58rem, 2.7vw, .72rem) !important;
+    line-height: 1 !important;
+    letter-spacing: 1.2px !important;
+    margin-bottom: 6px !important;
+  }
+
+  .heroGrid .current h2,
+  .heroGrid .next h2,
+  .heroGrid .prayer h2,
+  .heroGrid .current #currentSubject,
+  .heroGrid .next #nextSubject,
+  .heroGrid .prayer #prayerLeader {
+    font-size: clamp(.92rem, 4.25vw, 1.2rem) !important;
+    line-height: 1.05 !important;
+    margin: 0 0 5px !important;
+    padding: 0 !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  .heroGrid .current #currentDetails,
+  .heroGrid .next #nextDetails {
+    display: block !important;
+    font-size: clamp(.62rem, 2.8vw, .76rem) !important;
+    line-height: 1.12 !important;
+    margin: 0 !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+    -webkit-line-clamp: unset !important;
+    -webkit-box-orient: unset !important;
+  }
+
+  .heroGrid .currentCountdown,
+  .heroGrid .countdown {
+    width: 100% !important;
+    margin-top: 7px !important;
+    padding: 4px 7px !important;
+    font-size: clamp(.58rem, 2.65vw, .72rem) !important;
+    line-height: 1 !important;
+    text-align: center !important;
+    white-space: normal !important;
+  }
+
+  .heroGrid .cleanersMini {
+    margin-top: auto !important;
+    padding: 5px 7px !important;
+    border-width: 2px !important;
+    border-radius: 10px !important;
+  }
+
+  .heroGrid .cleanersMini span {
+    font-size: clamp(.5rem, 2.35vw, .64rem) !important;
+    line-height: 1 !important;
+    margin-bottom: 2px !important;
+    letter-spacing: .45px !important;
+  }
+
+  .heroGrid .cleanersMini strong {
+    font-size: clamp(.68rem, 3vw, .84rem) !important;
+    line-height: 1.05 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  .heroGrid .birthdayHeader {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 6px !important;
+    margin-bottom: 6px !important;
+  }
+
+  .heroGrid .birthdayHeader .label {
+    margin-bottom: 0 !important;
+  }
+
+  .heroGrid .birthdayHeaderDate {
+    flex: 0 0 auto !important;
+    padding: 2px 6px !important;
+    border-radius: 999px !important;
+    background: #111 !important;
+    color: #ffd700 !important;
+    font-size: clamp(.5rem, 2.3vw, .62rem) !important;
+    font-weight: 900 !important;
+    white-space: nowrap !important;
+  }
+
+  .heroGrid .birthdayList {
+    width: 100% !important;
+    min-height: 0 !important;
+    align-items: stretch !important;
+  }
+
+  .heroGrid .noBirthday {
+    width: 100% !important;
+    min-height: 48px !important;
+    padding: 8px !important;
+    border-radius: 11px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+  }
+
+  .heroGrid .noBirthday span {
+    display: none !important;
+  }
+
+  .heroGrid .noBirthday p {
+    font-size: clamp(.68rem, 3vw, .84rem) !important;
+    line-height: 1.08 !important;
+    text-align: center !important;
+    margin: 0 !important;
+  }
+
+  .heroGrid .birthdayItem {
+    grid-template-columns: 28px minmax(0, 1fr) !important;
+    gap: 7px !important;
+    padding: 7px 8px !important;
+    border-width: 2px !important;
+    border-radius: 11px !important;
+  }
+
+  .heroGrid .birthdayIcon {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 1rem !important;
+  }
+
+  .heroGrid .birthdayItem strong,
+  .heroGrid .birthdayItem h3 {
+    font-size: clamp(.75rem, 3.2vw, .95rem) !important;
+    line-height: 1.05 !important;
+    margin: 0 !important;
+    white-space: normal !important;
+  }
+
+  .heroGrid .birthdayItem p {
+    font-size: clamp(.58rem, 2.55vw, .72rem) !important;
+    line-height: 1.05 !important;
+    margin: 2px 0 0 !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .heroGrid {
+    gap: 7px !important;
+  }
+
+  .heroGrid .current,
+  .heroGrid .next,
+  .heroGrid .prayer,
+  .heroGrid .birthdayCard {
+    min-height: 106px !important;
+    padding: 8px !important;
+  }
+}
+
+/* Final phone schedule toolbar */
+@media (max-width: 700px) {
+  .scheduleCard {
+    padding: 12px !important;
+    border-width: 2px !important;
+    border-radius: 14px !important;
+    box-shadow: 3px 3px 0 #111 !important;
+  }
+
+  .scheduleCard.todayScheduleCollapsed {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    gap: 8px !important;
+    min-height: 0 !important;
+  }
+
+  .scheduleCard.todayScheduleCollapsed .scheduleHeader {
+    display: contents !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+  }
+
+  .scheduleCard.todayScheduleCollapsed .scheduleHeader h2 {
+    grid-column: 1 / -1 !important;
+    margin: 0 0 2px !important;
+    padding: 0 0 8px !important;
+    border-bottom: 2px solid #ffd700 !important;
+    font-size: 1rem !important;
+    line-height: 1 !important;
+  }
+
+  .scheduleCard.todayScheduleCollapsed .todayScheduleToggle,
+  .scheduleCard.todayScheduleCollapsed .weeklyScheduleBtn {
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 34px !important;
+    margin: 0 !important;
+    padding: 8px 10px !important;
+    border-radius: 999px !important;
+    font-size: .72rem !important;
+    line-height: 1 !important;
+    font-weight: 900 !important;
+    white-space: nowrap !important;
+    box-shadow: 2px 2px 0 rgba(0,0,0,.22) !important;
+  }
+
+  .scheduleCard.todayScheduleCollapsed .todayScheduleToggle {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    display: flex !important;
+    background: #ffd700 !important;
+    color: #111 !important;
+    border: 2px solid #111 !important;
+  }
+
+  .scheduleCard.todayScheduleCollapsed .weeklyScheduleBtn {
+    grid-column: 2 !important;
+    grid-row: 2 !important;
+    background: #fffaf0 !important;
+    color: #111 !important;
+    border: 2px solid #111 !important;
+  }
+
+  .scheduleCard:not(.todayScheduleCollapsed) .scheduleHeader h2 {
+    font-size: 1rem !important;
+  }
+
+  .scheduleCard:not(.todayScheduleCollapsed) .weeklyScheduleBtn,
+  .scheduleCard:not(.todayScheduleCollapsed) .todayScheduleToggle {
+    min-height: 34px !important;
+    padding: 8px 10px !important;
+    font-size: .72rem !important;
+  }
+}
+
+/* Final desktop period card readability fix */
+@media (min-width: 701px) {
+  .heroGrid .current,
+  .heroGrid .next {
+    justify-content: flex-start !important;
+    overflow: hidden !important;
+    padding: 9px 13px !important;
+  }
+
+  .heroGrid .current .label,
+  .heroGrid .next .label {
+    line-height: 1 !important;
+    margin-bottom: 5px !important;
+  }
+
+  .heroGrid .current h2,
+  .heroGrid .next h2,
+  .heroGrid .current #currentSubject,
+  .heroGrid .next #nextSubject {
+    display: block !important;
+    font-size: clamp(1.2rem, 2vw, 1.9rem) !important;
+    line-height: 1.16 !important;
+    margin: 0 0 2px !important;
+    padding: 0 0 2px !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  .heroGrid .current #currentDetails,
+  .heroGrid .next #nextDetails {
+    display: grid !important;
+    gap: 1px !important;
+    font-size: clamp(.72rem, .95vw, .92rem) !important;
+    line-height: 1.08 !important;
+    margin: 0 !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+  }
+
+  .heroGrid .period-time,
+  .heroGrid .period-location {
+    display: block !important;
+    min-width: 0 !important;
+  }
+
+  .heroGrid .period-location {
+    font-size: .92em !important;
+  }
+
+  .heroGrid .currentCountdown,
+  .heroGrid .countdown {
+    margin-top: auto !important;
+    padding: 4px 10px !important;
+    line-height: 1 !important;
+  }
+}
