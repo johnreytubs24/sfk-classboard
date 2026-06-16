@@ -226,11 +226,11 @@ function renderCleanersToday() {
   });
 
   const cleanersByDay = {
-    Monday: "Group 1 + Group 6 (2)",
-    Tuesday: "Group 2 + Group 6 (2)",
-    Wednesday: "Group 3 + Group 6 (1)",
-    Thursday: "Group 4 + Group 6 (1)",
-    Friday: "Group 5 + Group 6 (1)"
+    Monday: "Group 1 + Group 6 (1)",
+    Tuesday: "Group 2 + Group 6 (1)",
+    Wednesday: "Group 3 + Group 6 (2)",
+    Thursday: "Group 4 + Group 6 (2)",
+    Friday: "Group 5 + Group 6 (2)"
   };
 
   cleanersEl.textContent = cleanersByDay[today] || "No cleaners today";
@@ -288,6 +288,61 @@ function renderPeriodDetails(element, item) {
   `;
 }
 
+const DEFAULT_ASSEMBLY_CANVA_LINK = "https://canva.link/gqit03d2of2blzy";
+const HOLY_MASS_LINK = "https://www.facebook.com/CCFO56/";
+
+function getScheduleItemLink(item = {}) {
+  const directLink =
+    item.Link ||
+    item.link ||
+    item.URL ||
+    item.Url ||
+    item.url ||
+    item.Hyperlink ||
+    item.hyperlink;
+
+  if (directLink) return String(directLink).trim();
+
+  const subject = String(item.Subject || item.subject || "").toLowerCase();
+  const isMorningWorshipPeriod =
+    subject.includes("morning assembly") ||
+    subject.includes("morning worship") ||
+    (subject.includes("morning") && subject.includes("homeroom"));
+
+  const isHolyMassPeriod =
+    subject === "mass" ||
+    subject.includes("holy mass");
+
+  if (isHolyMassPeriod) return HOLY_MASS_LINK;
+
+  return isMorningWorshipPeriod ? DEFAULT_ASSEMBLY_CANVA_LINK : "";
+}
+
+function isSafeExternalLink(url) {
+  return /^https?:\/\//i.test(String(url || "").trim());
+}
+
+function renderScheduleSubjectText(item = {}, textColor = "inherit") {
+  const subject = item.Subject || item.subject || "";
+  const label = `${iconFor(subject)} ${subject}`;
+  const itemLink = getScheduleItemLink(item);
+  const safeLabel = escapeHtml(label);
+
+  if (!isSafeExternalLink(itemLink)) {
+    return safeLabel;
+  }
+
+  return `
+    <a class="schedule-text-link"
+       href="${escapeHtml(itemLink)}"
+       target="_blank"
+       rel="noopener noreferrer"
+       style="color:${textColor};">
+      ${safeLabel}
+    </a>
+  `;
+}
+
 function renderCurrentSubject(item) {
   const card = document.querySelector(".current");
   const subjectEl = document.getElementById("currentSubject");
@@ -316,8 +371,7 @@ function renderCurrentSubject(item) {
           : "rgba(255,255,255,.35)";
     }
 
-    document.getElementById("currentSubject").textContent =
-      `${iconFor(item.Subject)} ${item.Subject}`;
+    subjectEl.innerHTML = renderScheduleSubjectText(item, textColor);
 
     renderPeriodDetails(detailsEl, item);
   } else {
@@ -364,8 +418,7 @@ function renderNextSubject(item) {
           : "rgba(0,0,0,.45)";
     }
 
-    document.getElementById("nextSubject").textContent =
-      `${iconFor(item.Subject)} ${item.Subject}`;
+    subjectEl.innerHTML = renderScheduleSubjectText(item, textColor);
 
     renderPeriodDetails(detailsEl, item);
   } else {
@@ -428,7 +481,7 @@ function renderSchedule(items, currentSubject) {
        style="background:${color}; color:${textColor};">
     ${isCurrent ? `<div class="current-badge">▶ CURRENT PERIOD</div>` : ""}
     <strong style="color:${textColor};">${item.StartTime} - ${item.EndTime}</strong><br>
-    <span class="subject-name" style="color:${textColor};">${iconFor(item.Subject)} ${item.Subject}</span><br>
+    <span class="subject-name" style="color:${textColor};">${renderScheduleSubjectText(item, textColor)}</span><br>
     <small style="color:${textColor}; opacity:.9;">${item.Teacher} • ${item.Room}</small>
   </div>
 `;
@@ -1578,7 +1631,7 @@ const dayItems = weeklyScheduleData
 
             <div class="weeklySubject">
               <strong style="color:${textColor}; background:${color};">
-                ${iconFor(item.Subject || item.subject)} ${item.Subject || item.subject || ""}
+                ${renderScheduleSubjectText(item, textColor)}
               </strong>
 
 				<p>
