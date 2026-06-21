@@ -2279,9 +2279,10 @@ function getPartValue(parts, type) {
 
 initClassBoard();
 
+
 /* ================================
    FIRST-OPEN INTRO ANIMATION
-   Uses sessionStorage so it will not repeat on auto-refresh.
+   Shows only once per browser tab/session.
 ================================ */
 const SFK_INTRO_SESSION_KEY = "sfkClassBoardIntroSeenThisSession";
 
@@ -2294,14 +2295,13 @@ function initSfkIntro() {
   const alreadySeen = sessionStorage.getItem(SFK_INTRO_SESSION_KEY) === "YES";
 
   if (alreadySeen) {
-    intro.classList.add("is-hidden");
-    setTimeout(() => intro.remove(), 650);
+    intro.remove();
     return;
   }
 
   sessionStorage.setItem(SFK_INTRO_SESSION_KEY, "YES");
 
-  setTimeout(() => {
+  window.setTimeout(() => {
     hideSfkIntro(false);
   }, 30000);
 }
@@ -2310,10 +2310,9 @@ function hideSfkIntro(isManual) {
   const intro = document.getElementById("sfkIntroOverlay");
   if (!intro) return;
 
-  sessionStorage.setItem(SFK_INTRO_SESSION_KEY, "YES");
   intro.classList.add("is-hidden");
 
-  setTimeout(() => {
-    if (intro && intro.parentNode) intro.remove();
-  }, isManual ? 300 : 650);
+  window.setTimeout(() => {
+    if (intro.parentNode) intro.remove();
+  }, isManual ? 220 : 460);
 }

@@ -5153,35 +5153,26 @@ ol.formattedText li {
   }
 }
 
-/* =========================================================
-   SFK CLASS PHOTO FIRST-OPEN INTRO ANIMATION
-   Refined responsive version for desktop + phone.
-========================================================= */
+
+/* ================= INTRO OVERLAY ================= */
 .sfkIntroOverlay {
   position: fixed;
   inset: 0;
   z-index: 99999;
   display: grid;
   place-items: center;
-  padding: clamp(12px, 2vw, 22px);
+  padding: 18px;
   overflow: hidden;
-  background: linear-gradient(180deg, #f1d343 0%, #efd347 100%);
-  opacity: 1;
-  visibility: visible;
-  transition: opacity .6s ease, visibility .6s ease;
+  isolation: isolate;
 }
 
 .sfkIntroOverlay::before {
   content: "";
   position: absolute;
-  inset: -24px;
-  background:
-    radial-gradient(circle at center, rgba(255, 216, 77, .22), transparent 35%),
-    linear-gradient(180deg, rgba(0,0,0,.20), rgba(0,0,0,.52)),
-    url("class-photo.jpg") center center / cover no-repeat;
-  filter: blur(8px) saturate(1.08) brightness(.82);
-  transform: scale(1.06);
-  animation: sfkPhotoSlowZoom 30s linear forwards;
+  inset: -4%;
+  background: url('class-photo.jpg') center center / cover no-repeat;
+  filter: blur(22px) brightness(.42) saturate(1.05);
+  transform: scale(1.08);
 }
 
 .sfkIntroOverlay::after {
@@ -5189,254 +5180,206 @@ ol.formattedText li {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at center, rgba(255, 225, 124, .16), transparent 38%),
-    linear-gradient(180deg, rgba(0,0,0,.14), rgba(0,0,0,.18));
-  pointer-events: none;
+    radial-gradient(circle at top center, rgba(255,215,0,.18), transparent 42%),
+    linear-gradient(180deg, rgba(14,14,14,.72), rgba(14,14,14,.84));
 }
 
 .sfkIntroOverlay.is-hidden {
   opacity: 0;
   visibility: hidden;
-  pointer-events: none;
+  transition: opacity .45s ease, visibility .45s ease;
 }
 
-.sfkIntroCard {
+.sfkIntroPanel {
   position: relative;
   z-index: 2;
-  width: min(940px, 94vw);
-  min-height: min(650px, 88vh);
-  max-height: 92svh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  text-align: center;
-  padding: clamp(28px, 3.2vw, 46px);
-  border-radius: 34px;
-  background: linear-gradient(180deg, rgba(17,17,17,.90), rgba(10,10,10,.95));
-  color: #fff;
-  border: 6px solid rgba(255,255,255,.96);
-  box-shadow:
-    0 32px 90px rgba(0,0,0,.26),
-    18px 18px 0 rgba(120, 95, 0, .24);
-  backdrop-filter: blur(10px);
+  width: min(1040px, 100%);
+  max-height: min(92vh, 860px);
+  overflow: auto;
+  background: linear-gradient(145deg, rgba(16,16,16,.96), rgba(26,26,26,.95));
+  border: 4px solid rgba(255,255,255,.88);
+  border-radius: 28px;
+  box-shadow: 0 24px 70px rgba(0,0,0,.45);
+  padding: 24px 24px 20px;
+  scrollbar-width: thin;
 }
 
-.sfkIntroCard::before {
+.sfkIntroPanel::before {
   content: "";
   position: absolute;
   inset: 14px;
-  border-radius: 24px;
-  border: 1px solid rgba(255, 215, 0, .22);
+  border-radius: 20px;
+  border: 1px solid rgba(255,215,0,.22);
   pointer-events: none;
 }
 
-.sfkIntroPattern {
+.sfkIntroSkip {
   position: absolute;
-  inset: 0;
-  opacity: .08;
-  background-image:
-    radial-gradient(circle at 14px 14px, #ffd700 2px, transparent 2.5px),
-    radial-gradient(circle at 42px 42px, #ffffff 1.3px, transparent 1.8px);
-  background-size: 58px 58px;
-  pointer-events: none;
-}
-
-.sfkIntroAura {
-  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 4;
+  border: 2px solid rgba(255,255,255,.18);
+  background: rgba(255,255,255,.10);
+  color: #fff;
   border-radius: 999px;
-  pointer-events: none;
+  padding: 10px 20px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition: transform .2s ease, background .2s ease, border-color .2s ease;
 }
 
-.sfkIntroAuraOne {
-  width: 360px;
-  height: 360px;
-  top: -120px;
-  right: -100px;
-  background: radial-gradient(circle, rgba(255, 215, 0, .24), rgba(255, 215, 0, 0) 72%);
-  animation: sfkIntroAuraFloat 5.2s ease-in-out infinite;
+.sfkIntroSkip:hover {
+  transform: translateY(-1px);
+  background: rgba(255,215,0,.14);
+  border-color: rgba(255,215,0,.35);
 }
 
-.sfkIntroAuraTwo {
-  width: 320px;
-  height: 320px;
-  left: -100px;
-  bottom: -110px;
-  background: radial-gradient(circle, rgba(255, 255, 255, .11), rgba(255,255,255,0) 72%);
-  animation: sfkIntroAuraFloat 6.1s ease-in-out infinite reverse;
-}
-
-.sfkIntroMiniPill {
-  position: absolute;
-  z-index: 2;
+.sfkIntroTopTag {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 9px 14px;
-  border-radius: 999px;
+  gap: 8px;
+  background: linear-gradient(180deg, #ffe889, #f7d64d);
   color: #111;
-  background: rgba(255, 215, 0, .96);
-  border: 2px solid rgba(255,255,255,.84);
-  box-shadow: 3px 3px 0 rgba(0,0,0,.22);
-  font-size: clamp(.78rem, 1.05vw, .92rem);
+  border: 3px solid #fff;
+  border-radius: 999px;
+  box-shadow: 0 8px 20px rgba(0,0,0,.22);
+  padding: 11px 20px;
+  font-size: 1.15rem;
   font-weight: 900;
-  white-space: nowrap;
+  margin-bottom: 22px;
 }
 
-.sfkIntroMiniPillOne {
-  top: 24px;
-  left: 24px;
-  transform: rotate(-3deg);
-}
-
-.sfkIntroMiniPillTwo {
-  right: 24px;
-  bottom: 70px;
-  transform: rotate(3deg);
-}
-
-.sfkIntroLogoWrap {
-  position: relative;
-  z-index: 2;
-  width: clamp(96px, 12vw, 126px);
-  height: clamp(96px, 12vw, 126px);
-  margin-bottom: 2px;
-}
-
-.sfkIntroLogo,
-.sfkIntroKoala {
-  position: absolute;
+.sfkIntroBody {
   display: grid;
-  place-items: center;
-  line-height: 1;
+  grid-template-columns: minmax(0, 1.08fr) minmax(320px, .92fr);
+  align-items: center;
+  gap: 28px;
 }
 
-.sfkIntroLogo {
-  inset: 0;
-  border-radius: 28px;
-  background: linear-gradient(180deg, #ffdf4d 0%, #f2cb2a 100%);
-  color: #111;
-  border: 4px solid #fff;
-  box-shadow: 0 16px 36px rgba(0,0,0,.22);
-  font-size: clamp(3rem, 5.2vw, 4rem);
-  animation: sfkIntroHeartBeat 1.7s ease-in-out infinite;
-}
-
-.sfkIntroKoala {
-  left: 50%;
-  transform: translateX(-50%);
-  top: -18px;
-  width: clamp(34px, 4vw, 44px);
-  height: clamp(34px, 4vw, 44px);
-  border-radius: 999px;
-  background: #fff9dd;
-  color: #111;
-  border: 2px solid #111;
-  font-size: clamp(1.2rem, 2vw, 1.45rem);
-  box-shadow: 3px 3px 0 rgba(0,0,0,.20);
-}
-
-.sfkIntroPhotoFrame {
+.sfkIntroPhotoCard {
   position: relative;
-  z-index: 2;
-  width: min(520px, 76vw);
-  max-width: 100%;
-  border-radius: 22px;
-  overflow: hidden;
-  border: 3px solid rgba(255,255,255,.90);
-  box-shadow: 0 12px 36px rgba(0,0,0,.22);
+  background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(248,243,226,.96));
+  border-radius: 26px;
+  border: 3px solid #fff;
+  box-shadow: 0 18px 34px rgba(0,0,0,.25);
+  padding: 22px 18px 18px;
 }
 
-.sfkIntroPhotoFrame::after {
-  content: "";
+.sfkIntroPhotoLabel {
   position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(0,0,0,.02), rgba(0,0,0,.22));
-  pointer-events: none;
+  top: 16px;
+  left: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(247,239,209,.96);
+  color: #111;
+  border: 2px solid #d6d0b7;
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-size: 1.05rem;
+  font-weight: 900;
+  box-shadow: 0 4px 12px rgba(0,0,0,.10);
 }
 
-.sfkIntroPhotoPreview {
+.sfkIntroPhoto {
   display: block;
   width: 100%;
   aspect-ratio: 16 / 9;
   object-fit: cover;
+  border-radius: 22px;
+  border: 2px solid rgba(17,17,17,.08);
 }
 
-.sfkIntroText {
-  position: relative;
-  z-index: 2;
-  max-width: 760px;
+.sfkIntroPhotoText {
+  position: absolute;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  width: calc(100% - 52px);
+  max-width: 460px;
+  padding: 12px 18px;
+  text-align: center;
+  color: #fff7d0;
+  font-size: 1.12rem;
+  font-weight: 900;
+  line-height: 1.25;
+  background: rgba(17,17,17,.54);
+  border: 1px solid rgba(255,255,255,.12);
+  backdrop-filter: blur(8px);
+  border-radius: 18px;
 }
 
-.sfkIntroKicker {
-  display: inline-flex;
+.sfkIntroTextBlock {
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 8px 16px;
-  margin-bottom: 10px;
-  border-radius: 999px;
-  background: rgba(255, 215, 0, .16);
-  border: 2px solid rgba(255, 215, 0, .74);
-  color: #ffe37a;
-  font-size: clamp(.86rem, 1.15vw, 1rem);
-  font-weight: 900;
-  letter-spacing: .03em;
-}
-
-.sfkIntroText h1 {
-  font-family: 'Luckiest Guy', 'Fredoka', Arial, sans-serif;
-  font-size: clamp(3.1rem, 7vw, 5.4rem);
-  line-height: .98;
-  color: #ffd94d;
-  letter-spacing: .025em;
-  margin: 0 0 8px;
-  text-shadow: 4px 4px 0 rgba(0,0,0,.28);
-  animation: sfkIntroTextUp .8s .12s both;
-}
-
-.sfkIntroText p {
-  font-size: clamp(1.28rem, 2.05vw, 1.72rem);
-  font-weight: 900;
+  text-align: center;
   color: #fff;
-  margin: 0 0 6px;
-  animation: sfkIntroTextUp .8s .22s both;
+  padding: 8px 10px;
 }
 
-.sfkIntroText small {
-  display: block;
-  color: #ffeaa0;
-  font-size: clamp(.95rem, 1.4vw, 1.08rem);
-  font-weight: 800;
-  line-height: 1.4;
-  animation: sfkIntroTextUp .8s .32s both;
-}
-
-.sfkIntroHint {
+.sfkIntroSectionPill {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-top: 12px;
-  padding: 8px 14px;
+  padding: 12px 22px;
+  background: rgba(255,215,0,.08);
+  border: 2px solid rgba(255,215,0,.65);
+  color: #ffe36b;
   border-radius: 999px;
-  font-size: clamp(.78rem, 1.05vw, .92rem);
+  font-size: 1.18rem;
   font-weight: 900;
+  margin-bottom: 18px;
+}
+
+.sfkIntroTitle {
+  font-family: 'Fredoka', Arial, sans-serif;
+  font-size: clamp(2.2rem, 3.7vw, 3.4rem);
+  line-height: 1;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.sfkIntroMainWord {
+  font-family: 'Luckiest Guy', cursive;
+  font-size: clamp(4rem, 7vw, 7rem);
+  line-height: .92;
+  letter-spacing: 1px;
+  color: #f8d84f;
+  text-shadow: 0 6px 18px rgba(0,0,0,.3);
+  margin-bottom: 14px;
+}
+
+.sfkIntroSubtitle {
+  font-family: 'Fredoka', Arial, sans-serif;
+  color: #fff5c8;
+  font-size: clamp(1.2rem, 2vw, 1.8rem);
+  line-height: 1.25;
+  margin-bottom: 12px;
+}
+
+.sfkIntroStatus {
   color: rgba(255,255,255,.92);
-  background: rgba(255,255,255,.08);
+  font-size: 1.05rem;
+  font-weight: 700;
+  padding: 12px 22px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.10);
   border: 1px solid rgba(255,255,255,.14);
 }
 
 .sfkIntroProgress {
-  position: absolute;
-  left: clamp(18px, 3.2vw, 34px);
-  right: clamp(18px, 3.2vw, 34px);
-  bottom: 18px;
-  height: 12px;
-  overflow: hidden;
+  margin-top: 22px;
+  width: 100%;
+  height: 14px;
+  background: rgba(255,255,255,.10);
   border-radius: 999px;
-  background: rgba(255,255,255,.15);
-  border: 1px solid rgba(255,255,255,.16);
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.14);
 }
 
 .sfkIntroProgress span {
@@ -5444,55 +5387,8 @@ ol.formattedText li {
   height: 100%;
   width: 0%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #fff2a6 0%, #ffd84c 60%, #ffea61 100%);
+  background: linear-gradient(90deg, #fff4ae 0%, #f7d64d 55%, #e3bf29 100%);
   animation: sfkIntroProgress 30s linear forwards;
-}
-
-.sfkIntroSkip {
-  position: absolute;
-  z-index: 3;
-  top: 18px;
-  right: 18px;
-  border: 2px solid rgba(255,255,255,.18);
-  border-radius: 999px;
-  padding: 10px 16px;
-  background: rgba(255,255,255,.08);
-  color: #fff;
-  font-size: .96rem;
-  font-weight: 900;
-  cursor: pointer;
-  box-shadow: 0 6px 18px rgba(0,0,0,.12);
-}
-
-.sfkIntroSkip:hover {
-  background: rgba(255, 215, 0, .18);
-  border-color: rgba(255, 215, 0, .42);
-  color: #ffd700;
-}
-
-@keyframes sfkPhotoSlowZoom {
-  from { transform: scale(1.05); }
-  to { transform: scale(1.13); }
-}
-
-@keyframes sfkIntroCardIn {
-  from { opacity: 0; transform: translateY(18px) scale(.97); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-@keyframes sfkIntroHeartBeat {
-  0%, 100% { transform: scale(1); }
-  45% { transform: scale(1.06); }
-}
-
-@keyframes sfkIntroTextUp {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes sfkIntroAuraFloat {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(-12px, 14px) scale(1.05); }
 }
 
 @keyframes sfkIntroProgress {
@@ -5501,151 +5397,113 @@ ol.formattedText li {
 }
 
 @media (max-width: 900px) {
-  .sfkIntroCard {
-    width: min(640px, 95vw);
-    min-height: min(680px, 90svh);
-    padding: 24px 20px 42px;
-    border-width: 5px;
-    border-radius: 30px;
-    gap: 12px;
+  .sfkIntroPanel {
+    width: min(760px, 100%);
+    padding: 20px 18px 18px;
   }
 
-  .sfkIntroMiniPillTwo {
-    bottom: 56px;
+  .sfkIntroBody {
+    grid-template-columns: 1fr;
+    gap: 18px;
   }
 
-  .sfkIntroPhotoFrame {
-    width: min(470px, 82vw);
-  }
+  .sfkIntroPhotoCard { order: 1; }
+  .sfkIntroTextBlock { order: 2; padding-top: 0; }
+  .sfkIntroTopTag { font-size: 1rem; }
+  .sfkIntroSectionPill { font-size: 1rem; }
 }
 
 @media (max-width: 640px) {
   .sfkIntroOverlay {
-    padding: 10px;
-    background: linear-gradient(180deg, #efcf46 0%, #edcf45 100%);
+    padding: 14px;
   }
 
-  .sfkIntroCard {
-    width: min(430px, calc(100vw - 20px));
-    min-height: auto;
-    max-height: calc(100svh - 20px);
-    justify-content: flex-start;
-    padding: 20px 16px 44px;
-    border-width: 4px;
-    border-radius: 26px;
-    gap: 10px;
-    overflow-y: auto;
-    box-shadow: 0 18px 44px rgba(0,0,0,.22), 8px 8px 0 rgba(120,95,0,.20);
+  .sfkIntroPanel {
+    width: 100%;
+    max-height: calc(100vh - 28px);
+    border-width: 3px;
+    border-radius: 24px;
+    padding: 16px 14px 16px;
   }
 
-  .sfkIntroCard::before {
+  .sfkIntroPanel::before {
     inset: 10px;
-    border-radius: 20px;
-  }
-
-  .sfkIntroMiniPill {
-    display: none;
+    border-radius: 18px;
   }
 
   .sfkIntroSkip {
     top: 12px;
     right: 12px;
-    padding: 9px 14px;
+    padding: 8px 16px;
+    font-size: .98rem;
+  }
+
+  .sfkIntroTopTag {
+    font-size: .95rem;
+    padding: 10px 16px;
+    margin-bottom: 14px;
+    max-width: calc(100% - 94px);
+  }
+
+  .sfkIntroPhotoCard {
+    padding: 16px 12px 14px;
+    border-radius: 20px;
+  }
+
+  .sfkIntroPhotoLabel {
+    top: 12px;
+    left: 12px;
     font-size: .92rem;
-  }
-
-  .sfkIntroLogoWrap {
-    width: 84px;
-    height: 84px;
-    margin-top: 18px;
-  }
-
-  .sfkIntroLogo {
-    font-size: 2.7rem;
-    border-radius: 24px;
-  }
-
-  .sfkIntroKoala {
-    width: 30px;
-    height: 30px;
-    top: -15px;
-    font-size: 1.05rem;
-  }
-
-  .sfkIntroPhotoFrame {
-    width: 100%;
-    border-radius: 18px;
-  }
-
-  .sfkIntroPhotoPreview {
-    aspect-ratio: 4 / 3;
-  }
-
-  .sfkIntroKicker {
-    font-size: .84rem;
-    line-height: 1.25;
     padding: 8px 14px;
   }
 
-  .sfkIntroText {
-    max-width: 100%;
+  .sfkIntroPhoto {
+    border-radius: 16px;
   }
 
-  .sfkIntroText h1 {
-    font-size: clamp(2.5rem, 14vw, 4rem);
-    line-height: 1;
+  .sfkIntroPhotoText {
+    width: calc(100% - 36px);
+    bottom: 16px;
+    padding: 10px 14px;
+    font-size: .94rem;
   }
 
-  .sfkIntroText p {
-    font-size: clamp(1.12rem, 5.6vw, 1.5rem);
+  .sfkIntroSectionPill {
+    font-size: .94rem;
+    padding: 10px 16px;
+    margin-bottom: 12px;
   }
 
-  .sfkIntroText small {
-    font-size: clamp(.9rem, 4.2vw, 1.02rem);
+  .sfkIntroTitle {
+    font-size: clamp(1.8rem, 8vw, 2.35rem);
+    margin-bottom: 4px;
   }
 
-  .sfkIntroHint {
-    font-size: .82rem;
-    max-width: 100%;
-    text-wrap: balance;
+  .sfkIntroMainWord {
+    font-size: clamp(2.75rem, 16vw, 4.4rem);
+    margin-bottom: 10px;
+  }
+
+  .sfkIntroSubtitle {
+    font-size: clamp(1rem, 5vw, 1.28rem);
+    margin-bottom: 10px;
+  }
+
+  .sfkIntroStatus {
+    font-size: .92rem;
+    padding: 10px 14px;
+    line-height: 1.35;
   }
 
   .sfkIntroProgress {
-    left: 16px;
-    right: 16px;
-    bottom: 14px;
-    height: 10px;
-  }
-}
-
-@media (max-width: 390px) {
-  .sfkIntroCard {
-    padding: 18px 14px 42px;
-  }
-
-  .sfkIntroText h1 {
-    font-size: clamp(2.25rem, 13.2vw, 3.5rem);
-  }
-
-  .sfkIntroText p {
-    font-size: 1.06rem;
-  }
-
-  .sfkIntroKicker {
-    font-size: .78rem;
+    margin-top: 16px;
+    height: 12px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sfkIntroOverlay::before,
-  .sfkIntroCard,
-  .sfkIntroLogo,
-  .sfkIntroText h1,
-  .sfkIntroText p,
-  .sfkIntroText small,
-  .sfkIntroAura,
   .sfkIntroProgress span {
-    animation: none !important;
+    animation: none;
+    width: 100%;
   }
 }
-

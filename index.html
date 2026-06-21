@@ -13,41 +13,32 @@
   <main class="app">
 
     <div id="sfkIntroOverlay" class="sfkIntroOverlay" aria-label="SFK ClassBoard Intro">
-      <div class="sfkIntroCard">
-        <div class="sfkIntroPattern" aria-hidden="true"></div>
-        <div class="sfkIntroAura sfkIntroAuraOne"></div>
-        <div class="sfkIntroAura sfkIntroAuraTwo"></div>
+      <div class="sfkIntroPanel">
+        <button class="sfkIntroSkip" type="button" onclick="hideSfkIntro(true)">Skip</button>
 
-        <div class="sfkIntroMiniPill sfkIntroMiniPillOne">🐨 Kindness First</div>
-        <div class="sfkIntroMiniPill sfkIntroMiniPillTwo">✨ #BeKind</div>
+        <div class="sfkIntroTopTag">🐨 Kindness First • #BeKind</div>
 
-        <div class="sfkIntroLogoWrap">
-          <div class="sfkIntroKoala">🐨</div>
-          <div class="sfkIntroLogo">🫶</div>
-        </div>
+        <div class="sfkIntroBody">
+          <div class="sfkIntroPhotoCard">
+            <div class="sfkIntroPhotoLabel">📸 SFK Class Family</div>
+            <img src="class-photo.jpg" alt="Grade 8 St. Faustina Kowalska class photo" class="sfkIntroPhoto" />
+            <div class="sfkIntroPhotoText">Together, we ascend with kindness.</div>
+          </div>
 
-        <div class="sfkIntroPhotoFrame" aria-hidden="true">
-          <img src="class-photo.jpg" alt="" class="sfkIntroPhotoPreview" />
-        </div>
-
-        <div class="sfkIntroText">
-          <span class="sfkIntroKicker">Grade 8 - St. Faustina Kowalska</span>
-          <h1>#BeKind</h1>
-          <p>SFK ClassBoard</p>
-          <small>Organized with kindness. Guided with purpose.</small>
-          <div class="sfkIntroHint">Opening your class dashboard...</div>
+          <div class="sfkIntroTextBlock">
+            <div class="sfkIntroSectionPill">Grade 8 - St. Faustina Kowalska</div>
+            <h1 class="sfkIntroTitle">SFK ClassBoard</h1>
+            <div class="sfkIntroMainWord">#BeKind</div>
+            <p class="sfkIntroSubtitle">A kind class. A beautiful beginning.</p>
+            <p class="sfkIntroStatus">Opening your class dashboard...</p>
+          </div>
         </div>
 
         <div class="sfkIntroProgress" aria-hidden="true">
           <span></span>
         </div>
-
-        <button class="sfkIntroSkip" type="button" onclick="hideSfkIntro(true)">
-          Skip
-        </button>
       </div>
     </div>
-
 
 
     <div id="bellAlert" class="bell-alert hidden">
