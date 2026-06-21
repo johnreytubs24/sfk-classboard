@@ -5507,3 +5507,14 @@ ol.formattedText li {
     width: 100%;
   }
 }
+
+
+.sfkWordMark {
+  display: inline-block;
+}
+
+.sfkAcronym {
+  color: #ffe36b;
+  font-weight: 1000;
+  text-shadow: 0 2px 10px rgba(0,0,0,.28);
+}
