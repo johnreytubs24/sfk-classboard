@@ -1521,7 +1521,7 @@ function getPublishedMemories() {
         item[header] = row[columnIndex];
       });
       item.RowNumber = index + 2;
-      return item;
+      return attachMemoryDriveDownloadUrls(item);
     })
     .filter(function(item) {
       return String(item.Publish || "YES").trim().toUpperCase() === "YES";
@@ -1547,6 +1547,7 @@ function createMemoryPost(payload) {
   const caption = String(payload.Caption || "").trim();
   const postedBy = String(payload.PostedBy || "").trim();
   const videoUrl = String(payload.VideoURL || "").trim();
+  const musicUrl = String(payload.MusicURL || "").trim();
   const files = Array.isArray(payload.MediaFiles) ? payload.MediaFiles.slice(0, 6) : [];
 
   if (!title || !postedBy) {
@@ -1559,6 +1560,7 @@ function createMemoryPost(payload) {
 
   const memoryId = "MEM-" + Utilities.formatDate(new Date(), TIMEZONE, "yyyyMMddHHmmss") + "-" + Utilities.getUuid().slice(0, 6).toUpperCase();
   const media = uploadMemoryMedia(files, memoryId);
+  const music = uploadMemoryMusic(payload.MusicFile, memoryId);
   const sheet = ensureMemoriesSheet();
   const eventDate = formatInputDateToSheetDate(payload.Date) || Utilities.formatDate(new Date(), TIMEZONE, "MMMM d, yyyy");
   const createdAt = Utilities.formatDate(new Date(), TIMEZONE, "yyyy-MM-dd HH:mm:ss");
@@ -1574,7 +1576,9 @@ function createMemoryPost(payload) {
     videoUrl,
     0,
     "YES",
-    createdAt
+    createdAt,
+    musicUrl,
+    JSON.stringify(music)
   ]);
 
   return {
@@ -1622,11 +1626,90 @@ function uploadMemoryMedia(files, memoryId) {
       viewerUrl: isVideo
         ? "https://drive.google.com/file/d/" + fileId + "/preview"
         : "https://drive.google.com/thumbnail?id=" + fileId + "&sz=w4000",
+      downloadUrl: driveFile.getDownloadUrl(),
       fullUrl: driveFile.getUrl()
     });
   });
 
   return media;
+}
+
+function uploadMemoryMusic(file, memoryId) {
+  if (!file || !file.data || String(file.mimeType || "").indexOf("audio/") !== 0) {
+    return null;
+  }
+
+  const folder = getOrCreateMemoryFolder();
+  const mimeType = String(file.mimeType || "audio/mpeg");
+  const name = sanitizeFileName(file.name || "background-music");
+  const bytes = Utilities.base64Decode(file.data);
+  const blob = Utilities.newBlob(bytes, mimeType, memoryId + "-music-" + name);
+  const driveFile = folder.createFile(blob);
+
+  try {
+    driveFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  } catch (error) {
+    // Managed school domains may block public sharing.
+  }
+
+  return {
+    kind: "drive-audio",
+    name: name,
+    mimeType: mimeType,
+    fileId: driveFile.getId(),
+    downloadUrl: driveFile.getDownloadUrl(),
+    previewUrl: driveFile.getUrl()
+  };
+}
+
+function attachMemoryDriveDownloadUrls(item) {
+  try {
+    const media = JSON.parse(item.MediaJSON || "[]");
+    if (Array.isArray(media)) {
+      media.forEach(function(entry) {
+        if (entry && entry.fileId && !entry.downloadUrl) {
+          entry.downloadUrl = DriveApp.getFileById(entry.fileId).getDownloadUrl();
+        }
+      });
+      item.MediaJSON = JSON.stringify(media);
+    }
+  } catch (error) {
+    // Keep the original media metadata when Drive lookup is unavailable.
+  }
+
+  try {
+    const music = JSON.parse(item.MusicJSON || "null");
+    if (music && music.fileId && !music.downloadUrl) {
+      music.downloadUrl = DriveApp.getFileById(music.fileId).getDownloadUrl();
+      item.MusicJSON = JSON.stringify(music);
+    }
+  } catch (error) {
+    // Keep the original music metadata when Drive lookup is unavailable.
+  }
+
+  const videoFileId = extractDriveFileId(item.VideoURL);
+  if (videoFileId) item.VideoDownloadURL = getDriveDownloadUrlSafely(videoFileId);
+
+  const musicFileId = extractDriveFileId(item.MusicURL);
+  if (musicFileId) item.MusicDownloadURL = getDriveDownloadUrlSafely(musicFileId);
+
+  return item;
+}
+
+function extractDriveFileId(value) {
+  const text = String(value || "");
+  const pathMatch = text.match(/drive\.google\.com\/file\/d\/([^/]+)/i);
+  if (pathMatch) return pathMatch[1];
+  const queryMatch = text.match(/[?&]id=([^&]+)/i);
+  return queryMatch ? queryMatch[1] : "";
+}
+
+function getDriveDownloadUrlSafely(fileId) {
+  try {
+    return DriveApp.getFileById(fileId).getDownloadUrl();
+  } catch (error) {
+    return "";
+  }
 }
 
 function recordMemoryHeart(payload) {
@@ -1695,7 +1778,8 @@ function ensureMemoriesSheet() {
   let sheet = ss.getSheetByName("Memories");
   const headers = [
     "ID", "Date", "Title", "Caption", "PostedBy", "Role",
-    "MediaJSON", "VideoURL", "HeartCount", "Publish", "CreatedAt"
+    "MediaJSON", "VideoURL", "HeartCount", "Publish", "CreatedAt",
+    "MusicURL", "MusicJSON"
   ];
 
   if (!sheet) {
@@ -1706,6 +1790,21 @@ function ensureMemoriesSheet() {
       .setFontWeight("bold")
       .setBackground("#f7c600")
       .setFontColor("#111111");
+  } else {
+    const existingHeaders = sheet.getRange(1, 1, 1, Math.max(1, sheet.getLastColumn()))
+      .getDisplayValues()[0]
+      .map(function(header) { return String(header || "").trim(); });
+
+    headers.forEach(function(header) {
+      const exists = existingHeaders.some(function(existingHeader) {
+        return normalizeHeaderName(existingHeader) === normalizeHeaderName(header);
+      });
+
+      if (!exists) {
+        sheet.getRange(1, sheet.getLastColumn() + 1).setValue(header);
+        existingHeaders.push(header);
+      }
+    });
   }
 
   return sheet;

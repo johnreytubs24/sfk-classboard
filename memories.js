@@ -1,8 +1,10 @@
 const MEMORIES_API_URL = "https://script.google.com/macros/s/AKfycbzCjWVnO-ZNvKTNqKN1zVscNsfPox0uDnO1QTSbBCrMFaS79tfL3mopHa2pH7gHczYeOA/exec";
 const MEMORY_CACHE_KEY = "sfkMemoriesCacheV1";
 const HEARTED_MEMORY_KEY = "sfkHeartedMemoriesV1";
+const MEMORY_AUTH_SESSION_KEY = "sfkMemoriesAuthSessionV1";
 const MAX_MEDIA_FILES = 6;
 const MAX_VIDEO_BYTES = 12 * 1024 * 1024;
+const MAX_MUSIC_BYTES = 10 * 1024 * 1024;
 const MAX_TOTAL_PAYLOAD_BYTES = 20 * 1024 * 1024;
 
 const memoryState = {
@@ -18,9 +20,12 @@ const memoryState = {
 };
 
 let touchGesture = null;
+let feedVideoObserver = null;
+let postMusicObserver = null;
 
 document.addEventListener("DOMContentLoaded", () => {
   setDefaultMemoryDate();
+  restoreMemoryAuth();
   bindMemoryEvents();
   renderCachedMemories();
   loadMemories();
@@ -42,17 +47,21 @@ function bindMemoryEvents() {
   document.getElementById("unlockPostingButton")?.addEventListener("click", unlockMemoryPosting);
   document.getElementById("changeRoleButton")?.addEventListener("click", resetMemoryAuth);
   document.getElementById("memoryFiles")?.addEventListener("change", handleMemoryFiles);
+  document.getElementById("memoryMusicFile")?.addEventListener("change", handleMusicFile);
   document.getElementById("memoryForm")?.addEventListener("submit", submitMemoryPost);
   const feed = document.getElementById("memoryFeed");
   feed?.addEventListener("click", handleFeedClick);
   feed?.addEventListener("touchstart", startFeedSwipe, { passive: true });
   feed?.addEventListener("touchmove", moveFeedSwipe, { passive: false });
   feed?.addEventListener("touchend", endFeedSwipe, { passive: true });
+  feed?.addEventListener("error", handleFeedVideoError, true);
+  feed?.addEventListener("load", handleEmbeddedMediaLoad, true);
   document.getElementById("closeViewerButton")?.addEventListener("click", closeViewer);
   document.getElementById("viewerPrevious")?.addEventListener("click", () => moveViewer(-1));
   document.getElementById("viewerNext")?.addEventListener("click", () => moveViewer(1));
   document.getElementById("viewerModal")?.addEventListener("touchstart", startViewerSwipe, { passive: true });
   document.getElementById("viewerModal")?.addEventListener("touchend", endViewerSwipe, { passive: true });
+  document.getElementById("viewerModal")?.addEventListener("click", handleViewerClick);
 
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
@@ -116,8 +125,12 @@ function normalizeMemoryPost(raw) {
   const media = uploadedMedia
     .map(normalizeStoredMedia)
     .filter(Boolean);
-  const linkedVideo = normalizeExternalMedia(raw.VideoURL || raw.videoUrl || "");
+  const linkedVideo = normalizeExternalMedia(
+    raw.VideoURL || raw.videoUrl || "",
+    raw.VideoDownloadURL || raw.videoDownloadUrl || ""
+  );
   if (linkedVideo) media.push(linkedVideo);
+  const music = normalizePostMusic(raw);
 
   return {
     id: String(raw.ID || raw.Id || raw.id || "").trim(),
@@ -128,8 +141,60 @@ function normalizeMemoryPost(raw) {
     role: String(raw.Role || "Officer").trim(),
     heartCount: Math.max(0, Number(raw.HeartCount || 0)),
     createdAt: String(raw.CreatedAt || "").trim(),
-    media
+    media,
+    music
   };
+}
+
+function normalizePostMusic(raw) {
+  if (raw.music && typeof raw.music === "object") {
+    if (raw.music.kind === "youtube-audio") return null;
+    return {
+      ...raw.music,
+      muted: true,
+      started: false
+    };
+  }
+
+  let uploaded = null;
+  try {
+    uploaded = JSON.parse(raw.MusicJSON || raw.musicJSON || "null");
+  } catch (error) {
+    uploaded = null;
+  }
+
+  if (uploaded && uploaded.fileId) {
+    return {
+      kind: "drive-audio",
+      name: String(uploaded.name || "Background music"),
+      fileId: String(uploaded.fileId),
+      url: safeHttpUrl(uploaded.downloadUrl) || getDriveAudioStreamUrl(uploaded.fileId),
+      fallbackUrl: getDriveStreamUrl(uploaded.fileId),
+      previewUrl: safeHttpUrl(uploaded.previewUrl),
+      muted: true,
+      started: false
+    };
+  }
+
+  const url = safeHttpUrl(raw.MusicURL || raw.musicUrl || "");
+  if (!url) return null;
+  if (getYouTubeId(url)) return null;
+
+  const driveId = getDriveFileId(url);
+  if (driveId) {
+    return {
+      kind: "drive-audio",
+      name: "Background music",
+      fileId: driveId,
+      url: safeHttpUrl(raw.MusicDownloadURL || raw.musicDownloadUrl) || getDriveAudioStreamUrl(driveId),
+      fallbackUrl: getDriveStreamUrl(driveId),
+      previewUrl: url,
+      muted: true,
+      started: false
+    };
+  }
+
+  return { kind: "direct-audio", name: "Background music", url, muted: true, started: false };
 }
 
 function normalizeStoredMedia(item) {
@@ -151,11 +216,15 @@ function normalizeStoredMedia(item) {
     name: String(item.name || "SFK memory"),
     mimeType: String(item.mimeType || ""),
     fileId,
-    ratio: Number(item.ratio) > 0 ? Number(item.ratio) : 0
+    ratio: Number(item.ratio) > 0 ? Number(item.ratio) : 0,
+    streamUrl: kind === "drive-video"
+      ? (safeHttpUrl(item.downloadUrl) || safeHttpUrl(item.streamUrl) || getDriveStreamUrl(fileId))
+      : safeHttpUrl(item.streamUrl),
+    muted: true
   };
 }
 
-function normalizeExternalMedia(value) {
+function normalizeExternalMedia(value, downloadUrl) {
   const url = safeHttpUrl(value);
   if (!url) return null;
 
@@ -165,7 +234,8 @@ function normalizeExternalMedia(value) {
       kind: "embed-video",
       url: `https://www.youtube.com/embed/${youtubeId}`,
       fullUrl: url,
-      name: "YouTube video"
+      name: "YouTube video",
+      muted: true
     };
   }
 
@@ -174,16 +244,31 @@ function normalizeExternalMedia(value) {
     return {
       kind: "drive-video",
       url: `https://drive.google.com/file/d/${driveId}/preview`,
+      streamUrl: safeHttpUrl(downloadUrl) || getDriveStreamUrl(driveId),
       fullUrl: url,
-      name: "Google Drive video"
+      fileId: driveId,
+      name: "Google Drive video",
+      muted: true
     };
   }
 
   if (/\.(mp4|webm|ogg|mov)(?:[?#].*)?$/i.test(url)) {
-    return { kind: "direct-video", url, fullUrl: url, name: "Video" };
+    return { kind: "direct-video", url, fullUrl: url, name: "Video", muted: true };
   }
 
-  return { kind: "embed-video", url, fullUrl: url, name: "Linked video" };
+  return { kind: "embed-video", url, fullUrl: url, name: "Linked video", muted: true };
+}
+
+function getDriveStreamUrl(fileId) {
+  return fileId
+    ? `https://drive.usercontent.google.com/download?id=${encodeURIComponent(fileId)}&export=download&confirm=t`
+    : "";
+}
+
+function getDriveAudioStreamUrl(fileId) {
+  return fileId
+    ? `https://drive.google.com/uc?export=download&id=${encodeURIComponent(fileId)}`
+    : "";
 }
 
 function getYouTubeId(url) {
@@ -218,6 +303,8 @@ function renderMemories() {
   empty.hidden = filtered.length !== 0;
   feed.innerHTML = filtered.map(renderMemoryPost).join("");
   window.requestAnimationFrame(() => {
+    observeFeedVideos();
+    observePostMusic();
     scrollToRequestedMemory();
   });
 }
@@ -243,7 +330,7 @@ function renderMemoryPost(post) {
     : "";
 
   return `
-    <article class="memoryPost" data-post-id="${escapeAttr(post.id)}">
+    <article class="memoryPost" data-post-id="${escapeAttr(post.id)}" ${post.music ? 'data-has-music="true"' : ""}>
       <header class="postHeader">
         <div class="postAvatar">${avatar}</div>
         <div class="postIdentity">
@@ -288,6 +375,31 @@ function renderPostMedia(post, currentIndex) {
     <div class="postMedia">
       <div class="mediaTrack" style="transform:translateX(-${currentIndex * 100}%)">${slides}</div>
       ${controls}
+      ${renderPostMusic(post)}
+    </div>
+  `;
+}
+
+function renderPostMusic(post) {
+  const music = post.music;
+  if (!music) return "";
+
+  const audible = music.muted === false;
+  let player = "";
+
+  player = `
+    <audio class="postMusicPlayer" ${audible ? "" : "muted"} loop preload="metadata">
+      <source src="${escapeAttr(music.url)}" />
+      ${music.fallbackUrl ? `<source src="${escapeAttr(music.fallbackUrl)}" />` : ""}
+    </audio>
+  `;
+
+  return `
+    <div class="postMusic" data-music-post="${escapeAttr(post.id)}">
+      ${player}
+      <button class="musicToggleButton ${audible ? "audible" : ""}" type="button" data-action="music" data-id="${escapeAttr(post.id)}" aria-label="${audible ? "Mute background music" : "Play background music"}">
+        <span class="musicNote">&#9835;</span><span class="musicLabel">Music</span><span class="musicSound">${audible ? "&#128266;" : "&#128263;"}</span>
+      </button>
     </div>
   `;
 }
@@ -304,11 +416,47 @@ function renderMediaSlide(media, postId, index) {
     `;
   }
 
-  if (media.kind === "direct-video") {
-    return `<div class="mediaSlide"><video src="${escapeAttr(media.url)}" controls playsinline preload="metadata"></video></div>`;
+  if (media.kind === "direct-video" || media.kind === "drive-video") {
+    const source = media.kind === "drive-video" ? (media.streamUrl || media.url) : media.url;
+    return `
+      <div class="mediaSlide videoSlide">
+        <video class="feedVideo" src="${escapeAttr(source)}" autoplay ${media.muted === false ? "" : "muted"} loop playsinline preload="metadata" data-post-id="${escapeAttr(postId)}" data-media-index="${index}" ${media.kind === "drive-video" ? `data-drive-preview="${escapeAttr(media.url)}"` : ""}></video>
+        ${renderVolumeButton(media, postId, index)}
+      </div>
+    `;
   }
 
-  return `<div class="mediaSlide"><iframe src="${escapeAttr(media.url)}" title="${escapeAttr(media.name)}" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>`;
+  const youtubeId = getYouTubeId(media.fullUrl || media.url);
+  const iframeUrl = youtubeId
+    ? getYouTubeEmbedUrl(youtubeId, media.muted !== false)
+    : media.url;
+
+  return `
+    <div class="mediaSlide videoSlide">
+      <iframe class="feedVideoFrame" src="${escapeAttr(iframeUrl)}" title="${escapeAttr(media.name)}" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen data-post-id="${escapeAttr(postId)}" data-media-index="${index}" data-youtube="${youtubeId ? "true" : "false"}"></iframe>
+      <div class="iframeSwipeShield" aria-hidden="true"></div>
+      ${youtubeId ? renderVolumeButton(media, postId, index) : ""}
+    </div>
+  `;
+}
+
+function renderVolumeButton(media, postId, index) {
+  const audible = media.muted === false;
+  return `<button class="mediaVolumeButton ${audible ? "audible" : ""}" type="button" data-action="volume" data-id="${escapeAttr(postId)}" data-index="${index}" aria-label="${audible ? "Mute video" : "Turn on video sound"}">${audible ? "&#128266;" : "&#128263;"}</button>`;
+}
+
+function getYouTubeEmbedUrl(videoId, muted) {
+  const params = new URLSearchParams({
+    autoplay: "1",
+    mute: muted ? "1" : "0",
+    loop: "1",
+    playlist: videoId,
+    playsinline: "1",
+    controls: "0",
+    rel: "0",
+    enablejsapi: "1"
+  });
+  return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
 }
 
 function handleFeedClick(event) {
@@ -326,6 +474,197 @@ function handleFeedClick(event) {
   if (action === "share") shareMemory(id);
   if (action === "manage") openManageActions(id);
   if (action === "view") openPostViewer(id, Number(target.dataset.index) || 0);
+  if (action === "volume") toggleMediaVolume(id, Number(target.dataset.index) || 0, target);
+  if (action === "music") togglePostMusic(id, target);
+}
+
+function togglePostMusic(postId, button) {
+  const post = memoryState.posts.find((item) => item.id === postId);
+  const music = post?.music;
+  const article = button.closest(".memoryPost");
+  if (!music || !article) return;
+
+  const willPlay = music.muted !== false;
+  if (willPlay) muteAllOtherMedia("", -1);
+  music.muted = !willPlay;
+  music.started = willPlay;
+
+  const audio = article.querySelector(".postMusicPlayer");
+  const iframe = article.querySelector('[data-music-youtube="true"]');
+
+  if (audio) {
+    audio.muted = music.muted;
+    audio.volume = 1;
+    if (willPlay) audio.play().catch(() => showMemoryToast("Tap the music button again to play."));
+    else audio.pause();
+  }
+
+  if (iframe) {
+    sendYouTubeCommand(iframe, music.muted ? "mute" : "unMute");
+    sendYouTubeCommand(iframe, willPlay ? "playVideo" : "pauseVideo");
+  }
+
+  button.classList.toggle("audible", willPlay);
+  button.querySelector(".musicSound").innerHTML = willPlay ? "&#128266;" : "&#128263;";
+  button.setAttribute("aria-label", willPlay ? "Mute background music" : "Play background music");
+}
+
+function toggleMediaVolume(postId, mediaIndex, button) {
+  const post = memoryState.posts.find((item) => item.id === postId);
+  const media = post?.media?.[mediaIndex];
+  const article = button.closest(".memoryPost");
+  if (!media || !article) return;
+
+  const willUnmute = media.muted !== false;
+  if (willUnmute) muteAllOtherMedia(postId, mediaIndex);
+  media.muted = !willUnmute;
+
+  const video = article.querySelector(`video[data-media-index="${mediaIndex}"]`);
+  const iframe = article.querySelector(`iframe[data-media-index="${mediaIndex}"]`);
+
+  if (video) {
+    video.muted = media.muted;
+    video.volume = 1;
+    video.play().catch(() => {});
+  }
+
+  if (iframe?.dataset.youtube === "true") {
+    sendYouTubeCommand(iframe, media.muted ? "mute" : "unMute");
+    sendYouTubeCommand(iframe, "playVideo");
+  }
+
+  updateVolumeButton(button, media.muted);
+}
+
+function muteAllOtherMedia(activePostId, activeIndex) {
+  memoryState.posts.forEach((post) => {
+    post.media.forEach((media, index) => {
+      if (post.id === activePostId && index === activeIndex) return;
+      media.muted = true;
+    });
+    if (post.music) post.music.muted = true;
+  });
+
+  document.querySelectorAll(".feedVideo").forEach((video) => {
+    video.muted = true;
+  });
+
+  document.querySelectorAll('.feedVideoFrame[data-youtube="true"]').forEach((iframe) => {
+    sendYouTubeCommand(iframe, "mute");
+  });
+
+  document.querySelectorAll(".mediaVolumeButton").forEach((button) => {
+    updateVolumeButton(button, true);
+  });
+
+  document.querySelectorAll(".postMusicPlayer").forEach((audio) => {
+    audio.muted = true;
+    audio.pause();
+  });
+
+  document.querySelectorAll('[data-music-youtube="true"]').forEach((iframe) => {
+    sendYouTubeCommand(iframe, "mute");
+    sendYouTubeCommand(iframe, "pauseVideo");
+  });
+
+  document.querySelectorAll(".musicToggleButton").forEach((button) => {
+    button.classList.remove("audible");
+    const sound = button.querySelector(".musicSound");
+    if (sound) sound.innerHTML = "&#128263;";
+    button.setAttribute("aria-label", "Play background music");
+  });
+}
+
+function updateVolumeButton(button, muted) {
+  button.classList.toggle("audible", !muted);
+  button.innerHTML = muted ? "&#128263;" : "&#128266;";
+  button.setAttribute("aria-label", muted ? "Turn on video sound" : "Mute video");
+}
+
+function sendYouTubeCommand(iframe, command) {
+  iframe?.contentWindow?.postMessage(JSON.stringify({
+    event: "command",
+    func: command,
+    args: []
+  }), "*");
+}
+
+function observeFeedVideos() {
+  feedVideoObserver?.disconnect();
+  feedVideoObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      const element = entry.target;
+      const visible = entry.isIntersecting && entry.intersectionRatio >= .55;
+
+      if (element instanceof HTMLVideoElement) {
+        if (visible) element.play().catch(() => {});
+        else element.pause();
+      } else if (element.dataset.youtube === "true") {
+        sendYouTubeCommand(element, visible ? "playVideo" : "pauseVideo");
+      }
+    });
+  }, { threshold: [0, .55, 1] });
+
+  document.querySelectorAll(".feedVideo, .feedVideoFrame").forEach((element) => {
+    feedVideoObserver.observe(element);
+  });
+}
+
+function observePostMusic() {
+  postMusicObserver?.disconnect();
+  postMusicObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      const article = entry.target;
+      const post = memoryState.posts.find((item) => item.id === article.dataset.postId);
+      const music = post?.music;
+      if (!music || !music.started || music.muted) return;
+
+      const visible = entry.isIntersecting && entry.intersectionRatio >= .45;
+      const audio = article.querySelector(".postMusicPlayer");
+      const iframe = article.querySelector('[data-music-youtube="true"]');
+
+      if (audio) {
+        if (visible) audio.play().catch(() => {});
+        else audio.pause();
+      }
+
+      if (iframe) sendYouTubeCommand(iframe, visible ? "playVideo" : "pauseVideo");
+    });
+  }, { threshold: [0, .45, 1] });
+
+  document.querySelectorAll('.memoryPost[data-has-music="true"]').forEach((article) => {
+    postMusicObserver.observe(article);
+  });
+}
+
+function handleFeedVideoError(event) {
+  const video = event.target;
+  if (!(video instanceof HTMLVideoElement) || !video.dataset.drivePreview) return;
+
+  const slide = video.closest(".videoSlide");
+  if (!slide || slide.dataset.driveFallback === "true") return;
+  slide.dataset.driveFallback = "true";
+
+  const iframe = document.createElement("iframe");
+  iframe.className = "feedVideoFrame";
+  iframe.src = video.dataset.drivePreview;
+  iframe.title = "Google Drive video";
+  iframe.allow = "autoplay; fullscreen";
+  iframe.allowFullscreen = true;
+  video.replaceWith(iframe);
+
+  const volumeButton = slide.querySelector(".mediaVolumeButton");
+  if (volumeButton) volumeButton.hidden = true;
+}
+
+function handleEmbeddedMediaLoad(event) {
+  const iframe = event.target;
+  if (!(iframe instanceof HTMLIFrameElement) || iframe.dataset.musicYoutube !== "true") return;
+
+  const post = memoryState.posts.find((item) => item.id === iframe.dataset.postId);
+  if (!post?.music?.started || post.music.muted) return;
+  sendYouTubeCommand(iframe, "unMute");
+  sendYouTubeCommand(iframe, "playVideo");
 }
 
 function moveCarousel(id, direction) {
@@ -361,6 +700,22 @@ function updateCarouselElement(id, index, animate) {
   const next = article.querySelector('[data-action="next"]');
   if (previous) previous.hidden = index === 0;
   if (next) next.hidden = index === post.media.length - 1;
+  window.setTimeout(() => syncActiveCarouselPlayback(article, index), animate ? 180 : 0);
+}
+
+function syncActiveCarouselPlayback(article, activeIndex) {
+  article.querySelectorAll(".mediaSlide").forEach((slide, index) => {
+    const active = index === activeIndex;
+    const video = slide.querySelector("video");
+    const iframe = slide.querySelector('.feedVideoFrame[data-youtube="true"]');
+
+    if (video) {
+      if (active) video.play().catch(() => {});
+      else video.pause();
+    }
+
+    if (iframe) sendYouTubeCommand(iframe, active ? "playVideo" : "pauseVideo");
+  });
 }
 
 function startFeedSwipe(event) {
@@ -368,7 +723,7 @@ function startFeedSwipe(event) {
   const article = event.target.closest(".memoryPost");
   const touch = event.changedTouches?.[0];
 
-  if (!media || !article || !touch || event.target.closest("video, iframe, button")) return;
+  if (!media || !article || !touch || event.target.closest("iframe, button")) return;
 
   touchGesture = {
     scope: "feed",
@@ -618,6 +973,7 @@ async function unlockMemoryPosting() {
     }
 
     memoryState.auth = { role: result.role || role, pin };
+    sessionStorage.setItem(MEMORY_AUTH_SESSION_KEY, JSON.stringify(memoryState.auth));
     document.getElementById("memoryPin").value = "";
     showMemoryForm();
     renderMemories();
@@ -630,8 +986,22 @@ async function unlockMemoryPosting() {
 
 function resetMemoryAuth() {
   memoryState.auth = null;
+  sessionStorage.removeItem(MEMORY_AUTH_SESSION_KEY);
   showMemoryAuthStep();
   renderMemories();
+}
+
+function restoreMemoryAuth() {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(MEMORY_AUTH_SESSION_KEY) || "null");
+    if (!saved || !saved.role || !saved.pin) return;
+    memoryState.auth = {
+      role: saved.role === "Admin" ? "Admin" : "Officer",
+      pin: String(saved.pin)
+    };
+  } catch (error) {
+    sessionStorage.removeItem(MEMORY_AUTH_SESSION_KEY);
+  }
 }
 
 function handleMemoryFiles(event) {
@@ -642,6 +1012,21 @@ function handleMemoryFiles(event) {
   if ((event.target.files || []).length > MAX_MEDIA_FILES) {
     showMemoryToast(`Only the first ${MAX_MEDIA_FILES} files will be uploaded.`);
   }
+}
+
+function handleMusicFile(event) {
+  const file = event.target.files?.[0] || null;
+  const label = document.getElementById("musicFileName");
+  if (!label) return;
+
+  if (!file) {
+    label.textContent = "MP3/M4A, up to 10 MB";
+    return;
+  }
+
+  label.textContent = file.size > MAX_MUSIC_BYTES
+    ? `${file.name} is too large`
+    : file.name;
 }
 
 function renderSelectedMediaPreview() {
@@ -666,6 +1051,8 @@ async function submitMemoryPost(event) {
   }
 
   const videoUrl = document.getElementById("memoryVideoUrl").value.trim();
+  const musicUrl = document.getElementById("memoryMusicUrl").value.trim();
+  const musicFile = document.getElementById("memoryMusicFile").files?.[0] || null;
   const message = document.getElementById("postMessage");
   const button = document.getElementById("publishMemoryButton");
 
@@ -679,6 +1066,10 @@ async function submitMemoryPost(event) {
   message.textContent = "Optimizing and preparing your media...";
 
   try {
+    if (musicUrl && getYouTubeId(musicUrl)) {
+      throw new Error("YouTube cannot be used as hidden background music. Upload MP3/M4A or use a direct/public Drive audio file.");
+    }
+
     const mediaFiles = [];
     let payloadBytes = 0;
 
@@ -695,6 +1086,19 @@ async function submitMemoryPost(event) {
       mediaFiles.push(prepared);
     }
 
+    let preparedMusic = null;
+    if (musicFile) {
+      if (musicFile.size > MAX_MUSIC_BYTES) {
+        throw new Error("Background music must be 10 MB or smaller. Use a music link for larger files.");
+      }
+
+      preparedMusic = await fileToPayload(musicFile);
+      payloadBytes += Math.ceil(preparedMusic.data.length * .75);
+      if (payloadBytes > MAX_TOTAL_PAYLOAD_BYTES) {
+        throw new Error("The total upload is too large. Use links for the video or music.");
+      }
+    }
+
     button.textContent = "Sharing...";
     message.textContent = "Sharing this memory with SFK...";
 
@@ -706,7 +1110,9 @@ async function submitMemoryPost(event) {
       PostedBy: document.getElementById("memoryPostedBy").value.trim(),
       Caption: document.getElementById("memoryCaption").value.trim(),
       VideoURL: videoUrl,
-      MediaFiles: mediaFiles
+      MediaFiles: mediaFiles,
+      MusicURL: musicUrl,
+      MusicFile: preparedMusic
     };
 
     const result = await postMemoryApi("memoryCreate", payload);
@@ -783,6 +1189,7 @@ function resetMemoryForm() {
   memoryState.selectedFiles = [];
   document.getElementById("mediaPreview").innerHTML = "";
   document.getElementById("postMessage").textContent = "";
+  document.getElementById("musicFileName").textContent = "MP3/M4A, up to 10 MB";
   setDefaultMemoryDate();
 }
 
@@ -853,16 +1260,64 @@ function renderViewer() {
 
   if (media.kind === "image") {
     content.innerHTML = `<img src="${escapeAttr(media.viewerUrl || media.url)}" alt="${escapeAttr(media.name)}" />`;
-  } else if (media.kind === "direct-video") {
-    content.innerHTML = `<video src="${escapeAttr(media.url)}" controls autoplay playsinline></video>`;
+  } else if (media.kind === "direct-video" || media.kind === "drive-video") {
+    const source = media.kind === "drive-video" ? (media.streamUrl || media.url) : media.url;
+    content.innerHTML = `
+      <video class="viewerVideo" src="${escapeAttr(source)}" autoplay ${media.muted === false ? "" : "muted"} loop playsinline ${media.kind === "drive-video" ? `data-viewer-drive-preview="${escapeAttr(media.url)}"` : ""}></video>
+      ${renderViewerVolumeButton(media)}
+    `;
   } else {
-    content.innerHTML = `<iframe src="${escapeAttr(media.url)}" title="${escapeAttr(media.name)}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+    const youtubeId = getYouTubeId(media.fullUrl || media.url);
+    const source = youtubeId ? getYouTubeEmbedUrl(youtubeId, media.muted !== false) : media.url;
+    content.innerHTML = `
+      <iframe class="viewerVideoFrame" src="${escapeAttr(source)}" title="${escapeAttr(media.name)}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen data-youtube="${youtubeId ? "true" : "false"}"></iframe>
+      ${youtubeId ? renderViewerVolumeButton(media) : ""}
+    `;
   }
+
+  const driveVideo = content.querySelector("video[data-viewer-drive-preview]");
+  driveVideo?.addEventListener("error", () => {
+    content.innerHTML = `<iframe class="viewerVideoFrame" src="${escapeAttr(driveVideo.dataset.viewerDrivePreview)}" title="Google Drive video" allow="fullscreen" allowfullscreen></iframe>`;
+  }, { once: true });
 
   const multiple = memoryState.viewerMedia.length > 1;
   document.getElementById("viewerPrevious").hidden = !multiple;
   document.getElementById("viewerNext").hidden = !multiple;
   document.getElementById("viewerCounter").textContent = `${memoryState.viewerIndex + 1} / ${memoryState.viewerMedia.length}`;
+}
+
+function renderViewerVolumeButton(media) {
+  const audible = media.muted === false;
+  return `<button class="mediaVolumeButton viewerVolumeButton ${audible ? "audible" : ""}" type="button" data-viewer-volume aria-label="${audible ? "Mute video" : "Turn on video sound"}">${audible ? "&#128266;" : "&#128263;"}</button>`;
+}
+
+function handleViewerClick(event) {
+  const button = event.target.closest("[data-viewer-volume]");
+  if (!button) return;
+
+  const media = memoryState.viewerMedia[memoryState.viewerIndex];
+  if (!media) return;
+
+  const willUnmute = media.muted !== false;
+  if (willUnmute) muteAllOtherMedia("", -1);
+  media.muted = !willUnmute;
+
+  const content = document.getElementById("viewerContent");
+  const video = content?.querySelector("video");
+  const iframe = content?.querySelector('iframe[data-youtube="true"]');
+
+  if (video) {
+    video.muted = media.muted;
+    video.volume = 1;
+    video.play().catch(() => {});
+  }
+
+  if (iframe) {
+    sendYouTubeCommand(iframe, media.muted ? "mute" : "unMute");
+    sendYouTubeCommand(iframe, "playVideo");
+  }
+
+  updateVolumeButton(button, media.muted);
 }
 
 function moveViewer(direction) {

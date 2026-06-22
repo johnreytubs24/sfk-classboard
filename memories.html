@@ -7,10 +7,10 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>SFK Memories</title>
-  <link rel="manifest" href="manifest.webmanifest?v=8" />
-  <link rel="icon" href="icons/icon-192.png?v=8" />
-  <link rel="apple-touch-icon" href="icons/icon-192.png?v=8" />
-  <link rel="stylesheet" href="memories.css?v=8" />
+  <link rel="manifest" href="manifest.webmanifest?v=11" />
+  <link rel="icon" href="icons/icon-192.png?v=11" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png?v=11" />
+  <link rel="stylesheet" href="memories.css?v=11" />
 </head>
 <body>
   <header class="memoryTopbar">
@@ -136,7 +136,20 @@
         <div class="orDivider"><span>or</span></div>
         <label>Video link
           <input id="memoryVideoUrl" type="url" placeholder="YouTube, Google Drive, or direct video URL" />
+          <small class="fieldHint">For large videos, upload as YouTube Unlisted or Google Drive, then paste the link here.</small>
         </label>
+
+        <div class="musicFields">
+          <div class="musicFieldsTitle"><span>&#9835;</span><div><strong>Background music</strong><small>Optional. Continues while swiping photos.</small></div></div>
+          <label>Music link
+            <input id="memoryMusicUrl" type="url" placeholder="Google Drive or direct MP3/M4A URL" />
+            <small class="fieldHint">YouTube links belong in Video Link; background music requires an audio file.</small>
+          </label>
+          <label class="smallUploadButton" for="memoryMusicFile">
+            <span>+ Upload audio</span><small id="musicFileName">MP3/M4A, up to 10 MB</small>
+            <input id="memoryMusicFile" type="file" accept="audio/*" />
+          </label>
+        </div>
 
         <p id="postMessage" class="formMessage" aria-live="polite"></p>
         <div class="formActions">
@@ -157,7 +170,7 @@
 
   <div id="memoryToast" class="memoryToast" role="status" aria-live="polite"></div>
 
-  <script src="pwa.js?v=8"></script>
-  <script src="memories.js?v=8"></script>
+  <script src="pwa.js?v=11"></script>
+  <script src="memories.js?v=11"></script>
 </body>
 </html>

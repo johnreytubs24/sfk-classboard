@@ -1,4 +1,4 @@
-const CACHE_NAME = "sfk-classboard-v8-smooth-memory-swipe";
+const CACHE_NAME = "sfk-classboard-v11-media-auth-music-fix";
 const APP_SHELL = [
   "./",
   "./index.html",

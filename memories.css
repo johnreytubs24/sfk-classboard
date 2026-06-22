@@ -563,6 +563,102 @@ select:focus-visible {
   transform: scale(1.25);
 }
 
+.mediaVolumeButton {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  z-index: 8;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,.22);
+  border-radius: 50%;
+  background: rgba(17,17,17,.78);
+  color: white;
+  box-shadow: 0 4px 14px rgba(0,0,0,.28);
+  font-size: 1.05rem;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+}
+
+.iframeSwipeShield {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: transparent;
+  touch-action: pan-y pinch-zoom;
+}
+
+.mediaVolumeButton:hover,
+.mediaVolumeButton.audible {
+  background: var(--gold);
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+.postMusic {
+  position: absolute;
+  left: 13px;
+  bottom: 13px;
+  z-index: 9;
+}
+
+.postMusicFrame {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  opacity: .01;
+  pointer-events: none;
+}
+
+.postMusicPlayer {
+  display: none;
+}
+
+.musicToggleButton {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 10px 6px 7px;
+  border: 1px solid rgba(255,255,255,.26);
+  border-radius: 999px;
+  background: rgba(17,17,17,.8);
+  color: white;
+  box-shadow: 0 4px 14px rgba(0,0,0,.28);
+  font-size: .75rem;
+  font-weight: 900;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+}
+
+.musicToggleButton.audible {
+  background: var(--gold);
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+.musicNote {
+  width: 25px;
+  height: 25px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--gold);
+  color: var(--ink);
+}
+
+.musicToggleButton.audible .musicNote {
+  background: var(--ink);
+  color: var(--gold);
+  animation: musicPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes musicPulse {
+  50% { transform: scale(1.1); }
+}
+
 .postActions {
   display: flex;
   align-items: center;
@@ -914,6 +1010,81 @@ textarea {
   background: var(--line);
 }
 
+.fieldHint {
+  color: var(--muted);
+  font-size: .72rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.musicFields {
+  padding: 14px;
+  margin: 4px 0 16px;
+  border: 1px solid #d2bd56;
+  border-radius: 8px;
+  background: #fff9d9;
+}
+
+.musicFieldsTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.musicFieldsTitle > span {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--gold);
+  font-size: 1.2rem;
+  font-weight: 900;
+}
+
+.musicFieldsTitle > div {
+  display: grid;
+  gap: 2px;
+}
+
+.musicFieldsTitle small {
+  color: var(--muted);
+  font-size: .7rem;
+  font-weight: 700;
+}
+
+.smallUploadButton {
+  min-height: 52px;
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 11px;
+  margin-bottom: 0 !important;
+  border: 1px dashed #8d7a22;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+}
+
+.smallUploadButton small {
+  max-width: 58%;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: .68rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.smallUploadButton input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
 .formMessage {
   min-height: 18px;
   margin: 8px 0;
@@ -943,11 +1114,17 @@ textarea {
 }
 
 .viewerContent {
+  position: relative;
   width: calc(100vw - 140px);
   height: calc(100dvh - 84px);
   display: grid;
   place-items: center;
   overflow: hidden;
+}
+
+.viewerContent .viewerVolumeButton {
+  right: 14px;
+  bottom: 14px;
 }
 
 .viewerContent.viewerEnterNext {
