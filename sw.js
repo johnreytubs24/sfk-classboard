@@ -1,4 +1,4 @@
-const CACHE_NAME = "sfk-classboard-v5-compact-memory-media";
+const CACHE_NAME = "sfk-classboard-v6-memory-icon";
 const APP_SHELL = [
   "./",
   "./index.html",
