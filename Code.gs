@@ -1,6 +1,9 @@
 const SPREADSHEET_ID = "1RVCRiYviRAr3nXS_uMBXDK3g9FISq9m3GBt4_V4h3Ew";
 const TIMEZONE = "Asia/Manila";
 const ATTACHMENT_FOLDER_NAME = "SFK ClassBoard Attachments";
+const MEMORY_FOLDER_NAME = "SFK ClassBoard Memories";
+const MEMORY_ADMIN_PIN = "0524";
+const MEMORY_OFFICER_PIN = "SFK2627";
 
 function authorizeClassBoardDriveAccess() {
   const folder = getOrCreateAttachmentFolder();
@@ -30,6 +33,10 @@ function doGet(e) {
 
     case "officerList":
       result = getOfficerList(e.parameter.sheet);
+      break;
+
+    case "memories":
+      result = getPublishedMemories();
       break;
 
     default:
@@ -85,6 +92,32 @@ function doPost(e) {
 
     if (type === "announcementHeart") {
       return jsonResponse(recordAnnouncementHeart(payload));
+    }
+
+    if (type === "memoryCreate") {
+      return jsonResponse(createMemoryPost(payload));
+    }
+
+    if (type === "memoryAuth") {
+      const role = normalizeMemoryRole(payload.Role);
+      const allowed = isValidMemoryAuth(role, payload.Pin);
+      return jsonResponse({
+        success: allowed,
+        role: allowed ? role : "",
+        message: allowed ? "Posting unlocked." : "Incorrect admin/officer PIN."
+      });
+    }
+
+    if (type === "memoryHeart") {
+      return jsonResponse(recordMemoryHeart(payload));
+    }
+
+    if (type === "memoryHide") {
+      return jsonResponse(hideMemoryPost(payload));
+    }
+
+    if (type === "memoryDelete") {
+      return jsonResponse(deleteMemoryPost(payload));
     }
 
     if (type === "officerHide") {
@@ -1466,6 +1499,247 @@ function jsonResponse(data) {
   return ContentService
     .createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+/* SFK MEMORIES */
+function getPublishedMemories() {
+  const sheet = ensureMemoriesSheet();
+  const values = sheet.getDataRange().getDisplayValues();
+
+  if (values.length < 2) {
+    return { status: "success", memories: [] };
+  }
+
+  const headers = values[0].map(function(header) {
+    return String(header || "").trim();
+  });
+
+  const memories = values.slice(1)
+    .map(function(row, index) {
+      const item = {};
+      headers.forEach(function(header, columnIndex) {
+        item[header] = row[columnIndex];
+      });
+      item.RowNumber = index + 2;
+      return item;
+    })
+    .filter(function(item) {
+      return String(item.Publish || "YES").trim().toUpperCase() === "YES";
+    })
+    .sort(function(a, b) {
+      return String(b.CreatedAt || b.Date || "").localeCompare(String(a.CreatedAt || a.Date || ""));
+    });
+
+  return {
+    status: "success",
+    memories: memories
+  };
+}
+
+function createMemoryPost(payload) {
+  const role = normalizeMemoryRole(payload.Role);
+
+  if (!isValidMemoryAuth(role, payload.Pin)) {
+    return { success: false, message: "Incorrect admin/officer credentials." };
+  }
+
+  const title = String(payload.Title || "").trim();
+  const caption = String(payload.Caption || "").trim();
+  const postedBy = String(payload.PostedBy || "").trim();
+  const videoUrl = String(payload.VideoURL || "").trim();
+  const files = Array.isArray(payload.MediaFiles) ? payload.MediaFiles.slice(0, 6) : [];
+
+  if (!title || !postedBy) {
+    return { success: false, message: "Title and posted by are required." };
+  }
+
+  if (files.length === 0 && !videoUrl) {
+    return { success: false, message: "Add at least one photo, video, or media link." };
+  }
+
+  const memoryId = "MEM-" + Utilities.formatDate(new Date(), TIMEZONE, "yyyyMMddHHmmss") + "-" + Utilities.getUuid().slice(0, 6).toUpperCase();
+  const media = uploadMemoryMedia(files, memoryId);
+  const sheet = ensureMemoriesSheet();
+  const eventDate = formatInputDateToSheetDate(payload.Date) || Utilities.formatDate(new Date(), TIMEZONE, "MMMM d, yyyy");
+  const createdAt = Utilities.formatDate(new Date(), TIMEZONE, "yyyy-MM-dd HH:mm:ss");
+
+  sheet.appendRow([
+    memoryId,
+    eventDate,
+    title,
+    caption,
+    postedBy,
+    role,
+    JSON.stringify(media),
+    videoUrl,
+    0,
+    "YES",
+    createdAt
+  ]);
+
+  return {
+    success: true,
+    id: memoryId,
+    message: "Memory posted successfully."
+  };
+}
+
+function uploadMemoryMedia(files, memoryId) {
+  const safeFiles = Array.isArray(files) ? files.slice(0, 6) : [];
+  if (safeFiles.length === 0) return [];
+
+  const folder = getOrCreateMemoryFolder();
+  const media = [];
+
+  safeFiles.forEach(function(file, index) {
+    if (!file || !file.data) return;
+
+    const mimeType = String(file.mimeType || "application/octet-stream");
+    if (mimeType.indexOf("image/") !== 0 && mimeType.indexOf("video/") !== 0) return;
+
+    const name = sanitizeFileName(file.name || ("memory-" + (index + 1)));
+    const bytes = Utilities.base64Decode(file.data);
+    const blob = Utilities.newBlob(bytes, mimeType, memoryId + "-" + (index + 1) + "-" + name);
+    const driveFile = folder.createFile(blob);
+
+    try {
+      driveFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    } catch (error) {
+      // Managed school domains may block public sharing.
+    }
+
+    const fileId = driveFile.getId();
+    const isVideo = mimeType.indexOf("video/") === 0;
+
+    media.push({
+      kind: isVideo ? "drive-video" : "image",
+      name: name,
+      mimeType: mimeType,
+      fileId: fileId,
+      url: isVideo
+        ? "https://drive.google.com/file/d/" + fileId + "/preview"
+        : "https://drive.google.com/thumbnail?id=" + fileId + "&sz=w1600",
+      viewerUrl: isVideo
+        ? "https://drive.google.com/file/d/" + fileId + "/preview"
+        : "https://drive.google.com/thumbnail?id=" + fileId + "&sz=w4000",
+      fullUrl: driveFile.getUrl()
+    });
+  });
+
+  return media;
+}
+
+function recordMemoryHeart(payload) {
+  const memoryId = String(payload.MemoryID || payload.memoryId || "").trim();
+  if (!memoryId) return { success: false, message: "Missing memory ID." };
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(8000);
+
+  try {
+    const sheet = ensureMemoriesSheet();
+    const rowNumber = findMemoryRow(sheet, memoryId);
+    if (rowNumber < 2) return { success: false, message: "Memory not found." };
+
+    const heartColumn = getMemoryColumn(sheet, "HeartCount");
+    const current = Number(sheet.getRange(rowNumber, heartColumn).getValue()) || 0;
+    const next = current + 1;
+    sheet.getRange(rowNumber, heartColumn).setValue(next);
+
+    return { success: true, count: next };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function hideMemoryPost(payload) {
+  const role = normalizeMemoryRole(payload.Role);
+  if (!isValidMemoryAuth(role, payload.Pin)) {
+    return { success: false, message: "Incorrect admin/officer credentials." };
+  }
+
+  const sheet = ensureMemoriesSheet();
+  const rowNumber = findMemoryRow(sheet, payload.MemoryID || payload.memoryId);
+  if (rowNumber < 2) return { success: false, message: "Memory not found." };
+
+  sheet.getRange(rowNumber, getMemoryColumn(sheet, "Publish")).setValue("NO");
+  return { success: true, message: "Memory hidden." };
+}
+
+function deleteMemoryPost(payload) {
+  const role = normalizeMemoryRole(payload.Role);
+  if (role !== "Admin" || !isValidMemoryAuth(role, payload.Pin)) {
+    return { success: false, message: "Only the admin can permanently delete memories." };
+  }
+
+  const sheet = ensureMemoriesSheet();
+  const rowNumber = findMemoryRow(sheet, payload.MemoryID || payload.memoryId);
+  if (rowNumber < 2) return { success: false, message: "Memory not found." };
+
+  sheet.deleteRow(rowNumber);
+  return { success: true, message: "Memory deleted permanently." };
+}
+
+function normalizeMemoryRole(value) {
+  return String(value || "").trim().toLowerCase() === "admin" ? "Admin" : "Officer";
+}
+
+function isValidMemoryAuth(role, pin) {
+  const cleanPin = String(pin || "").trim();
+  return (role === "Admin" && cleanPin === MEMORY_ADMIN_PIN) ||
+    (role === "Officer" && cleanPin === MEMORY_OFFICER_PIN);
+}
+
+function ensureMemoriesSheet() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName("Memories");
+  const headers = [
+    "ID", "Date", "Title", "Caption", "PostedBy", "Role",
+    "MediaJSON", "VideoURL", "HeartCount", "Publish", "CreatedAt"
+  ];
+
+  if (!sheet) {
+    sheet = ss.insertSheet("Memories");
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    sheet.setFrozenRows(1);
+    sheet.getRange(1, 1, 1, headers.length)
+      .setFontWeight("bold")
+      .setBackground("#f7c600")
+      .setFontColor("#111111");
+  }
+
+  return sheet;
+}
+
+function getOrCreateMemoryFolder() {
+  const folders = DriveApp.getFoldersByName(MEMORY_FOLDER_NAME);
+  if (folders.hasNext()) return folders.next();
+  return DriveApp.createFolder(MEMORY_FOLDER_NAME);
+}
+
+function findMemoryRow(sheet, memoryId) {
+  const cleanId = String(memoryId || "").trim();
+  if (!cleanId || sheet.getLastRow() < 2) return -1;
+
+  const idColumn = getMemoryColumn(sheet, "ID");
+  const ids = sheet.getRange(2, idColumn, sheet.getLastRow() - 1, 1).getDisplayValues();
+
+  for (let i = 0; i < ids.length; i++) {
+    if (String(ids[i][0] || "").trim() === cleanId) return i + 2;
+  }
+
+  return -1;
+}
+
+function getMemoryColumn(sheet, headerName) {
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getDisplayValues()[0];
+  const target = normalizeHeaderName(headerName);
+
+  for (let i = 0; i < headers.length; i++) {
+    if (normalizeHeaderName(headers[i]) === target) return i + 1;
+  }
+
+  throw new Error("Missing Memories column: " + headerName);
 }
 
 function stripTextFormatTag(value) {

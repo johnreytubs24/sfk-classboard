@@ -1,10 +1,13 @@
-const CACHE_NAME = "sfk-classboard-v2";
+const CACHE_NAME = "sfk-classboard-v5-compact-memory-media";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./style.css",
   "./script.js",
   "./pwa.js",
+  "./memories.html",
+  "./memories.css",
+  "./memories.js",
   "./manifest.webmanifest",
   "./class-photo.jpg",
   "./icons/icon-192.png",

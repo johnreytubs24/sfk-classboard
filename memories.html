@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#f7c600" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>SFK Memories</title>
+  <link rel="manifest" href="manifest.webmanifest?v=5" />
+  <link rel="icon" href="icons/icon-192.png?v=5" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png?v=5" />
+  <link rel="stylesheet" href="memories.css?v=5" />
+</head>
+<body>
+  <header class="memoryTopbar">
+    <div class="memoryTopbarInner">
+      <a class="backButton" href="index.html" aria-label="Back to ClassBoard">&#8592;</a>
+      <a class="memoryBrand" href="memories.html" aria-label="SFK Memories home">
+        <span class="brandMark">SFK</span>
+        <span><strong>SFK Memories</strong><small>#BeKind Collection</small></span>
+      </a>
+      <button id="topPostButton" class="primaryButton compactButton" type="button">+ Post</button>
+    </div>
+  </header>
+
+  <main class="memoryPage">
+    <aside class="memorySidebar">
+      <div class="sidebarIdentity">
+        <div class="largeBrandMark">SFK</div>
+        <h1>SFK Memories</h1>
+        <p>Our moments, milestones, and kind beginnings.</p>
+      </div>
+
+      <div class="memoryStats" aria-label="Gallery statistics">
+        <div><strong id="postCount">0</strong><span>Posts</span></div>
+        <div><strong id="photoCount">0</strong><span>Photos</span></div>
+        <div><strong id="videoCount">0</strong><span>Videos</span></div>
+      </div>
+
+      <nav class="sideNav" aria-label="Memories filters">
+        <button class="sideNavButton active" data-filter="all" type="button"><span>&#9632;</span> Latest</button>
+        <button class="sideNavButton" data-filter="photos" type="button"><span>&#9673;</span> Photos</button>
+        <button class="sideNavButton" data-filter="videos" type="button"><span>&#9654;</span> Videos</button>
+      </nav>
+
+      <button id="sidePostButton" class="primaryButton wideButton" type="button">+ Add a Memory</button>
+      <a class="dashboardLink" href="index.html">Back to ClassBoard</a>
+    </aside>
+
+    <section class="memoryContent" aria-labelledby="feedTitle">
+      <div class="mobileIntro">
+        <div>
+          <p class="eyebrow">SFK 2026-2027</p>
+          <h1 id="feedTitle">Our Memories</h1>
+        </div>
+        <div class="mobileStats"><strong id="mobilePostCount">0</strong> posts</div>
+      </div>
+
+      <div class="memoryHighlights" aria-label="Quick filters">
+        <button class="highlight active" data-filter="all" type="button"><span class="highlightRing"><b>SFK</b></span><small>Latest</small></button>
+        <button class="highlight" data-filter="photos" type="button"><span class="highlightRing"><b>&#9673;</b></span><small>Photos</small></button>
+        <button class="highlight" data-filter="videos" type="button"><span class="highlightRing"><b>&#9654;</b></span><small>Videos</small></button>
+      </div>
+
+      <div id="feedStatus" class="feedStatus" role="status">Loading memories...</div>
+      <div id="memoryFeed" class="memoryFeed"></div>
+
+      <div id="emptyMemories" class="emptyMemories" hidden>
+        <div class="emptyMark">SFK</div>
+        <h2>No memories here yet</h2>
+        <p>The first beautiful moment is waiting to be posted.</p>
+      </div>
+    </section>
+  </main>
+
+  <button id="floatingPostButton" class="floatingPostButton" type="button" aria-label="Add a memory">+</button>
+
+  <div id="composeModal" class="modalLayer" hidden>
+    <div class="modalBackdrop" data-close-modal="composeModal"></div>
+    <section class="composeModal" role="dialog" aria-modal="true" aria-labelledby="composeTitle">
+      <header class="modalHeader">
+        <div><p class="eyebrow">ADMIN AND OFFICERS</p><h2 id="composeTitle">Create Memory</h2></div>
+        <button class="iconButton" type="button" data-close-modal="composeModal" aria-label="Close">&#215;</button>
+      </header>
+
+      <div id="memoryAuthStep" class="authStep">
+        <div class="authBadge">SFK</div>
+        <h3>Unlock posting</h3>
+        <p>Choose your role and enter your ClassBoard PIN.</p>
+        <label>Role
+          <select id="memoryRole">
+            <option value="Officer">Officer</option>
+            <option value="Admin">Admin</option>
+          </select>
+        </label>
+        <label>PIN
+          <input id="memoryPin" type="password" inputmode="text" autocomplete="current-password" placeholder="Enter PIN" />
+        </label>
+        <p id="authMessage" class="formMessage" aria-live="polite"></p>
+        <button id="unlockPostingButton" class="primaryButton wideButton" type="button">Continue</button>
+      </div>
+
+      <form id="memoryForm" class="memoryForm" hidden>
+        <div class="postingIdentity">
+          <span class="miniBrandMark">SFK</span>
+          <span><strong id="postingRole">Officer</strong><small>Posting to SFK Memories</small></span>
+          <button id="changeRoleButton" type="button">Change</button>
+        </div>
+
+        <div class="formGrid">
+          <label>Memory title
+            <input id="memoryTitle" type="text" maxlength="80" required placeholder="e.g. First Week Together" />
+          </label>
+          <label>Event date
+            <input id="memoryDate" type="date" required />
+          </label>
+        </div>
+
+        <label>Posted by
+          <input id="memoryPostedBy" type="text" maxlength="60" required placeholder="Name or officer position" />
+        </label>
+
+        <label>Caption and details
+          <textarea id="memoryCaption" rows="4" maxlength="1200" placeholder="Tell the story behind this memory..."></textarea>
+        </label>
+
+        <label class="uploadZone" for="memoryFiles">
+          <span class="uploadIcon">+</span>
+          <strong>Add photos or a short video</strong>
+          <small>Up to 6 files. Photos are optimized automatically.</small>
+          <input id="memoryFiles" type="file" accept="image/*,video/*" multiple />
+        </label>
+        <div id="mediaPreview" class="mediaPreview"></div>
+
+        <div class="orDivider"><span>or</span></div>
+        <label>Video link
+          <input id="memoryVideoUrl" type="url" placeholder="YouTube, Google Drive, or direct video URL" />
+        </label>
+
+        <p id="postMessage" class="formMessage" aria-live="polite"></p>
+        <div class="formActions">
+          <button class="secondaryButton" type="button" data-close-modal="composeModal">Cancel</button>
+          <button id="publishMemoryButton" class="primaryButton" type="submit">Share Memory</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <div id="viewerModal" class="viewerModal" hidden>
+    <button id="closeViewerButton" class="viewerClose" type="button" aria-label="Close viewer">&#215;</button>
+    <button id="viewerPrevious" class="viewerArrow viewerPrevious" type="button" aria-label="Previous media">&#8249;</button>
+    <div id="viewerContent" class="viewerContent"></div>
+    <button id="viewerNext" class="viewerArrow viewerNext" type="button" aria-label="Next media">&#8250;</button>
+    <div id="viewerCounter" class="viewerCounter"></div>
+  </div>
+
+  <div id="memoryToast" class="memoryToast" role="status" aria-live="polite"></div>
+
+  <script src="pwa.js?v=5"></script>
+  <script src="memories.js?v=5"></script>
+</body>
+</html>
