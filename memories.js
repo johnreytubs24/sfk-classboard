@@ -46,6 +46,7 @@ function bindMemoryEvents() {
   const feed = document.getElementById("memoryFeed");
   feed?.addEventListener("click", handleFeedClick);
   feed?.addEventListener("touchstart", startFeedSwipe, { passive: true });
+  feed?.addEventListener("touchmove", moveFeedSwipe, { passive: false });
   feed?.addEventListener("touchend", endFeedSwipe, { passive: true });
   document.getElementById("closeViewerButton")?.addEventListener("click", closeViewer);
   document.getElementById("viewerPrevious")?.addEventListener("click", () => moveViewer(-1));
@@ -276,8 +277,8 @@ function renderPostMedia(post, currentIndex) {
   const slides = post.media.map((media, index) => renderMediaSlide(media, post.id, index)).join("");
   const controls = post.media.length > 1
     ? `
-      <button class="mediaArrow mediaPrevious" type="button" data-action="previous" data-id="${escapeAttr(post.id)}" aria-label="Previous">&#8249;</button>
-      <button class="mediaArrow mediaNext" type="button" data-action="next" data-id="${escapeAttr(post.id)}" aria-label="Next">&#8250;</button>
+      <button class="mediaArrow mediaPrevious" type="button" data-action="previous" data-id="${escapeAttr(post.id)}" aria-label="Previous" ${currentIndex === 0 ? "hidden" : ""}>&#8249;</button>
+      <button class="mediaArrow mediaNext" type="button" data-action="next" data-id="${escapeAttr(post.id)}" aria-label="Next" ${currentIndex === post.media.length - 1 ? "hidden" : ""}>&#8250;</button>
       <span class="mediaCounter">${currentIndex + 1}/${post.media.length}</span>
       <div class="mediaDots">${post.media.map((_, index) => `<span class="mediaDot ${index === currentIndex ? "active" : ""}"></span>`).join("")}</div>
     `
@@ -332,9 +333,34 @@ function moveCarousel(id, direction) {
   if (!post || post.media.length < 2) return;
 
   const current = memoryState.carousel.get(id) || 0;
-  const next = (current + direction + post.media.length) % post.media.length;
+  const next = Math.max(0, Math.min(post.media.length - 1, current + direction));
   memoryState.carousel.set(id, next);
-  renderMemories();
+  updateCarouselElement(id, next, true);
+}
+
+function updateCarouselElement(id, index, animate) {
+  const article = Array.from(document.querySelectorAll(".memoryPost"))
+    .find((item) => item.dataset.postId === id);
+  const post = memoryState.posts.find((item) => item.id === id);
+  if (!article || !post) return;
+
+  const track = article.querySelector(".mediaTrack");
+  if (!track) return;
+
+  track.style.transition = animate ? "transform .34s cubic-bezier(.22,.72,.2,1)" : "none";
+  track.style.transform = `translateX(-${index * 100}%)`;
+
+  const counter = article.querySelector(".mediaCounter");
+  if (counter) counter.textContent = `${index + 1}/${post.media.length}`;
+
+  article.querySelectorAll(".mediaDot").forEach((dot, dotIndex) => {
+    dot.classList.toggle("active", dotIndex === index);
+  });
+
+  const previous = article.querySelector('[data-action="previous"]');
+  const next = article.querySelector('[data-action="next"]');
+  if (previous) previous.hidden = index === 0;
+  if (next) next.hidden = index === post.media.length - 1;
 }
 
 function startFeedSwipe(event) {
@@ -349,8 +375,37 @@ function startFeedSwipe(event) {
     id: article.dataset.postId,
     x: touch.clientX,
     y: touch.clientY,
-    time: Date.now()
+    time: Date.now(),
+    width: media.clientWidth,
+    currentIndex: memoryState.carousel.get(article.dataset.postId) || 0,
+    mediaCount: article.querySelectorAll(".mediaSlide").length,
+    track: media.querySelector(".mediaTrack"),
+    horizontal: false
   };
+}
+
+function moveFeedSwipe(event) {
+  if (!touchGesture || touchGesture.scope !== "feed") return;
+  const touch = event.changedTouches?.[0];
+  if (!touch || !touchGesture.track) return;
+
+  const deltaX = touch.clientX - touchGesture.x;
+  const deltaY = touch.clientY - touchGesture.y;
+
+  if (!touchGesture.horizontal) {
+    if (Math.abs(deltaX) < 8) return;
+    if (Math.abs(deltaY) > Math.abs(deltaX)) return;
+    touchGesture.horizontal = true;
+  }
+
+  event.preventDefault();
+
+  const atFirst = touchGesture.currentIndex === 0 && deltaX > 0;
+  const atLast = touchGesture.currentIndex === touchGesture.mediaCount - 1 && deltaX < 0;
+  const resistedX = atFirst || atLast ? deltaX * .22 : deltaX;
+
+  touchGesture.track.style.transition = "none";
+  touchGesture.track.style.transform = `translateX(calc(-${touchGesture.currentIndex * 100}% + ${resistedX}px))`;
 }
 
 function endFeedSwipe(event) {
@@ -360,10 +415,25 @@ function endFeedSwipe(event) {
   const touch = event.changedTouches?.[0];
   if (!touch) return;
 
-  const direction = getSwipeDirection(gesture, touch);
-  if (direction) {
-    memoryState.suppressClickUntil = Date.now() + 450;
+  const deltaX = touch.clientX - gesture.x;
+  const deltaY = touch.clientY - gesture.y;
+  const elapsed = Math.max(1, Date.now() - gesture.time);
+  const velocity = Math.abs(deltaX) / elapsed;
+  const enoughDistance = Math.abs(deltaX) >= Math.min(85, gesture.width * .16);
+  const horizontal = Math.abs(deltaX) > Math.abs(deltaY) * 1.2;
+  const direction = horizontal && (enoughDistance || (Math.abs(deltaX) > 28 && velocity > .38))
+    ? (deltaX < 0 ? 1 : -1)
+    : 0;
+  const canMove = direction === 1
+    ? gesture.currentIndex < gesture.mediaCount - 1
+    : gesture.currentIndex > 0;
+
+  if (gesture.horizontal) memoryState.suppressClickUntil = Date.now() + 450;
+
+  if (direction && canMove) {
     moveCarousel(gesture.id, direction);
+  } else {
+    updateCarouselElement(gesture.id, gesture.currentIndex, true);
   }
 }
 
@@ -799,6 +869,12 @@ function moveViewer(direction) {
   if (memoryState.viewerMedia.length < 2) return;
   memoryState.viewerIndex = (memoryState.viewerIndex + direction + memoryState.viewerMedia.length) % memoryState.viewerMedia.length;
   renderViewer();
+
+  const content = document.getElementById("viewerContent");
+  if (!content) return;
+  content.classList.remove("viewerEnterNext", "viewerEnterPrevious");
+  void content.offsetWidth;
+  content.classList.add(direction > 0 ? "viewerEnterNext" : "viewerEnterPrevious");
 }
 
 function closeViewer() {

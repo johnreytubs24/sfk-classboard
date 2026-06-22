@@ -452,7 +452,8 @@ select:focus-visible {
   width: 100%;
   height: 100%;
   display: flex;
-  transition: transform .32s ease;
+  transition: transform .34s cubic-bezier(.22, .72, .2, 1);
+  will-change: transform;
 }
 
 .mediaSlide {
@@ -947,6 +948,24 @@ textarea {
   display: grid;
   place-items: center;
   overflow: hidden;
+}
+
+.viewerContent.viewerEnterNext {
+  animation: viewerEnterNext .3s cubic-bezier(.22, .72, .2, 1);
+}
+
+.viewerContent.viewerEnterPrevious {
+  animation: viewerEnterPrevious .3s cubic-bezier(.22, .72, .2, 1);
+}
+
+@keyframes viewerEnterNext {
+  from { opacity: .6; transform: translateX(54px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes viewerEnterPrevious {
+  from { opacity: .6; transform: translateX(-54px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
 .viewerModal .viewerContent > img,
