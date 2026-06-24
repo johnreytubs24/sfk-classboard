@@ -1251,6 +1251,31 @@ textarea {
   font-weight: 700;
 }
 
+.musicTestRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.musicTestRow .secondaryButton {
+  flex: 0 0 auto;
+}
+
+.musicTestMessage {
+  color: var(--muted);
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.musicTestMessage.ok {
+  color: #147a38;
+}
+
+.musicTestMessage.bad {
+  color: #b00020;
+}
+
 .smallUploadButton {
   min-height: 52px;
   display: flex !important;

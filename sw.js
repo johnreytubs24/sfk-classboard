@@ -1,4 +1,4 @@
-const CACHE_NAME = "sfk-classboard-v20-release-music-assets";
+const CACHE_NAME = "sfk-classboard-v22-link-only-music";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -8,7 +8,6 @@ const APP_SHELL = [
   "./memories.html",
   "./memories.css",
   "./memories.js",
-  "./music-library.json",
   "./manifest.webmanifest",
   "./class-photo.jpg",
   "./icons/icon-192.png",
