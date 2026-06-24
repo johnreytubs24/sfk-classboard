@@ -82,6 +82,11 @@ function bindMemoryEvents() {
       if (event.key === "ArrowRight") moveViewer(1);
     }
   });
+
+  document.addEventListener("visibilitychange", handlePageVisibilityChange);
+  window.addEventListener("pagehide", pauseAllPageMedia);
+  window.addEventListener("blur", pauseAllPageMedia);
+  document.addEventListener("freeze", pauseAllPageMedia);
 }
 
 async function loadMemories() {
@@ -477,7 +482,7 @@ function restoreMediaElementState(element, state, restoreSource = false) {
       }
     }
 
-    if (!state.paused && !state.ended) {
+    if (!document.hidden && !state.paused && !state.ended) {
       element.play().catch(() => {});
     }
   };
@@ -883,6 +888,45 @@ function muteAllOtherMedia(activePostId, activeIndex) {
   });
 }
 
+function handlePageVisibilityChange() {
+  if (document.hidden) pauseAllPageMedia();
+}
+
+function pauseAllPageMedia() {
+  memoryState.posts.forEach((post) => {
+    post.media.forEach((media) => {
+      media.muted = true;
+    });
+    if (post.music) {
+      post.music.muted = true;
+      post.music.started = false;
+    }
+  });
+
+  document.querySelectorAll(".feedVideo, .viewerVideo").forEach((video) => {
+    video.muted = true;
+    video.pause();
+  });
+
+  document.querySelectorAll(".postMusicPlayer").forEach((audio) => {
+    audio.muted = true;
+    audio.pause();
+  });
+
+  document.querySelectorAll('.feedVideoFrame[data-youtube="true"], .viewerVideoFrame[data-youtube="true"]').forEach((iframe) => {
+    sendYouTubeCommand(iframe, "mute");
+    sendYouTubeCommand(iframe, "pauseVideo");
+  });
+
+  document.querySelectorAll(".mediaVolumeButton").forEach((button) => {
+    updateVolumeButton(button, true);
+  });
+
+  document.querySelectorAll(".musicToggleButton").forEach((button) => {
+    updateMusicButton(button, false);
+  });
+}
+
 function updateVolumeButton(button, muted) {
   button.classList.toggle("audible", !muted);
   button.innerHTML = muted ? "&#128263;" : "&#128266;";
@@ -903,6 +947,12 @@ function observeFeedVideos() {
     entries.forEach((entry) => {
       const element = entry.target;
       const visible = entry.isIntersecting && entry.intersectionRatio >= .55;
+
+      if (document.hidden) {
+        if (element instanceof HTMLVideoElement) element.pause();
+        else if (element.dataset.youtube === "true") sendYouTubeCommand(element, "pauseVideo");
+        return;
+      }
 
       if (element instanceof HTMLVideoElement) {
         if (visible) element.play().catch(() => {});
@@ -927,6 +977,13 @@ function observePostMusic() {
       const music = post?.music;
       const visible = entry.isIntersecting && entry.intersectionRatio >= .45;
       if (!music) return;
+
+      if (document.hidden) {
+        article.querySelector(".postMusicPlayer")?.pause();
+        const iframe = article.querySelector('[data-music-youtube="true"]');
+        if (iframe) sendYouTubeCommand(iframe, "pauseVideo");
+        return;
+      }
 
       if (visible && music.kind === "drive-audio" && !music.objectUrl) {
         preparePostMusic(post, article).catch(() => {});
@@ -976,7 +1033,7 @@ function handleEmbeddedMediaLoad(event) {
   if (!(iframe instanceof HTMLIFrameElement) || iframe.dataset.musicYoutube !== "true") return;
 
   const post = memoryState.posts.find((item) => item.id === iframe.dataset.postId);
-  if (!post?.music?.started || post.music.muted) return;
+  if (document.hidden || !post?.music?.started || post.music.muted) return;
   sendYouTubeCommand(iframe, "unMute");
   sendYouTubeCommand(iframe, "playVideo");
 }
@@ -1024,11 +1081,11 @@ function syncActiveCarouselPlayback(article, activeIndex) {
     const iframe = slide.querySelector('.feedVideoFrame[data-youtube="true"]');
 
     if (video) {
-      if (active) video.play().catch(() => {});
+      if (active && !document.hidden) video.play().catch(() => {});
       else video.pause();
     }
 
-    if (iframe) sendYouTubeCommand(iframe, active ? "playVideo" : "pauseVideo");
+    if (iframe) sendYouTubeCommand(iframe, active && !document.hidden ? "playVideo" : "pauseVideo");
   });
 }
 

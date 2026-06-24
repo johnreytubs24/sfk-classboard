@@ -1,4 +1,4 @@
-const CACHE_NAME = "sfk-classboard-v25-preserve-media-on-heart";
+const CACHE_NAME = "sfk-classboard-v26-pause-media-on-page-hide";
 const APP_SHELL = [
   "./",
   "./index.html",
