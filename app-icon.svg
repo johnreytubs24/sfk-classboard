@@ -1,7 +1,405 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="92" fill="#f7c600"/>
-  <rect x="28" y="28" width="456" height="456" rx="70" fill="none" stroke="#111" stroke-width="18"/>
-  <text x="256" y="270" text-anchor="middle" font-family="Arial, sans-serif" font-size="170" font-weight="900" fill="#111">SFK</text>
-  <rect x="90" y="322" width="332" height="82" rx="20" fill="#111"/>
-  <text x="256" y="378" text-anchor="middle" font-family="Arial, sans-serif" font-size="49" font-weight="700" fill="#fff">#BeKind</text>
-</svg>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#f7c600" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+  <title>SFK ClassBoard Admin</title>
+
+  <script>
+    if (window.top === window.self && !new URLSearchParams(window.location.search).has("embedded")) {
+      window.location.replace("admin/");
+    }
+  </script>
+
+  <link rel="manifest" href="admin.webmanifest?v=1" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=3" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png?v=3" />
+  <link rel="stylesheet" href="admin.css?v=tool-launcher-1" />
+</head>
+
+<body>
+  <main class="adminApp">
+
+    <!-- LOGIN SCREEN -->
+    <section id="loginScreen" class="loginScreen">
+      <div class="loginCard">
+        <div class="koalaMark">🐨</div>
+
+        <h1>SFK ClassBoard Admin</h1>
+        <p>Manage announcements, reminders, quotes, birthdays, and more.</p>
+
+        <input 
+          id="adminPin" 
+          type="password" 
+          placeholder="Enter Admin PIN" 
+          autocomplete="off"
+        />
+
+        <button onclick="loginAdmin()">Login</button>
+
+        <small id="loginMessage"></small>
+      </div>
+    </section>
+
+    <!-- ADMIN PANEL -->
+    <section id="adminPanel" class="adminPanel hidden">
+
+      <header class="adminTopbar">
+        <div>
+          <h1>SFK ClassBoard Admin</h1>
+          <p>Grade 8 - St. Faustina Kowalska • S.Y. 2026–2027 • #BeKind</p>
+        </div>
+
+        <button class="logoutBtn" onclick="logoutAdmin()">Logout</button>
+      </header>
+
+      <!-- CREATE / ADD DATA -->
+      <section class="adminGrid">
+
+        <!-- SUBJECT ANNOUNCEMENT -->
+        <div class="formCard">
+          <h2>📢 Subject Announcement</h2>
+
+          <label for="announcementDate">Date</label>
+          <input id="announcementDate" type="date" />
+
+          <label for="announcementSubject">Subject</label>
+          <input id="announcementSubject" list="subjectOptions" type="text" placeholder="Select or type subject" />
+
+          <label for="announcementText">Announcement</label>
+          <textarea id="announcementText" placeholder="Type announcement here..."></textarea>
+
+          <label for="announcementFormat">Text Format</label>
+          <select id="announcementFormat">
+            <option value="center">Center</option>
+            <option value="left">Left</option>
+            <option value="right">Right</option>
+            <option value="bullets">Bullets</option>
+            <option value="numbers">Numbers</option>
+          </select>
+
+          <label for="announcementTeacher">Teacher</label>
+			<select id="announcementTeacher">
+			  <option value="">Select Teacher</option>
+			  <option value="Mr. John Rey Tubello">Mr. John Rey Tubello</option>
+			  <option value="Ms. Chiarah De Castro">Ms. Chiarah De Castro</option>
+			  <option value="Mrs. Melanie Sebastian">Mrs. Melanie Sebastian</option>
+			  <option value="Ms. Hannah Lee Cillo">Ms. Hannah Lee Cillo</option>
+			  <option value="Ms Christine Tolentino">Ms Christine Tolentino</option>
+			  <option value="Ms. Kamille Lajom">Ms. Kamille Lajom</option>
+			  <option value="Mr. Alexis Pastrana">Mr. Alexis Pastrana</option>
+			  <option value="Ms. Gina Soriano">Ms. Gina Soriano</option>
+			  <option value="Mr. Runmar Quipanes">Mr. Runmar Quipanes</option>
+			</select>
+
+          <label for="announcementDeadline">Deadline</label>
+          <input id="announcementDeadline" type="date" />
+
+          <label for="announcementShowDeadline">Show Deadline on ClassBoard?</label>
+          <select id="announcementShowDeadline">
+            <option value="YES">YES - Show Deadline</option>
+            <option value="NO">NO - Hide Deadline</option>
+          </select>
+
+          <label for="announcementAttachments">Attachments</label>
+          <input
+            id="announcementAttachments"
+            type="file"
+            multiple
+            accept="image/*,.pdf,.doc,.docx,.ppt,.pptx"
+          />
+          <small class="fieldHint">
+            Optional. Up to 5 files. Images/files will appear as clickable attachment chips.
+          </small>
+
+          <label for="announcementPriority">Priority</label>
+          <select id="announcementPriority">
+            <option value="Reminder">Reminder</option>
+            <option value="Important">Important</option>
+            <option value="Urgent">Urgent</option>
+            <option value="For Submission">For Submission</option>
+          </select>
+
+          <label for="announcementPublish">Publish</label>
+          <select id="announcementPublish">
+            <option value="YES">YES</option>
+            <option value="NO">NO</option>
+          </select>
+
+          <button onclick="saveAnnouncement()">Save Announcement</button>
+        </div>
+
+        <!-- THINGS TO BRING -->
+        <div class="formCard">
+          <h2>🎒 Things to Bring</h2>
+
+          <label for="thingsDate">Date</label>
+          <input id="thingsDate" type="date" />
+
+          <label for="thingsSubject">Subject</label>
+          <input id="thingsSubject" list="subjectOptions" type="text" placeholder="Select or type subject" />
+
+          <label for="thingsItem">Item / Reminder</label>
+          <textarea id="thingsItem" placeholder="Example: Bring laptop / notebook / materials..."></textarea>
+
+          <label for="thingsFormat">Text Format</label>
+          <select id="thingsFormat">
+            <option value="left">Left</option>
+            <option value="center">Center</option>
+            <option value="right">Right</option>
+            <option value="bullets">Bullets</option>
+            <option value="numbers">Numbers</option>
+          </select>
+
+          <label for="thingsPublish">Publish</label>
+          <select id="thingsPublish">
+            <option value="YES">YES</option>
+            <option value="NO">NO</option>
+          </select>
+
+          <button onclick="saveThingsToBring()">Save Things to Bring</button>
+        </div>
+
+        <!-- ADVISER REMINDER -->
+        <div class="formCard">
+          <h2>📝 Adviser Reminder</h2>
+
+          <label for="adviserDate">Date</label>
+          <input id="adviserDate" type="date" />
+
+          <label for="adviserReminder">Reminder</label>
+          <textarea id="adviserReminder" placeholder="Type adviser reminder here..."></textarea>
+
+          <label for="adviserFormat">Text Format</label>
+          <select id="adviserFormat">
+            <option value="left">Left</option>
+            <option value="center">Center</option>
+            <option value="right">Right</option>
+            <option value="bullets">Bullets</option>
+            <option value="numbers">Numbers</option>
+          </select>
+
+          <label for="adviserPublish">Publish</label>
+          <select id="adviserPublish">
+            <option value="YES">YES</option>
+            <option value="NO">NO</option>
+          </select>
+
+          <button onclick="saveAdviserReminder()">Save Reminder</button>
+        </div>
+
+        <!-- PRAYER LEADER -->
+        <div class="formCard">
+          <h2>🙏 Prayer Leader</h2>
+
+          <label for="prayerDate">Date</label>
+          <input id="prayerDate" type="date" />
+
+          <label for="prayerName">Prayer Leader Name</label>
+          <input id="prayerName" type="text" placeholder="Example: Juan Dela Cruz" />
+
+          <label for="prayerPublish">Publish</label>
+          <select id="prayerPublish">
+            <option value="YES">YES</option>
+            <option value="NO">NO</option>
+          </select>
+
+          <button onclick="savePrayerLeader()">Save Prayer Leader</button>
+        </div>
+
+        <!-- DAILY KINDNESS QUOTE -->
+        <div class="formCard highlightCard">
+          <h2>🫶 Daily Kindness Quote</h2>
+
+          <label for="quoteDateInput">Date</label>
+          <input id="quoteDateInput" type="date" />
+
+          <label for="quoteTextInput">Quote</label>
+          <textarea id="quoteTextInput" placeholder="Enter kindness quote..."></textarea>
+
+          <label for="quoteAuthorInput">Author</label>
+          <input id="quoteAuthorInput" type="text" placeholder="Example: St. Faustina / SFK ClassBoard" />
+
+          <label for="quotePublishInput">Publish</label>
+          <select id="quotePublishInput">
+            <option value="YES">YES</option>
+            <option value="NO">NO</option>
+          </select>
+
+          <button onclick="saveQuote()">Save Quote</button>
+        </div>
+
+        <!-- BIRTHDAY -->
+        <div class="formCard">
+          <h2>🎂 Birthday</h2>
+
+          <label for="birthdayName">Student Name</label>
+          <input id="birthdayName" type="text" placeholder="Example: Juan Dela Cruz" />
+
+          <label for="birthdayDate">Birthday</label>
+          <input id="birthdayDate" type="date" />
+
+          <label for="birthdayPublish">Publish</label>
+          <select id="birthdayPublish">
+            <option value="YES">YES</option>
+            <option value="NO">NO</option>
+          </select>
+
+          <button onclick="saveBirthday()">Save Birthday</button>
+        </div>
+
+        <!-- TICKER MESSAGE -->
+        <div class="formCard">
+          <h2>📺 Ticker Message</h2>
+
+          <label for="tickerMessage">Message</label>
+          <textarea id="tickerMessage" placeholder="Example: Bring your handbook tomorrow."></textarea>
+
+          <label for="tickerPublish">Publish</label>
+          <select id="tickerPublish">
+            <option value="YES">YES</option>
+            <option value="NO">NO</option>
+          </select>
+
+          <button onclick="saveTickerMessage()">Save Ticker Message</button>
+        </div>
+
+        <!-- DAILY SCHEDULE INFO -->
+        <div class="formCard">
+          <h2>🚪 Daily Schedule Info</h2>
+
+          <label for="dailyInfoDay">Day</label>
+          <select id="dailyInfoDay">
+            <option value="Monday">Monday</option>
+            <option value="Tuesday">Tuesday</option>
+            <option value="Wednesday">Wednesday</option>
+            <option value="Thursday">Thursday</option>
+            <option value="Friday">Friday</option>
+          </select>
+
+          <label for="dailyInfoEntryGate">Entry Gate</label>
+          <input id="dailyInfoEntryGate" type="text" placeholder="Example: Gate 2" />
+
+          <label for="dailyInfoExitGate">Exit Gate</label>
+          <input id="dailyInfoExitGate" type="text" placeholder="Example: SHS Gate" />
+
+          <label for="dailyInfoUniform">Prescribed Uniform</label>
+          <input id="dailyInfoUniform" list="uniformOptions" type="text" placeholder="Select or type uniform" />
+
+          <label for="dailyInfoPublish">Publish</label>
+          <select id="dailyInfoPublish">
+            <option value="YES">YES</option>
+            <option value="NO">NO</option>
+          </select>
+
+          <button onclick="saveDailyInfo()">Save Daily Info</button>
+        </div>
+
+      </section>
+
+      <datalist id="subjectOptions">
+        <option value="English"></option>
+        <option value="Mathematics"></option>
+        <option value="Science"></option>
+        <option value="ICT"></option>
+        <option value="Filipino"></option>
+        <option value="CLED"></option>
+        <option value="AP"></option>
+        <option value="MAPEH"></option>
+        <option value="LE"></option>
+        <option value="Homeroom"></option>
+        <option value="Morning Assembly"></option>
+        <option value="Class Meeting"></option>
+        <option value="Performance Task"></option>
+      </datalist>
+
+      <datalist id="uniformOptions">
+        <option value="Complete School Uniform"></option>
+        <option value="Activity Shirt"></option>
+        <option value="PE Shirt"></option>
+      </datalist>
+
+      <!-- MANAGE EXISTING DATA -->
+      <section class="managePanel">
+        <div class="manageHeader">
+          <div>
+            <h2>Manage Existing Data</h2>
+            <p>View, edit, hide, or delete existing ClassBoard records from the database.</p>
+          </div>
+
+          <button class="refreshBtn" onclick="refreshCurrentAdminTable()">Refresh</button>
+        </div>
+
+        <div class="manageTabs">
+          <button onclick="loadAdminTable('Announcements', this)">Announcements</button>
+          <button onclick="loadAdminTable('ThingsToBring', this)">Things to Bring</button>
+          <button onclick="loadAdminTable('AdviserReminders', this)">Adviser Reminders</button>
+          <button onclick="loadAdminTable('PrayerLeaders', this)">Prayer Leaders</button>
+          <button onclick="loadAdminTable('DailyQuotes', this)">Daily Quotes</button>
+          <button onclick="loadAdminTable('Birthdays', this)">Birthdays</button>
+          <button onclick="loadAdminTable('TickerMessages', this)">Ticker Messages</button>
+          <button onclick="loadAdminTable('DailyInfo', this)">Daily Info</button>
+        </div>
+
+        <div class="batchActions">
+          <button onclick="selectAllAdminRows()">Select All</button>
+          <button onclick="clearAdminSelection()">Clear Selection</button>
+          <button onclick="hideSelectedAdminRecords()">Hide Selected</button>
+          <button class="dangerBatchBtn" onclick="deleteSelectedAdminRecords()">Delete Selected</button>
+        </div>
+
+        <div id="manageStatus" class="manageStatus">
+          Select a category to view existing data.
+        </div>
+
+        <div class="tableWrap">
+          <table id="adminDataTable">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- EDIT MODAL -->
+      <div id="editModal" class="editModal hidden">
+        <div class="editModalCard">
+          <div class="editModalHeader">
+            <div>
+              <h2 id="editModalTitle">Edit Record</h2>
+              <p id="editModalSubtitle">Update existing ClassBoard data.</p>
+            </div>
+
+            <button class="modalCloseBtn" onclick="closeEditModal()">×</button>
+          </div>
+
+          <div id="editFields" class="editFields"></div>
+
+          <div class="editModalActions">
+            <button class="cancelEditBtn" onclick="closeEditModal()">Cancel</button>
+            <button class="saveEditBtn" onclick="saveEditedRecord()">Save Changes</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TOAST MESSAGE -->
+      <div id="adminToast" class="adminToast hidden">
+        Saved successfully.
+      </div>
+
+    </section>
+
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js?v=1"></script>
+  <script src="firebase-adapter.js?v=1"></script>
+  <script src="pwa.js?v=14"></script>
+  <script src="admin.js"></script>
+</body>
+</html>
