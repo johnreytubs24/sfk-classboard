@@ -1,0 +1,27 @@
+SFK ClassBoard Firebase Setup
+
+1. Open Firebase Console and use the same project style you used for Recitation Central, or create a new Firebase project.
+2. Create a Web App, then copy the Firebase config.
+3. Paste the config into firebase-config.js.
+4. Go to Firestore Database, create the database, then paste FIREBASE_RULES.txt in the Rules tab.
+5. Open firebase-import.html and click Import to Firebase.
+6. Open index.html, admin.html, officer.html, and memories.html.
+
+Collections used:
+- settings
+- schedule
+- announcements
+- thingsToBring
+- adviserReminders
+- prayerLeaders
+- dailyQuotes
+- birthdays
+- tickerMessages
+- dailyInfo
+- memories
+
+Important:
+- The rules included here are intentionally open for setup/testing so the static GitHub Pages app can write.
+- For production, the better next step is Firebase Authentication so only you/admin/officers can write.
+- No-billing setup does not use Firebase Storage.
+- Uploaded music is limited to tiny audio files only. For full songs, use a direct MP3/M4A link hosted somewhere public, such as your GitHub Pages repository.

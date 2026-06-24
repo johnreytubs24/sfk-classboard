@@ -3,9 +3,10 @@ const MEMORY_CACHE_KEY = "sfkMemoriesCacheV1";
 const HEARTED_MEMORY_KEY = "sfkHeartedMemoriesV1";
 const MEMORY_AUTH_SESSION_KEY = "sfkMemoriesAuthSessionV1";
 const MAX_MEDIA_FILES = 6;
-const MAX_VIDEO_BYTES = 12 * 1024 * 1024;
-const MAX_MUSIC_BYTES = 10 * 1024 * 1024;
-const MAX_TOTAL_PAYLOAD_BYTES = 20 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 750 * 1024;
+const MAX_MUSIC_BYTES = 750 * 1024;
+const MAX_TOTAL_PAYLOAD_CHARS = 720 * 1024;
+const TARGET_IMAGE_BYTES = 115 * 1024;
 
 const memoryState = {
   posts: [],
@@ -286,7 +287,9 @@ function getDriveFileId(url) {
 function safeHttpUrl(value) {
   try {
     const url = new URL(String(value || "").trim());
-    return ["http:", "https:"].includes(url.protocol) ? url.href : "";
+    if (["http:", "https:"].includes(url.protocol)) return url.href;
+    if (url.protocol === "data:" && /^data:(image|video|audio)\//i.test(url.href)) return url.href;
+    return "";
   } catch (error) {
     return "";
   }
@@ -434,8 +437,15 @@ function renderMediaSlide(media, postId, index) {
     : media.url;
 
   return `
-    <div class="mediaSlide videoSlide">
+    <div class="mediaSlide videoSlide ${youtubeId ? "youtubeSlide" : ""}">
       <iframe class="feedVideoFrame" src="${escapeAttr(iframeUrl)}" title="${escapeAttr(media.name)}" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen data-post-id="${escapeAttr(postId)}" data-media-index="${index}" data-youtube="${youtubeId ? "true" : "false"}"></iframe>
+      ${youtubeId ? `
+        <div class="youtubeInteractionBar">
+          <button type="button" data-action="youtube-controls" data-id="${escapeAttr(postId)}" data-index="${index}">
+            <span aria-hidden="true">&#9654;</span><span class="youtubeModeText">Enable YouTube Controls</span>
+          </button>
+        </div>
+      ` : ""}
     </div>
   `;
 }
@@ -476,6 +486,26 @@ function handleFeedClick(event) {
   if (action === "view") openPostViewer(id, Number(target.dataset.index) || 0);
   if (action === "volume") toggleMediaVolume(id, Number(target.dataset.index) || 0, target);
   if (action === "music") togglePostMusic(id, target);
+  if (action === "youtube-controls") toggleYouTubeControls(target);
+}
+
+function toggleYouTubeControls(button) {
+  const slide = button.closest(".youtubeSlide");
+  if (!slide) return;
+
+  const enabled = slide.classList.toggle("youtubeControlsEnabled");
+  const text = button.querySelector(".youtubeModeText");
+  if (text) text.textContent = enabled ? "Return to Scroll Mode" : "Enable YouTube Controls";
+  button.classList.toggle("active", enabled);
+
+  window.clearTimeout(slide.youtubeControlTimer);
+  if (enabled) {
+    slide.youtubeControlTimer = window.setTimeout(() => {
+      slide.classList.remove("youtubeControlsEnabled");
+      button.classList.remove("active");
+      if (text) text.textContent = "Enable YouTube Controls";
+    }, 20000);
+  }
 }
 
 async function togglePostMusic(postId, button) {
@@ -541,6 +571,13 @@ async function preparePostMusic(post, article) {
       audio.src = music.objectUrl;
       audio.load();
     }
+    return;
+  }
+
+  const directSource = safeHttpUrl(music.url) || safeHttpUrl(music.fallbackUrl);
+  if (!music.fileId && directSource) {
+    audio.src = directSource;
+    audio.load();
     return;
   }
 
@@ -1091,7 +1128,7 @@ function handleMusicFile(event) {
   if (!label) return;
 
   if (!file) {
-    label.textContent = "MP3/M4A, up to 10 MB";
+    label.textContent = "Tiny MP3/M4A, up to 750 KB";
     return;
   }
 
@@ -1142,17 +1179,17 @@ async function submitMemoryPost(event) {
     }
 
     const mediaFiles = [];
-    let payloadBytes = 0;
+    let payloadChars = 0;
 
     for (const file of memoryState.selectedFiles) {
       if (file.type.startsWith("video/") && file.size > MAX_VIDEO_BYTES) {
-        throw new Error(`${file.name} is too large. Use a Drive or YouTube link for large videos.`);
+        throw new Error(`${file.name} is too large for Firebase direct upload. Use a Drive or YouTube link for videos.`);
       }
 
       const prepared = await prepareMediaFile(file);
-      payloadBytes += Math.ceil(prepared.data.length * .75);
-      if (payloadBytes > MAX_TOTAL_PAYLOAD_BYTES) {
-        throw new Error("The selected media is too large for one post. Upload fewer files or use a video link.");
+      payloadChars += prepared.data.length;
+      if (payloadChars > MAX_TOTAL_PAYLOAD_CHARS) {
+        throw new Error("Too many photos for the no-billing version. Try 1-4 photos only, or use a Drive/YouTube link for videos.");
       }
       mediaFiles.push(prepared);
     }
@@ -1160,14 +1197,10 @@ async function submitMemoryPost(event) {
     let preparedMusic = null;
     if (musicFile) {
       if (musicFile.size > MAX_MUSIC_BYTES) {
-        throw new Error("Background music must be 10 MB or smaller. Use a music link for larger files.");
+        throw new Error("Without billing/Storage, uploaded music must be 750 KB or smaller. For full songs, use a direct MP3/M4A link.");
       }
 
       preparedMusic = await fileToPayload(musicFile);
-      payloadBytes += Math.ceil(preparedMusic.data.length * .75);
-      if (payloadBytes > MAX_TOTAL_PAYLOAD_BYTES) {
-        throw new Error("The total upload is too large. Use links for the video or music.");
-      }
     }
 
     button.textContent = "Sharing...";
@@ -1208,16 +1241,7 @@ async function prepareMediaFile(file) {
 
   const imageUrl = await readFileAsDataUrl(file);
   const image = await loadImage(imageUrl);
-  const maxDimension = 1800;
-  const ratio = Math.min(1, maxDimension / Math.max(image.naturalWidth, image.naturalHeight));
-  const width = Math.max(1, Math.round(image.naturalWidth * ratio));
-  const height = Math.max(1, Math.round(image.naturalHeight * ratio));
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  canvas.getContext("2d").drawImage(image, 0, 0, width, height);
-
-  const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", .84));
+  const blob = await compressImageForFirestore(image);
   if (!blob) return fileToPayload(file);
 
   const dataUrl = await readFileAsDataUrl(blob);
@@ -1226,6 +1250,32 @@ async function prepareMediaFile(file) {
     mimeType: "image/jpeg",
     data: dataUrl.split(",")[1]
   };
+}
+
+async function compressImageForFirestore(image) {
+  const dimensions = [1100, 900, 760, 640];
+  const qualities = [.7, .62, .54, .46, .38];
+  let bestBlob = null;
+
+  for (const maxDimension of dimensions) {
+    const ratio = Math.min(1, maxDimension / Math.max(image.naturalWidth, image.naturalHeight));
+    const width = Math.max(1, Math.round(image.naturalWidth * ratio));
+    const height = Math.max(1, Math.round(image.naturalHeight * ratio));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    canvas.getContext("2d").drawImage(image, 0, 0, width, height);
+
+    for (const quality of qualities) {
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));
+      if (!blob) continue;
+
+      bestBlob = blob;
+      if (blob.size <= TARGET_IMAGE_BYTES) return blob;
+    }
+  }
+
+  return bestBlob;
 }
 
 async function fileToPayload(file) {
@@ -1260,7 +1310,7 @@ function resetMemoryForm() {
   memoryState.selectedFiles = [];
   document.getElementById("mediaPreview").innerHTML = "";
   document.getElementById("postMessage").textContent = "";
-  document.getElementById("musicFileName").textContent = "MP3/M4A, up to 10 MB";
+  document.getElementById("musicFileName").textContent = "Tiny MP3/M4A, up to 750 KB";
   setDefaultMemoryDate();
 }
 

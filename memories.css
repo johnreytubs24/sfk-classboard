@@ -590,6 +590,10 @@ select:focus-visible {
   touch-action: pan-y pinch-zoom;
 }
 
+.youtubeInteractionBar {
+  display: none;
+}
+
 .mediaVolumeButton:hover,
 .mediaVolumeButton.audible {
   background: var(--gold);
@@ -1364,6 +1368,55 @@ textarea {
   .postMedia .mediaArrow,
   .viewerModal .viewerArrow {
     display: none;
+  }
+
+  .youtubeSlide {
+    grid-template-rows: minmax(0, 1fr) 44px;
+  }
+
+  .youtubeSlide .feedVideoFrame {
+    grid-row: 1;
+    pointer-events: none;
+  }
+
+  .youtubeSlide.youtubeControlsEnabled .feedVideoFrame {
+    pointer-events: auto;
+  }
+
+  .youtubeInteractionBar {
+    position: relative;
+    z-index: 10;
+    grid-row: 2;
+    width: 100%;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 8px;
+    background: #111;
+  }
+
+  .youtubeInteractionBar button {
+    width: 100%;
+    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    border: 1px solid rgba(255,255,255,.2);
+    border-radius: 7px;
+    background: rgba(255,255,255,.09);
+    color: white;
+    font-size: .74rem;
+    font-weight: 900;
+    cursor: pointer;
+    touch-action: pan-y;
+  }
+
+  .youtubeInteractionBar button.active {
+    background: var(--gold);
+    color: var(--ink);
+    border-color: var(--gold);
   }
 
   .floatingPostButton {

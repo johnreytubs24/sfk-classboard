@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SFK ClassBoard Firebase Import</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #fff8d8;
+      color: #111;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+    }
+
+    main {
+      width: min(880px, 100%);
+      background: #fff;
+      border: 3px solid #111;
+      border-radius: 14px;
+      box-shadow: 0 14px 34px rgba(0,0,0,.14);
+      padding: 22px;
+    }
+
+    h1 { margin: 0 0 8px; }
+    p { line-height: 1.45; }
+    label { display: grid; gap: 8px; margin: 18px 0; font-weight: 700; }
+    input {
+      padding: 12px;
+      border: 2px solid #111;
+      border-radius: 10px;
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      background: #111;
+      color: #ffd700;
+      padding: 12px 18px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: .55;
+      cursor: wait;
+    }
+
+    pre {
+      min-height: 220px;
+      max-height: 420px;
+      overflow: auto;
+      padding: 14px;
+      background: #111;
+      color: #fff;
+      border-radius: 12px;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>SFK ClassBoard Firebase Import</h1>
+    <p>This copies your current Apps Script data into Firebase Firestore. Run this once after pasting your Firebase config in <strong>firebase-config.js</strong>.</p>
+
+    <label>
+      Apps Script Web App URL
+      <input id="apiUrl" value="https://script.google.com/macros/s/AKfycbzCjWVnO-ZNvKTNqKN1zVscNsfPox0uDnO1QTSbBCrMFaS79tfL3mopHa2pH7gHczYeOA/exec" />
+    </label>
+
+    <button id="importButton" onclick="runImport()">Import to Firebase</button>
+    <pre id="log">Ready.</pre>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js?v=1"></script>
+  <script>
+    const SHEETS = {
+      Settings: { collection: "settings", idField: "Key" },
+      Schedule: { collection: "schedule" },
+      Announcements: { collection: "announcements", idField: "ID" },
+      ThingsToBring: { collection: "thingsToBring" },
+      AdviserReminders: { collection: "adviserReminders" },
+      PrayerLeaders: { collection: "prayerLeaders" },
+      DailyQuotes: { collection: "dailyQuotes" },
+      Birthdays: { collection: "birthdays", idField: "Name" },
+      TickerMessages: { collection: "tickerMessages" },
+      DailyInfo: { collection: "dailyInfo", idField: "Day" },
+      Memories: { collection: "memories", idField: "ID" }
+    };
+
+    const logBox = document.getElementById("log");
+    const button = document.getElementById("importButton");
+
+    function log(message) {
+      logBox.textContent += `\n${message}`;
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    async function runImport() {
+      if (!window.SFK_FIREBASE_READY) {
+        log("Firebase config is still using placeholders. Paste your real config first.");
+        return;
+      }
+
+      button.disabled = true;
+      logBox.textContent = "Starting import...";
+
+      try {
+        if (!firebase.apps.length) firebase.initializeApp(window.SFK_FIREBASE_CONFIG);
+        const db = firebase.firestore();
+        const apiUrl = document.getElementById("apiUrl").value.trim();
+
+        const today = await fetchJson(`${apiUrl}?type=today`);
+        const weekly = await fetchJson(`${apiUrl}?type=schedule`);
+
+        await writeSettings(db, today.settings || {});
+        await writeRows(db, "Schedule", Array.isArray(weekly.schedule) ? weekly.schedule : weekly.data || weekly.rows || []);
+        await writeRows(db, "DailyInfo", weekly.dailyInfo || today.dailyInfo || []);
+
+        const sheetsToImport = [
+          "Announcements",
+          "ThingsToBring",
+          "AdviserReminders",
+          "PrayerLeaders",
+          "DailyQuotes",
+          "Birthdays",
+          "TickerMessages"
+        ];
+
+        for (const sheetName of sheetsToImport) {
+          const rows = await fetchSheetRows(apiUrl, sheetName);
+          await writeRows(db, sheetName, rows);
+        }
+
+        const memoriesResult = await fetchJson(`${apiUrl}?type=memories`);
+        await writeRows(db, "Memories", memoriesResult.memories || memoriesResult.data || memoriesResult.rows || []);
+
+        log("Done. You can now open index.html, admin.html, and officer.html using Firebase.");
+      } catch (error) {
+        console.error(error);
+        log(`Import failed: ${error.message || error}`);
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    async function fetchJson(url) {
+      log(`Reading: ${url}`);
+      const response = await fetch(url, { cache: "no-store" });
+      if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
+      return response.json();
+    }
+
+    async function writeSettings(db, settings) {
+      const rows = Object.entries(settings).map(([Key, Value]) => ({ Key, Value, Publish: "YES" }));
+      await writeRows(db, "Settings", rows);
+    }
+
+    async function fetchSheetRows(apiUrl, sheetName) {
+      const result = await fetchJson(`${apiUrl}?type=adminList&sheet=${encodeURIComponent(sheetName)}`);
+      if (result.status !== "success") {
+        log(`${sheetName}: adminList unavailable, skipping.`);
+        return [];
+      }
+
+      return (result.rows || []).map(row => {
+        const record = {};
+        (result.headers || []).forEach((header, index) => {
+          record[header] = parseMaybeJson(row.cells ? row.cells[index] : "");
+        });
+        return record;
+      });
+    }
+
+    async function writeRows(db, sheetName, rows) {
+      const meta = SHEETS[sheetName];
+      const cleanRows = (rows || []).filter(Boolean);
+
+      for (let index = 0; index < cleanRows.length; index += 1) {
+        const row = stripSystemFields(cleanRows[index]);
+        const idBase = meta.idField && row[meta.idField] ? row[meta.idField] : `${sheetName}_${index + 1}`;
+        const id = safeId(idBase);
+        await db.collection(meta.collection).doc(id).set({
+          ...row,
+          Publish: row.Publish || "YES",
+          Order: row.Order || index + 1,
+          importedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+      }
+
+      log(`${sheetName}: ${cleanRows.length} row(s) imported.`);
+    }
+
+    function stripSystemFields(row) {
+      const next = { ...row };
+      delete next.id;
+      delete next.docId;
+      delete next.rowNumber;
+      return next;
+    }
+
+    function parseMaybeJson(value) {
+      const text = String(value || "").trim();
+      if ((text.startsWith("[") && text.endsWith("]")) || (text.startsWith("{") && text.endsWith("}"))) {
+        try { return JSON.parse(text); } catch (error) { return value; }
+      }
+      return value;
+    }
+
+    function safeId(value) {
+      return String(value || "")
+        .trim()
+        .replace(/[^\w.-]+/g, "_")
+        .replace(/^_+|_+$/g, "")
+        .slice(0, 120) || `row_${Date.now()}`;
+    }
+  </script>
+</body>
+</html>

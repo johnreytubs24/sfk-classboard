@@ -1,0 +1,39 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /settings/{docId} {
+      allow read, write: if true;
+    }
+    match /schedule/{docId} {
+      allow read, write: if true;
+    }
+    match /announcements/{docId} {
+      allow read, write: if true;
+    }
+    match /thingsToBring/{docId} {
+      allow read, write: if true;
+    }
+    match /adviserReminders/{docId} {
+      allow read, write: if true;
+    }
+    match /prayerLeaders/{docId} {
+      allow read, write: if true;
+    }
+    match /dailyQuotes/{docId} {
+      allow read, write: if true;
+    }
+    match /birthdays/{docId} {
+      allow read, write: if true;
+    }
+    match /tickerMessages/{docId} {
+      allow read, write: if true;
+    }
+    match /dailyInfo/{docId} {
+      allow read, write: if true;
+    }
+    match /memories/{docId} {
+      allow read, write: if true;
+    }
+  }
+}

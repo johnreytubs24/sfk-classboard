@@ -1,0 +1,16 @@
+No-Billing Music Guide
+
+Firebase Storage requires billing, so this no-billing ClassBoard version avoids Storage.
+
+Best free option:
+1. Upload MP3/M4A files manually to your GitHub Pages repo, for example in a folder named music.
+2. Use the public link as the Memories background music link.
+
+Example:
+If your repo is sfk-classboard and the file is music/sfk-song.mp3, the public link can look like:
+https://sfk2627.github.io/sfk-classboard/music/sfk-song.mp3
+
+Notes:
+- Google Drive audio links may load slowly or fail because Drive is not built as an app audio host.
+- YouTube links cannot be used as hidden background music. Put YouTube links in Video Link instead.
+- Direct upload inside Memories is limited to very tiny audio files, up to 750 KB, because Firestore documents cannot safely store full songs.
