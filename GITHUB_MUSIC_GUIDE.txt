@@ -4,17 +4,25 @@ Goal:
 Use GitHub Pages as the music host instead of Google Drive or Apps Script.
 This is faster, simpler, and still no billing.
 
-How to add songs:
-1. Put your MP3 or M4A files inside the music folder.
-   Example:
-   music/kindness-theme.mp3
+Best setup for larger songs:
+1. In GitHub, open your sfk-classboard repository.
+2. Go to Releases.
+3. Create or edit a release with tag:
+   music
+4. Upload MP3/M4A files as release assets.
+5. Publish/update the release.
+6. Open Memories. The dropdown auto-lists audio assets from that release.
 
-2. That is usually enough. The Memories dropdown auto-lists audio files in /music.
+Small-file setup:
+You may also put MP3 or M4A files inside the music folder.
+Example:
+music/kindness-theme.mp3
 
 Optional fallback:
 If GitHub API is unavailable or rate-limited, you may still list songs manually in music-library.json.
 
 Notes:
 - Avoid spaces in file names. Use dashes instead.
-- The dropdown in Memories reads the GitHub /music folder automatically.
+- The dropdown first reads the GitHub Release tagged `music`.
+- If no release songs exist, it reads the GitHub /music folder automatically.
 - Google Drive links can still be pasted manually, but GitHub music is the recommended path.

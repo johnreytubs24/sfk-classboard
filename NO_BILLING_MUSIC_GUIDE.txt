@@ -12,7 +12,8 @@ Alternative:
 Upload MP3/M4A files manually to your GitHub Pages repo and paste the public direct link.
 
 Notes:
-- Recommended setup: put MP3/M4A files in the GitHub `music` folder. The Memories dropdown will auto-list them.
+- Recommended setup for larger songs: upload MP3/M4A files as GitHub Release assets using tag `music`. The Memories dropdown will auto-list them.
+- Small files may still be placed in the GitHub `music` folder.
 - Google Drive links can still be pasted manually, but GitHub-hosted music is faster and more reliable.
 - YouTube links cannot be used as hidden background music. Put YouTube links in Video Link instead.
 - Direct upload inside Memories is handled by Apps Script/Drive, then Firebase stores only links.

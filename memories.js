@@ -12,6 +12,7 @@ const TARGET_IMAGE_BYTES = 420 * 1024;
 const MUSIC_LIBRARY_CACHE_KEY = "sfkMemoryMusicLibraryV1";
 const MUSIC_LIBRARY_TIMEOUT_MS = 3500;
 const GITHUB_MUSIC_LIBRARY_URL = "music-library.json";
+const GITHUB_MUSIC_RELEASE_TAG = "music";
 const MUSIC_FILE_EXTENSIONS = [".mp3", ".m4a", ".aac", ".ogg", ".wav", ".webm"];
 
 const memoryState = {
@@ -1227,6 +1228,21 @@ async function refreshMemoryMusicLibrary() {
 }
 
 async function loadGitHubMusicSongs() {
+  const releaseApiUrl = getGitHubMusicReleaseApiUrl();
+
+  if (releaseApiUrl) {
+    try {
+      const result = await fetchJsonWithTimeout(releaseApiUrl, {
+        cache: "no-store",
+        headers: { "Accept": "application/vnd.github+json" }
+      });
+      const songs = normalizeGitHubReleaseSongs(result);
+      if (songs.length > 0) return songs;
+    } catch (error) {
+      // Fall back to repo /music folder when the release does not exist yet.
+    }
+  }
+
   const apiUrl = getGitHubMusicFolderApiUrl();
 
   if (apiUrl) {
@@ -1250,15 +1266,43 @@ async function loadGitHubMusicSongs() {
   }
 }
 
-function getGitHubMusicFolderApiUrl() {
+function getGitHubRepoInfo() {
   const hostMatch = window.location.hostname.match(/^(.+)\.github\.io$/i);
-  if (!hostMatch) return "";
+  if (!hostMatch) return null;
 
   const owner = hostMatch[1];
   const repo = window.location.pathname.split("/").filter(Boolean)[0];
-  if (!owner || !repo) return "";
+  if (!owner || !repo) return null;
 
-  return `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/music`;
+  return { owner, repo };
+}
+
+function getGitHubMusicReleaseApiUrl() {
+  const repoInfo = getGitHubRepoInfo();
+  if (!repoInfo) return "";
+
+  return `https://api.github.com/repos/${encodeURIComponent(repoInfo.owner)}/${encodeURIComponent(repoInfo.repo)}/releases/tags/${encodeURIComponent(GITHUB_MUSIC_RELEASE_TAG)}`;
+}
+
+function getGitHubMusicFolderApiUrl() {
+  const repoInfo = getGitHubRepoInfo();
+  if (!repoInfo) return "";
+
+  return `https://api.github.com/repos/${encodeURIComponent(repoInfo.owner)}/${encodeURIComponent(repoInfo.repo)}/contents/music`;
+}
+
+function normalizeGitHubReleaseSongs(release) {
+  const assets = Array.isArray(release?.assets) ? release.assets : [];
+
+  return assets
+    .filter(asset => MUSIC_FILE_EXTENSIONS.some(ext => String(asset.name || "").toLowerCase().endsWith(ext)))
+    .map((asset, index) => ({
+      id: String(asset.id || asset.name || `song-${index + 1}`),
+      name: makeSongName(asset.name || `Song ${index + 1}`),
+      url: safeHttpUrl(asset.browser_download_url || "")
+    }))
+    .filter(song => song.url)
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 function normalizeGitHubContentsSongs(items) {

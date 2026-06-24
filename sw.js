@@ -1,4 +1,4 @@
-const CACHE_NAME = "sfk-classboard-v19-auto-music-folder";
+const CACHE_NAME = "sfk-classboard-v20-release-music-assets";
 const APP_SHELL = [
   "./",
   "./index.html",
