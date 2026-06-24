@@ -1,10 +1,10 @@
-const CACHE_NAME = "sfk-admin-pwa-v2-compact";
+const CACHE_NAME = "sfk-admin-pwa-v3-tool-launcher";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
   "./sw.js",
-  "../admin.html?embedded=1&v=compact-mobile-1",
+  "../admin.html?embedded=1&v=tool-launcher-1",
   "../admin.css",
   "../admin.js",
   "../firebase-config.js",

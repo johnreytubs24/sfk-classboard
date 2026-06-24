@@ -1,4 +1,4 @@
-const CACHE_NAME = "sfk-classboard-v15-compact-admin-officer";
+const CACHE_NAME = "sfk-classboard-v16-tool-launcher";
 const APP_SHELL = [
   "./",
   "./index.html",

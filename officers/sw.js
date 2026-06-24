@@ -1,10 +1,10 @@
-const CACHE_NAME = "sfk-officers-pwa-v2-compact";
+const CACHE_NAME = "sfk-officers-pwa-v3-tool-launcher";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
   "./sw.js",
-  "../officer.html?embedded=1&v=compact-mobile-1",
+  "../officer.html?embedded=1&v=tool-launcher-1",
   "../officer.css",
   "../officer.js",
   "../firebase-config.js",

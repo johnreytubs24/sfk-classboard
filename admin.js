@@ -7,6 +7,7 @@ let currentAdminSheet = "";
 let editingRecord = null;
 let latestAdminTableData = null;
 let selectedAdminRows = new Set();
+let activeAdminTool = null;
 
 const TEACHER_OPTIONS = [
   "Mr. John Rey Tubello",
@@ -25,6 +26,8 @@ const MAX_ANNOUNCEMENT_ATTACHMENTS = 5;
 const MAX_ANNOUNCEMENT_ATTACHMENT_BYTES = 8 * 1024 * 1024;
 
 document.addEventListener("DOMContentLoaded", () => {
+  initAdminToolLauncher();
+
   if (localStorage.getItem(ADMIN_LOGIN_KEY) === "YES") {
     showAdminPanel();
   }
@@ -61,6 +64,7 @@ function loginAdmin() {
 
 function logoutAdmin() {
   localStorage.removeItem(ADMIN_LOGIN_KEY);
+  closeAdminTool();
 
   document.getElementById("loginScreen").classList.remove("hidden");
   document.getElementById("adminPanel").classList.add("hidden");
@@ -70,7 +74,127 @@ function showAdminPanel() {
   document.getElementById("loginScreen").classList.add("hidden");
   document.getElementById("adminPanel").classList.remove("hidden");
 
+  initAdminToolLauncher();
   setTodayForDateInputs();
+}
+
+function initAdminToolLauncher() {
+  const panel = document.getElementById("adminPanel");
+  const grid = document.querySelector(".adminGrid");
+  const managePanel = document.querySelector(".managePanel");
+  if (!panel || !grid || panel.dataset.toolsReady === "true") return;
+
+  panel.dataset.toolsReady = "true";
+  panel.classList.add("toolsReady");
+
+  const launcher = document.createElement("section");
+  launcher.className = "toolLauncher";
+  launcher.setAttribute("aria-label", "Admin tools");
+  launcher.innerHTML = `
+    <div class="toolLauncherHeader">
+      <div>
+        <p class="toolEyebrow">Choose action</p>
+        <h2>What do you want to open?</h2>
+      </div>
+      <span>Forms are hidden until needed.</span>
+    </div>
+    <div class="toolLauncherGrid"></div>
+  `;
+
+  const launcherGrid = launcher.querySelector(".toolLauncherGrid");
+  Array.from(grid.querySelectorAll(".formCard")).forEach((card, index) => {
+    const title = card.querySelector("h2")?.textContent?.trim() || `Tool ${index + 1}`;
+    const button = document.createElement("button");
+    button.className = "toolLaunchButton";
+    button.type = "button";
+    button.innerHTML = `<strong>${escapeAdminText(title)}</strong><small>Create or publish this item</small>`;
+    button.addEventListener("click", () => openAdminTool(card, title));
+    launcherGrid.appendChild(button);
+  });
+
+  if (managePanel) {
+    const button = document.createElement("button");
+    button.className = "toolLaunchButton manageLaunchButton";
+    button.type = "button";
+    button.innerHTML = `<strong>🗂 Manage Existing Data</strong><small>View, edit, hide, or delete records</small>`;
+    button.addEventListener("click", () => openAdminTool(managePanel, "Manage Existing Data"));
+    launcherGrid.appendChild(button);
+  }
+
+  panel.insertBefore(launcher, grid);
+
+  const modal = document.createElement("div");
+  modal.id = "adminToolModal";
+  modal.className = "toolModal hidden";
+  modal.innerHTML = `
+    <div class="toolModalBackdrop" data-admin-tool-close></div>
+    <section class="toolModalCard" role="dialog" aria-modal="true" aria-labelledby="adminToolModalTitle">
+      <header class="toolModalHeader">
+        <div>
+          <p class="toolEyebrow">SFK Admin</p>
+          <h2 id="adminToolModalTitle">Tool</h2>
+        </div>
+        <button class="toolModalClose" type="button" data-admin-tool-close aria-label="Close">×</button>
+      </header>
+      <div id="adminToolModalContent" class="toolModalContent"></div>
+    </section>
+  `;
+  document.body.appendChild(modal);
+  modal.addEventListener("click", (event) => {
+    if (event.target.closest("[data-admin-tool-close]")) closeAdminTool();
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !modal.classList.contains("hidden")) closeAdminTool();
+  });
+}
+
+function openAdminTool(element, title) {
+  if (!element) return;
+  closeAdminTool();
+
+  const modal = document.getElementById("adminToolModal");
+  const content = document.getElementById("adminToolModalContent");
+  const titleElement = document.getElementById("adminToolModalTitle");
+  if (!modal || !content || !titleElement) return;
+
+  activeAdminTool = {
+    element,
+    parent: element.parentNode,
+    nextSibling: element.nextSibling
+  };
+
+  titleElement.textContent = title.replace(/^[^\w]+/, "").trim() || title;
+  content.appendChild(element);
+  element.classList.add("toolModalPanel");
+  modal.classList.remove("hidden");
+  document.body.classList.add("toolModalOpen");
+
+  const firstInput = element.querySelector("input, textarea, select, button");
+  window.setTimeout(() => firstInput?.focus({ preventScroll: true }), 80);
+}
+
+function closeAdminTool() {
+  const modal = document.getElementById("adminToolModal");
+  const content = document.getElementById("adminToolModalContent");
+
+  if (activeAdminTool?.element && activeAdminTool.parent) {
+    activeAdminTool.element.classList.remove("toolModalPanel");
+    activeAdminTool.parent.insertBefore(activeAdminTool.element, activeAdminTool.nextSibling);
+  }
+
+  activeAdminTool = null;
+  if (content) content.innerHTML = "";
+  modal?.classList.add("hidden");
+  document.body.classList.remove("toolModalOpen");
+}
+
+function escapeAdminText(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 function setTodayForDateInputs() {

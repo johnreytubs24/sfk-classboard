@@ -6,12 +6,15 @@ const OFFICER_LOGIN_KEY = "sfkOfficerLoggedIn";
 let currentOfficerSheet = "";
 let latestOfficerTableData = null;
 let selectedOfficerRows = new Set();
+let activeOfficerTool = null;
 
 const TEXT_FORMAT_OPTIONS = ["center", "left", "right", "bullets", "numbers"];
 const MAX_ANNOUNCEMENT_ATTACHMENTS = 5;
 const MAX_ANNOUNCEMENT_ATTACHMENT_BYTES = 8 * 1024 * 1024;
 
 document.addEventListener("DOMContentLoaded", () => {
+  initOfficerToolLauncher();
+
   if (localStorage.getItem(OFFICER_LOGIN_KEY) === "YES") {
     showOfficerPanel();
   }
@@ -48,6 +51,7 @@ function loginOfficer() {
 
 function logoutOfficer() {
   localStorage.removeItem(OFFICER_LOGIN_KEY);
+  closeOfficerTool();
 
   document.getElementById("officerLoginScreen").classList.remove("hidden");
   document.getElementById("officerPanel").classList.add("hidden");
@@ -57,7 +61,127 @@ function showOfficerPanel() {
   document.getElementById("officerLoginScreen").classList.add("hidden");
   document.getElementById("officerPanel").classList.remove("hidden");
 
+  initOfficerToolLauncher();
   setTodayForOfficerDateInputs();
+}
+
+function initOfficerToolLauncher() {
+  const panel = document.getElementById("officerPanel");
+  const grid = document.querySelector(".officerGrid");
+  const managePanel = document.querySelector(".managePanel");
+  if (!panel || !grid || panel.dataset.toolsReady === "true") return;
+
+  panel.dataset.toolsReady = "true";
+  panel.classList.add("toolsReady");
+
+  const launcher = document.createElement("section");
+  launcher.className = "toolLauncher";
+  launcher.setAttribute("aria-label", "Officer tools");
+  launcher.innerHTML = `
+    <div class="toolLauncherHeader">
+      <div>
+        <p class="toolEyebrow">Choose action</p>
+        <h2>What do you want to open?</h2>
+      </div>
+      <span>Forms are hidden until needed.</span>
+    </div>
+    <div class="toolLauncherGrid"></div>
+  `;
+
+  const launcherGrid = launcher.querySelector(".toolLauncherGrid");
+  Array.from(grid.querySelectorAll(".formCard")).forEach((card, index) => {
+    const title = card.querySelector("h2")?.textContent?.trim() || `Tool ${index + 1}`;
+    const button = document.createElement("button");
+    button.className = "toolLaunchButton";
+    button.type = "button";
+    button.innerHTML = `<strong>${escapeOfficerText(title)}</strong><small>Create or publish this item</small>`;
+    button.addEventListener("click", () => openOfficerTool(card, title));
+    launcherGrid.appendChild(button);
+  });
+
+  if (managePanel) {
+    const button = document.createElement("button");
+    button.className = "toolLaunchButton manageLaunchButton";
+    button.type = "button";
+    button.innerHTML = `<strong>🗂 Manage Existing Data</strong><small>View and hide records if needed</small>`;
+    button.addEventListener("click", () => openOfficerTool(managePanel, "Manage Existing Data"));
+    launcherGrid.appendChild(button);
+  }
+
+  panel.insertBefore(launcher, grid);
+
+  const modal = document.createElement("div");
+  modal.id = "officerToolModal";
+  modal.className = "toolModal hidden";
+  modal.innerHTML = `
+    <div class="toolModalBackdrop" data-officer-tool-close></div>
+    <section class="toolModalCard" role="dialog" aria-modal="true" aria-labelledby="officerToolModalTitle">
+      <header class="toolModalHeader">
+        <div>
+          <p class="toolEyebrow">SFK Officers</p>
+          <h2 id="officerToolModalTitle">Tool</h2>
+        </div>
+        <button class="toolModalClose" type="button" data-officer-tool-close aria-label="Close">×</button>
+      </header>
+      <div id="officerToolModalContent" class="toolModalContent"></div>
+    </section>
+  `;
+  document.body.appendChild(modal);
+  modal.addEventListener("click", (event) => {
+    if (event.target.closest("[data-officer-tool-close]")) closeOfficerTool();
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !modal.classList.contains("hidden")) closeOfficerTool();
+  });
+}
+
+function openOfficerTool(element, title) {
+  if (!element) return;
+  closeOfficerTool();
+
+  const modal = document.getElementById("officerToolModal");
+  const content = document.getElementById("officerToolModalContent");
+  const titleElement = document.getElementById("officerToolModalTitle");
+  if (!modal || !content || !titleElement) return;
+
+  activeOfficerTool = {
+    element,
+    parent: element.parentNode,
+    nextSibling: element.nextSibling
+  };
+
+  titleElement.textContent = title.replace(/^[^\w]+/, "").trim() || title;
+  content.appendChild(element);
+  element.classList.add("toolModalPanel");
+  modal.classList.remove("hidden");
+  document.body.classList.add("toolModalOpen");
+
+  const firstInput = element.querySelector("input, textarea, select, button");
+  window.setTimeout(() => firstInput?.focus({ preventScroll: true }), 80);
+}
+
+function closeOfficerTool() {
+  const modal = document.getElementById("officerToolModal");
+  const content = document.getElementById("officerToolModalContent");
+
+  if (activeOfficerTool?.element && activeOfficerTool.parent) {
+    activeOfficerTool.element.classList.remove("toolModalPanel");
+    activeOfficerTool.parent.insertBefore(activeOfficerTool.element, activeOfficerTool.nextSibling);
+  }
+
+  activeOfficerTool = null;
+  if (content) content.innerHTML = "";
+  modal?.classList.add("hidden");
+  document.body.classList.remove("toolModalOpen");
+}
+
+function escapeOfficerText(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 function setTodayForOfficerDateInputs() {
