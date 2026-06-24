@@ -1707,7 +1707,7 @@ function renderComposePreview() {
   const musicUrl = document.getElementById("memoryMusicUrl")?.value.trim() || "";
   const firstFile = memoryState.selectedFiles[0] || null;
 
-  let mediaPreview = `<div class="composePreviewMedia textOnly"><span>SFK Memory</span></div>`;
+  let mediaPreview = `<div class="composePreviewMedia textOnly"><span>Text-only memory</span></div>`;
   if (firstFile) {
     const url = URL.createObjectURL(firstFile);
     mediaPreview = firstFile.type.startsWith("video/")
@@ -1717,7 +1717,12 @@ function renderComposePreview() {
     mediaPreview = `<div class="composePreviewMedia linked"><span>Linked video</span></div>`;
   }
 
-  const musicLabel = musicUrl ? "Linked background music" : "";
+  const musicLabel = musicUrl ? (deriveMusicNameFromUrl(musicUrl) || "Background music link") : "";
+  const previewChips = [
+    memoryState.selectedFiles.length ? `${memoryState.selectedFiles.length} media file${memoryState.selectedFiles.length > 1 ? "s" : ""}` : "",
+    videoUrl ? "Linked video" : "",
+    musicLabel ? `Music: ${musicLabel}` : ""
+  ].filter(Boolean);
 
   container.innerHTML = `
     <div class="composePreviewTitle">
@@ -1731,7 +1736,7 @@ function renderComposePreview() {
         <strong>${escapeHtml(title)}</strong>
         ${caption ? `<p>${escapeHtml(caption)}</p>` : ""}
         <time>${escapeHtml(formatPreviewDate(date))}</time>
-        ${musicLabel ? `<span class="composePreviewMusic">&#9835; ${escapeHtml(musicLabel)}</span>` : ""}
+        ${previewChips.length ? `<div class="composePreviewChips">${previewChips.map(chip => `<span>${escapeHtml(chip)}</span>`).join("")}</div>` : ""}
       </div>
     </article>
   `;

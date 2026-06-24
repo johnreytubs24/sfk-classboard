@@ -7,6 +7,7 @@ let currentOfficerSheet = "";
 let latestOfficerTableData = null;
 let selectedOfficerRows = new Set();
 let activeOfficerTool = null;
+let currentOfficerFilteredRows = [];
 
 const TEXT_FORMAT_OPTIONS = ["center", "left", "right", "bullets", "numbers"];
 const MAX_ANNOUNCEMENT_ATTACHMENTS = 5;
@@ -258,6 +259,25 @@ function showOfficerToast(message) {
   }, 2500);
 }
 
+function showOfficerToastAction(message, actionLabel, callback) {
+  const toast = document.getElementById("officerToast");
+  if (!toast) return;
+
+  toast.innerHTML = `<span>${escapeHtml(message)}</span><button type="button">${escapeHtml(actionLabel)}</button>`;
+  toast.classList.remove("hidden");
+
+  const button = toast.querySelector("button");
+  button?.addEventListener("click", () => {
+    toast.classList.add("hidden");
+    callback?.();
+  });
+
+  clearTimeout(window.officerToastTimer);
+  window.officerToastTimer = setTimeout(() => {
+    toast.classList.add("hidden");
+  }, 6500);
+}
+
 function clearOfficerFields(ids) {
   ids.forEach(id => {
     const el = document.getElementById(id);
@@ -494,7 +514,8 @@ async function loadOfficerTable(sheetName, buttonEl) {
     }
 
     latestOfficerTableData = result;
-    renderOfficerTable(result);
+    resetOfficerManageFilters();
+    renderOfficerTable(getOfficerFilteredTableData());
 
   } catch (error) {
     console.error(error);
@@ -529,13 +550,81 @@ function normalizeManageHeaderKey(header) {
     .replace(/[^a-z0-9]/g, "");
 }
 
+function getOfficerManageFilters() {
+  return {
+    search: document.getElementById("officerManageSearch")?.value.trim().toLowerCase() || "",
+    publish: document.getElementById("officerPublishFilter")?.value || "all"
+  };
+}
+
+function resetOfficerManageFilters() {
+  const search = document.getElementById("officerManageSearch");
+  const publish = document.getElementById("officerPublishFilter");
+  if (search) search.value = "";
+  if (publish) publish.value = "all";
+}
+
+function getRowPublishValue(headers, row) {
+  const publishIndex = (headers || []).findIndex(header => {
+    const key = normalizeManageHeaderKey(header);
+    return key === "publish" || key === "published";
+  });
+
+  if (publishIndex === -1) return "YES";
+  return String(row?.cells?.[publishIndex] || "YES").trim().toUpperCase();
+}
+
+function rowMatchesManageFilters(headers, row, filters) {
+  const publish = getRowPublishValue(headers, row);
+
+  if (filters.publish === "published" && publish === "NO") return false;
+  if (filters.publish === "hidden" && publish !== "NO") return false;
+
+  if (!filters.search) return true;
+
+  const haystack = [
+    row.rowNumber,
+    ...(row.cells || [])
+  ].join(" ").toLowerCase();
+
+  return haystack.includes(filters.search);
+}
+
+function getOfficerFilteredTableData() {
+  if (!latestOfficerTableData) return null;
+
+  const filters = getOfficerManageFilters();
+  const allRows = latestOfficerTableData.rows || [];
+  const rows = allRows.filter(row => rowMatchesManageFilters(latestOfficerTableData.headers || [], row, filters));
+
+  currentOfficerFilteredRows = rows;
+
+  return {
+    ...latestOfficerTableData,
+    rows,
+    totalRows: allRows.length
+  };
+}
+
+function applyOfficerManageFilters() {
+  if (!latestOfficerTableData) return;
+
+  const filteredData = getOfficerFilteredTableData();
+  const visibleRows = new Set(currentOfficerFilteredRows.map(row => Number(row.rowNumber)));
+  selectedOfficerRows = new Set([...selectedOfficerRows].filter(rowNumber => visibleRows.has(Number(rowNumber))));
+  renderOfficerTable(filteredData);
+  syncOfficerSelectedRows();
+}
 
 function renderOfficerTable(result) {
   const tableHead = document.querySelector("#officerDataTable thead");
   const tableBody = document.querySelector("#officerDataTable tbody");
 
+  if (!result) return;
+
   const headers = result.headers || [];
   const rows = result.rows || [];
+  const totalRows = Number.isFinite(result.totalRows) ? result.totalRows : rows.length;
   const visibleColumnIndexes = getVisibleManageColumnIndexes(headers);
 
   if (!tableHead || !tableBody) return;
@@ -560,12 +649,15 @@ function renderOfficerTable(result) {
     tableBody.innerHTML = `
       <tr>
         <td colspan="${visibleColumnIndexes.length + 3}" class="emptyCell">
-          No data found.
+          ${totalRows > 0 ? "No matching records found." : "No data found."}
         </td>
       </tr>
     `;
 
-    setOfficerManageStatus(`${formatSheetLabel(result.sheetName)} loaded. No records yet.`);
+    setOfficerManageStatus(totalRows > 0
+      ? `${formatSheetLabel(result.sheetName)} loaded. Showing 0 of ${totalRows} record(s).`
+      : `${formatSheetLabel(result.sheetName)} loaded. No records yet.`
+    );
     return;
   }
 
@@ -597,7 +689,7 @@ function renderOfficerTable(result) {
     `;
   }).join("");
 
-  setOfficerManageStatus(`${formatSheetLabel(result.sheetName)} loaded. ${rows.length} record(s) found.`);
+  setOfficerManageStatus(`${formatSheetLabel(result.sheetName)} loaded. ${rows.length}${totalRows !== rows.length ? ` of ${totalRows}` : ""} record(s) shown.`);
   attachOfficerLongPressSelection();
 }
 
@@ -626,13 +718,16 @@ function syncOfficerSelectedRows() {
 
   const count = selectedOfficerRows.size;
   if (currentOfficerSheet && latestOfficerTableData) {
-    setOfficerManageStatus(`${formatSheetLabel(currentOfficerSheet)} loaded. ${latestOfficerTableData.rows.length} record(s) found. ${count} selected.`);
+    const visibleCount = currentOfficerFilteredRows.length || 0;
+    const totalCount = latestOfficerTableData.rows.length;
+    setOfficerManageStatus(`${formatSheetLabel(currentOfficerSheet)} loaded. ${visibleCount}${visibleCount !== totalCount ? ` of ${totalCount}` : ""} record(s) shown. ${count} selected.`);
   }
 }
 
 function selectAllOfficerRows() {
   if (!latestOfficerTableData || !latestOfficerTableData.rows) return;
-  selectedOfficerRows = new Set(latestOfficerTableData.rows.map(row => Number(row.rowNumber)));
+  const rows = getOfficerFilteredTableData()?.rows || [];
+  selectedOfficerRows = new Set(rows.map(row => Number(row.rowNumber)));
   syncOfficerSelectedRows();
 }
 
@@ -694,7 +789,7 @@ async function hideSelectedOfficerRecords() {
     const result = await response.json();
 
     if (result.success) {
-      showOfficerToast(result.message || "Selected records hidden.");
+      showOfficerToastAction(result.message || "Selected records hidden.", "Undo", () => restoreOfficerRecords(rowNumbers));
       selectedOfficerRows = new Set();
       refreshCurrentOfficerTable();
       return;
@@ -734,7 +829,7 @@ async function hideOfficerRecord(rowNumber) {
     const result = await response.json();
 
     if (result.success) {
-      showOfficerToast("Record hidden.");
+      showOfficerToastAction("Record hidden.", "Undo", () => restoreOfficerRecords([rowNumber]));
       refreshCurrentOfficerTable();
       return;
     }
@@ -744,6 +839,41 @@ async function hideOfficerRecord(rowNumber) {
   } catch (error) {
     console.error(error);
     showOfficerToast("Error hiding record.");
+  }
+}
+
+async function restoreOfficerRecords(rowNumbers) {
+  if (!currentOfficerSheet) {
+    showOfficerToast("Select a category first.");
+    return;
+  }
+
+  const rows = (rowNumbers || []).map(Number).filter(rowNumber => rowNumber >= 2);
+  if (rows.length === 0) return;
+
+  showOfficerToast("Restoring record...");
+
+  try {
+    await Promise.all(rows.map(rowNumber => fetch(OFFICER_API_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        type: "officerRestore",
+        payload: {
+          sheetName: currentOfficerSheet,
+          rowNumber
+        }
+      })
+    }).then(async response => {
+      const result = await response.json();
+      if (!result.success) throw new Error(result.message || "Restore failed.");
+      return result;
+    })));
+
+    showOfficerToast(rows.length === 1 ? "Record restored." : `${rows.length} records restored.`);
+    refreshCurrentOfficerTable();
+  } catch (error) {
+    console.error(error);
+    showOfficerToast(error.message || "Error restoring record.");
   }
 }
 

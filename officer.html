@@ -19,7 +19,7 @@
   <link rel="manifest" href="officer.webmanifest?v=1" />
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=3" />
   <link rel="apple-touch-icon" href="icons/icon-192.png?v=3" />
-  <link rel="stylesheet" href="officer.css?v=manage-cards-2" />
+  <link rel="stylesheet" href="officer.css?v=manage-search-undo-1" />
 </head>
 
 <body>
@@ -282,6 +282,18 @@
           <button onclick="loadOfficerTable('Birthdays', this)">Birthday Greetings</button>
         </div>
 
+        <div class="manageFilters">
+          <label for="officerManageSearch">Search records</label>
+          <input id="officerManageSearch" type="search" placeholder="Search date, subject, text, name..." oninput="applyOfficerManageFilters()" />
+
+          <label for="officerPublishFilter">Publish filter</label>
+          <select id="officerPublishFilter" onchange="applyOfficerManageFilters()">
+            <option value="all">All records</option>
+            <option value="published">Published only</option>
+            <option value="hidden">Hidden only</option>
+          </select>
+        </div>
+
         <div id="officerManageStatus" class="manageStatus">
           Select a category to view existing data.
         </div>
@@ -312,8 +324,8 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
   <script src="firebase-config.js?v=1"></script>
-  <script src="firebase-adapter.js?v=1"></script>
+  <script src="firebase-adapter.js?v=2"></script>
   <script src="pwa.js?v=14"></script>
-  <script src="officer.js?v=manage-cards-2"></script>
+  <script src="officer.js?v=manage-search-undo-1"></script>
 </body>
 </html>

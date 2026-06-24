@@ -8,6 +8,7 @@ let editingRecord = null;
 let latestAdminTableData = null;
 let selectedAdminRows = new Set();
 let activeAdminTool = null;
+let currentAdminFilteredRows = [];
 
 const TEACHER_OPTIONS = [
   "Mr. John Rey Tubello",
@@ -274,6 +275,25 @@ function showToast(message) {
   window.adminToastTimer = setTimeout(() => {
     toast.classList.add("hidden");
   }, 2500);
+}
+
+function showToastAction(message, actionLabel, callback) {
+  const toast = document.getElementById("adminToast");
+  if (!toast) return;
+
+  toast.innerHTML = `<span>${escapeHtml(message)}</span><button type="button">${escapeHtml(actionLabel)}</button>`;
+  toast.classList.remove("hidden");
+
+  const button = toast.querySelector("button");
+  button?.addEventListener("click", () => {
+    toast.classList.add("hidden");
+    callback?.();
+  });
+
+  clearTimeout(window.adminToastTimer);
+  window.adminToastTimer = setTimeout(() => {
+    toast.classList.add("hidden");
+  }, 6500);
 }
 
 function clearFields(ids) {
@@ -589,7 +609,8 @@ async function loadAdminTable(sheetName, buttonEl) {
     }
 
     latestAdminTableData = result;
-    renderAdminTable(result);
+    resetAdminManageFilters();
+    renderAdminTable(getAdminFilteredTableData());
 
   } catch (error) {
     console.error(error);
@@ -624,13 +645,81 @@ function normalizeManageHeaderKey(header) {
     .replace(/[^a-z0-9]/g, "");
 }
 
+function getAdminManageFilters() {
+  return {
+    search: document.getElementById("adminManageSearch")?.value.trim().toLowerCase() || "",
+    publish: document.getElementById("adminPublishFilter")?.value || "all"
+  };
+}
+
+function resetAdminManageFilters() {
+  const search = document.getElementById("adminManageSearch");
+  const publish = document.getElementById("adminPublishFilter");
+  if (search) search.value = "";
+  if (publish) publish.value = "all";
+}
+
+function getRowPublishValue(headers, row) {
+  const publishIndex = (headers || []).findIndex(header => {
+    const key = normalizeManageHeaderKey(header);
+    return key === "publish" || key === "published";
+  });
+
+  if (publishIndex === -1) return "YES";
+  return String(row?.cells?.[publishIndex] || "YES").trim().toUpperCase();
+}
+
+function rowMatchesManageFilters(headers, row, filters) {
+  const publish = getRowPublishValue(headers, row);
+
+  if (filters.publish === "published" && publish === "NO") return false;
+  if (filters.publish === "hidden" && publish !== "NO") return false;
+
+  if (!filters.search) return true;
+
+  const haystack = [
+    row.rowNumber,
+    ...(row.cells || [])
+  ].join(" ").toLowerCase();
+
+  return haystack.includes(filters.search);
+}
+
+function getAdminFilteredTableData() {
+  if (!latestAdminTableData) return null;
+
+  const filters = getAdminManageFilters();
+  const allRows = latestAdminTableData.rows || [];
+  const rows = allRows.filter(row => rowMatchesManageFilters(latestAdminTableData.headers || [], row, filters));
+
+  currentAdminFilteredRows = rows;
+
+  return {
+    ...latestAdminTableData,
+    rows,
+    totalRows: allRows.length
+  };
+}
+
+function applyAdminManageFilters() {
+  if (!latestAdminTableData) return;
+
+  const filteredData = getAdminFilteredTableData();
+  const visibleRows = new Set(currentAdminFilteredRows.map(row => Number(row.rowNumber)));
+  selectedAdminRows = new Set([...selectedAdminRows].filter(rowNumber => visibleRows.has(Number(rowNumber))));
+  renderAdminTable(filteredData);
+  syncAdminSelectedRows();
+}
 
 function renderAdminTable(result) {
   const tableHead = document.querySelector("#adminDataTable thead");
   const tableBody = document.querySelector("#adminDataTable tbody");
 
+  if (!result) return;
+
   const headers = result.headers || [];
   const rows = result.rows || [];
+  const totalRows = Number.isFinite(result.totalRows) ? result.totalRows : rows.length;
   const isAnnouncementsSheet = result.sheetName === "Announcements";
   const visibleColumnIndexes = getVisibleManageColumnIndexes(headers);
 
@@ -657,12 +746,15 @@ function renderAdminTable(result) {
     tableBody.innerHTML = `
       <tr>
         <td colspan="${visibleColumnIndexes.length + 3 + (isAnnouncementsSheet ? 1 : 0)}" class="emptyCell">
-          No data found.
+          ${totalRows > 0 ? "No matching records found." : "No data found."}
         </td>
       </tr>
     `;
 
-    setManageStatus(`${formatSheetLabel(result.sheetName)} loaded. No records yet.`);
+    setManageStatus(totalRows > 0
+      ? `${formatSheetLabel(result.sheetName)} loaded. Showing 0 of ${totalRows} record(s).`
+      : `${formatSheetLabel(result.sheetName)} loaded. No records yet.`
+    );
     return;
   }
 
@@ -700,9 +792,9 @@ function renderAdminTable(result) {
 
   if (isAnnouncementsSheet) {
     const totalNoted = rows.reduce((sum, row) => sum + (Number(row.notedCount || row.heartCount || 0) || 0), 0);
-    setManageStatus(`${formatSheetLabel(result.sheetName)} loaded. ${rows.length} record(s) found. Total noted: ${totalNoted}.`);
+    setManageStatus(`${formatSheetLabel(result.sheetName)} loaded. ${rows.length}${totalRows !== rows.length ? ` of ${totalRows}` : ""} record(s) shown. Total noted: ${totalNoted}.`);
   } else {
-    setManageStatus(`${formatSheetLabel(result.sheetName)} loaded. ${rows.length} record(s) found.`);
+    setManageStatus(`${formatSheetLabel(result.sheetName)} loaded. ${rows.length}${totalRows !== rows.length ? ` of ${totalRows}` : ""} record(s) shown.`);
   }
   attachAdminLongPressSelection();
 }
@@ -743,13 +835,16 @@ function syncAdminSelectedRows() {
 
   const count = selectedAdminRows.size;
   if (currentAdminSheet && latestAdminTableData) {
-    setManageStatus(`${formatSheetLabel(currentAdminSheet)} loaded. ${latestAdminTableData.rows.length} record(s) found. ${count} selected.`);
+    const visibleCount = currentAdminFilteredRows.length || 0;
+    const totalCount = latestAdminTableData.rows.length;
+    setManageStatus(`${formatSheetLabel(currentAdminSheet)} loaded. ${visibleCount}${visibleCount !== totalCount ? ` of ${totalCount}` : ""} record(s) shown. ${count} selected.`);
   }
 }
 
 function selectAllAdminRows() {
   if (!latestAdminTableData || !latestAdminTableData.rows) return;
-  selectedAdminRows = new Set(latestAdminTableData.rows.map(row => Number(row.rowNumber)));
+  const rows = getAdminFilteredTableData()?.rows || [];
+  selectedAdminRows = new Set(rows.map(row => Number(row.rowNumber)));
   syncAdminSelectedRows();
 }
 
@@ -802,6 +897,11 @@ async function runAdminBatchAction(type, actionLabel) {
   const confirmed = confirm(`${actionLabel === "delete" ? "Delete" : "Hide"} ${rowNumbers.length} selected record(s)?`);
   if (!confirmed) return;
 
+  if (actionLabel === "delete") {
+    const secondConfirm = confirm("Last check: delete permanently? This cannot be undone.");
+    if (!secondConfirm) return;
+  }
+
   showToast(`${actionLabel === "delete" ? "Deleting" : "Hiding"} selected records...`);
 
   try {
@@ -826,7 +926,11 @@ async function runAdminBatchAction(type, actionLabel) {
     }
 
     if (result.success) {
-      showToast(result.message || "Batch action complete.");
+      if (actionLabel === "hide") {
+        showToastAction(result.message || "Selected records hidden.", "Undo", () => restoreAdminRecords(rowNumbers));
+      } else {
+        showToast(result.message || "Batch action complete.");
+      }
       selectedAdminRows = new Set();
       refreshCurrentAdminTable();
       return;
@@ -1063,7 +1167,7 @@ async function hideAdminRecord(rowNumber) {
     const result = await response.json();
 
     if (result.success) {
-      showToast("Record hidden.");
+      showToastAction("Record hidden.", "Undo", () => restoreAdminRecords([rowNumber]));
       refreshCurrentAdminTable();
       return;
     }
@@ -1085,6 +1189,9 @@ async function deleteAdminRecord(rowNumber) {
   const confirmed = confirm("Delete this record permanently? This cannot be undone.");
 
   if (!confirmed) return;
+
+  const secondConfirm = confirm("Last check: delete this record now?");
+  if (!secondConfirm) return;
 
   showToast("Deleting record...");
 
@@ -1113,6 +1220,41 @@ async function deleteAdminRecord(rowNumber) {
   } catch (error) {
     console.error(error);
     showToast("Error deleting record.");
+  }
+}
+
+async function restoreAdminRecords(rowNumbers) {
+  if (!currentAdminSheet) {
+    showToast("Select a category first.");
+    return;
+  }
+
+  const rows = (rowNumbers || []).map(Number).filter(rowNumber => rowNumber >= 2);
+  if (rows.length === 0) return;
+
+  showToast("Restoring record...");
+
+  try {
+    await Promise.all(rows.map(rowNumber => fetch(ADMIN_API_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        type: "adminRestore",
+        payload: {
+          sheetName: currentAdminSheet,
+          rowNumber
+        }
+      })
+    }).then(async response => {
+      const result = await response.json();
+      if (!result.success) throw new Error(result.message || "Restore failed.");
+      return result;
+    })));
+
+    showToast(rows.length === 1 ? "Record restored." : `${rows.length} records restored.`);
+    refreshCurrentAdminTable();
+  } catch (error) {
+    console.error(error);
+    showToast(error.message || "Error restoring record.");
   }
 }
 

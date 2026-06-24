@@ -1228,6 +1228,26 @@ textarea {
   font-weight: 900;
 }
 
+.composePreviewChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.composePreviewChips span {
+  max-width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff8dc;
+  color: var(--ink);
+  padding: 4px 7px;
+  font-size: .64rem;
+  font-weight: 900;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .orDivider {
   display: flex;
   align-items: center;

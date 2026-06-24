@@ -525,6 +525,38 @@ body.toolModalOpen {
   color: #ffd700;
 }
 
+.manageFilters {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(150px, .8fr);
+  gap: 8px 10px;
+  align-items: end;
+  margin-bottom: 12px;
+}
+
+.manageFilters label {
+  display: block;
+  margin-bottom: 4px;
+  color: #333;
+  font-size: .7rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.manageFilters input,
+.manageFilters select {
+  width: 100%;
+  min-height: 42px;
+  border: 2px solid #d9c766;
+  border-radius: 12px;
+  background: white;
+  color: #111;
+  padding: 9px 11px;
+  font: inherit;
+  font-size: .9rem;
+  font-weight: 850;
+}
+
 .manageStatus {
   background: #111;
   color: #ffd700;
@@ -678,6 +710,22 @@ body.toolModalOpen {
   font-weight: 900;
   box-shadow: 5px 5px 0 rgba(0,0,0,.3);
   z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(92vw, 460px);
+  line-height: 1.25;
+}
+
+.officerToast button {
+  border: 2px solid #ffd700;
+  border-radius: 999px;
+  background: white;
+  color: #111;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: .78rem;
+  cursor: pointer;
 }
 
 /* HELPERS */
@@ -1102,6 +1150,17 @@ body.toolModalOpen {
     font-size: .82rem;
     line-height: 1.05;
     white-space: normal;
+  }
+
+  .toolModal.toolModalManage .manageFilters {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .toolModal.toolModalManage .manageFilters input,
+  .toolModal.toolModalManage .manageFilters select {
+    min-height: 44px;
+    font-size: .9rem;
   }
 
   .toolModal.toolModalManage .batchActions {

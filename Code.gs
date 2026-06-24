@@ -77,6 +77,10 @@ function doPost(e) {
       return jsonResponse(unpublishAdminRow(payload));
     }
 
+    if (type === "adminRestore") {
+      return jsonResponse(restoreAdminRow(payload));
+    }
+
     if (type === "adminDelete") {
       return jsonResponse(deleteAdminRow(payload));
     }
@@ -135,6 +139,10 @@ function doPost(e) {
 
     if (type === "officerHide") {
       return jsonResponse(hideOfficerRow(payload));
+    }
+
+    if (type === "officerRestore") {
+      return jsonResponse(restoreOfficerRow(payload));
     }
 
     if (type === "officerBatchHide") {
@@ -858,6 +866,27 @@ function hideOfficerRow(payload) {
   return setPublishToNo(sheetName, rowNumber);
 }
 
+function restoreOfficerRow(payload) {
+  const sheetName = payload.sheetName;
+  const rowNumber = Number(payload.rowNumber);
+
+  if (!isAllowedOfficerSheet(sheetName)) {
+    return {
+      success: false,
+      message: "Officers are not allowed to manage this sheet."
+    };
+  }
+
+  if (!rowNumber || rowNumber < 2) {
+    return {
+      success: false,
+      message: "Invalid row number."
+    };
+  }
+
+  return setPublishToYes(sheetName, rowNumber);
+}
+
 /* ADMIN UPDATE */
 function updateAdminRow(payload) {
   const sheetName = payload.sheetName;
@@ -944,6 +973,27 @@ function unpublishAdminRow(payload) {
   return setPublishToNo(sheetName, rowNumber);
 }
 
+function restoreAdminRow(payload) {
+  const sheetName = payload.sheetName;
+  const rowNumber = Number(payload.rowNumber);
+
+  if (!isAllowedAdminSheet(sheetName)) {
+    return {
+      success: false,
+      message: "Invalid sheet name."
+    };
+  }
+
+  if (!rowNumber || rowNumber < 2) {
+    return {
+      success: false,
+      message: "Invalid row number."
+    };
+  }
+
+  return setPublishToYes(sheetName, rowNumber);
+}
+
 /* SHARED HIDE FUNCTION */
 function setPublishToNo(sheetName, rowNumber) {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -984,6 +1034,48 @@ function setPublishToNo(sheetName, rowNumber) {
   return {
     success: true,
     message: "Record hidden successfully."
+  };
+}
+
+function setPublishToYes(sheetName, rowNumber) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(sheetName);
+
+  if (!sheet) {
+    return {
+      success: false,
+      message: "Sheet not found: " + sheetName
+    };
+  }
+
+  if (rowNumber > sheet.getLastRow()) {
+    return {
+      success: false,
+      message: "Row does not exist."
+    };
+  }
+
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn())
+    .getDisplayValues()[0]
+    .map(header => String(header).trim());
+
+  const publishIndex = headers.findIndex(header => {
+    const cleanHeader = String(header).trim().toUpperCase();
+    return cleanHeader === "PUBLISH" || cleanHeader === "PUBLISHED";
+  });
+
+  if (publishIndex === -1) {
+    return {
+      success: false,
+      message: "Publish column not found."
+    };
+  }
+
+  setCellValueAllowCustom(sheet, rowNumber, publishIndex + 1, "YES");
+
+  return {
+    success: true,
+    message: "Record restored successfully."
   };
 }
 

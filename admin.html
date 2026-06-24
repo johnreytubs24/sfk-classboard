@@ -19,7 +19,7 @@
   <link rel="manifest" href="admin.webmanifest?v=1" />
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=3" />
   <link rel="apple-touch-icon" href="icons/icon-192.png?v=3" />
-  <link rel="stylesheet" href="admin.css?v=manage-cards-2" />
+  <link rel="stylesheet" href="admin.css?v=manage-search-undo-1" />
 </head>
 
 <body>
@@ -346,6 +346,18 @@
           <button onclick="loadAdminTable('DailyInfo', this)">Daily Info</button>
         </div>
 
+        <div class="manageFilters">
+          <label for="adminManageSearch">Search records</label>
+          <input id="adminManageSearch" type="search" placeholder="Search date, subject, text, name..." oninput="applyAdminManageFilters()" />
+
+          <label for="adminPublishFilter">Publish filter</label>
+          <select id="adminPublishFilter" onchange="applyAdminManageFilters()">
+            <option value="all">All records</option>
+            <option value="published">Published only</option>
+            <option value="hidden">Hidden only</option>
+          </select>
+        </div>
+
         <div class="batchActions">
           <button onclick="selectAllAdminRows()">Select All</button>
           <button onclick="clearAdminSelection()">Clear Selection</button>
@@ -398,8 +410,8 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
   <script src="firebase-config.js?v=1"></script>
-  <script src="firebase-adapter.js?v=1"></script>
+  <script src="firebase-adapter.js?v=2"></script>
   <script src="pwa.js?v=14"></script>
-  <script src="admin.js?v=manage-cards-2"></script>
+  <script src="admin.js?v=manage-search-undo-1"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-const CACHE_NAME = "sfk-classboard-v30-compact-music-title-marquee";
+const CACHE_NAME = "sfk-classboard-v31-preview-manage-tools";
 const APP_SHELL = [
   "./",
   "./index.html",
