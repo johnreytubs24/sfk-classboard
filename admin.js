@@ -167,6 +167,7 @@ function openAdminTool(element, title) {
   titleElement.textContent = title.replace(/^[^\w]+/, "").trim() || title;
   content.appendChild(element);
   element.classList.add("toolModalPanel");
+  modal.classList.toggle("toolModalManage", element.classList.contains("managePanel"));
   modal.classList.remove("hidden");
   document.body.classList.add("toolModalOpen");
 
@@ -186,6 +187,7 @@ function closeAdminTool() {
   activeAdminTool = null;
   if (content) content.innerHTML = "";
   modal?.classList.add("hidden");
+  modal?.classList.remove("toolModalManage");
   document.body.classList.remove("toolModalOpen");
 }
 
@@ -667,11 +669,11 @@ function renderAdminTable(result) {
   tableBody.innerHTML = rows.map(row => {
     return `
       <tr>
-        <td class="selectCell">
+        <td class="selectCell" data-label="Select">
           <input type="checkbox" class="rowSelectInput" data-row="${row.rowNumber}" onchange="toggleAdminRowSelection(${row.rowNumber}, this.checked)" />
         </td>
 
-        <td>
+        <td class="actionsDataCell" data-label="Actions">
           <div class="actionCell">
             <button class="tableActionBtn editBtn" onclick="openEditModal(${row.rowNumber})">Edit</button>
             <button class="tableActionBtn hideBtn" onclick="hideAdminRecord(${row.rowNumber})">Hide</button>
@@ -679,7 +681,7 @@ function renderAdminTable(result) {
           </div>
         </td>
 
-        <td class="rowNumberCell">#${row.rowNumber}</td>
+        <td class="rowNumberCell" data-label="Row">#${row.rowNumber}</td>
 
         ${isAnnouncementsSheet ? renderAdminNotedCountCell(row) : ""}
 
@@ -687,7 +689,7 @@ function renderAdminTable(result) {
           const header = headers[index];
           const value = row.cells[index] || "";
           return `
-            <td class="${value ? "" : "emptyCell"}">
+            <td class="${value ? "" : "emptyCell"}" data-label="${escapeAttribute(header)}">
               ${value ? escapeHtml(value) : "—"}
             </td>
           `;
@@ -710,7 +712,7 @@ function renderAdminNotedCountCell(row) {
   const count = Number(row.notedCount || row.heartCount || 0) || 0;
 
   return `
-    <td class="adminNotedCountCell" title="Students who clicked Noted / Heart">
+    <td class="adminNotedCountCell" data-label="Noted" title="Students who clicked Noted / Heart">
       <span class="adminNotedPill">❤️ ${count}</span>
     </td>
   `;

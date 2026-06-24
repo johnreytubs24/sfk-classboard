@@ -1,12 +1,12 @@
-const CACHE_NAME = "sfk-officers-pwa-v3-tool-launcher";
+const CACHE_NAME = "sfk-officers-pwa-v5-wide-manage-cards";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
   "./sw.js",
-  "../officer.html?embedded=1&v=tool-launcher-1",
-  "../officer.css",
-  "../officer.js",
+  "../officer.html?embedded=1&v=manage-cards-2",
+  "../officer.css?v=manage-cards-2",
+  "../officer.js?v=manage-cards-2",
   "../firebase-config.js",
   "../firebase-adapter.js",
   "../icons/icon-192.png",

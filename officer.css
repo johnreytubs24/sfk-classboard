@@ -1014,3 +1014,236 @@ body.toolModalOpen {
   color: #b00020;
   font-weight: 900;
 }
+
+/* Cleaner manage modal/table layout */
+.toolModal.toolModalManage .toolModalCard {
+  width: min(1080px, calc(100vw - 28px));
+}
+
+.toolModal.toolModalManage .toolModalContent {
+  padding: 18px;
+}
+
+.toolModal.toolModalManage .managePanel {
+  max-width: none;
+}
+
+.actionsDataCell {
+  min-width: 110px;
+}
+
+@media (max-width: 980px), (pointer: coarse) {
+  .toolModal.toolModalManage {
+    align-items: stretch;
+    padding: 6px;
+  }
+
+  .toolModal.toolModalManage .toolModalCard {
+    width: 100%;
+    max-height: calc(100dvh - 12px);
+    border-radius: 16px;
+  }
+
+  .toolModal.toolModalManage .toolModalHeader {
+    padding: 12px 14px;
+  }
+
+  .toolModal.toolModalManage .toolModalHeader h2 {
+    font-size: 1.35rem;
+  }
+
+  .toolModal.toolModalManage .toolModalContent {
+    padding: 12px;
+  }
+
+  .toolModal.toolModalManage .managePanel {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: white;
+  }
+
+  .toolModal.toolModalManage .manageHeader {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    align-items: start;
+  }
+
+  .toolModal.toolModalManage .manageHeader h2 {
+    font-size: 1.45rem;
+    line-height: 1.05;
+  }
+
+  .toolModal.toolModalManage .manageHeader p {
+    font-size: .88rem;
+    line-height: 1.25;
+  }
+
+  .toolModal.toolModalManage .refreshBtn {
+    padding: 10px 13px;
+    font-size: .85rem;
+  }
+
+  .toolModal.toolModalManage .manageTabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    overflow: visible;
+    padding-bottom: 0;
+  }
+
+  .toolModal.toolModalManage .manageTabs button {
+    width: 100%;
+    min-height: 44px;
+    border-radius: 14px;
+    padding: 10px 8px;
+    font-size: .82rem;
+    line-height: 1.05;
+    white-space: normal;
+  }
+
+  .toolModal.toolModalManage .batchActions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    overflow: visible;
+    padding-bottom: 0;
+  }
+
+  .toolModal.toolModalManage .batchActions button {
+    width: 100%;
+    min-height: 42px;
+    padding: 10px 8px;
+    font-size: .74rem;
+    line-height: 1.05;
+    white-space: normal;
+  }
+
+  .toolModal.toolModalManage .manageStatus {
+    font-size: .9rem;
+    line-height: 1.25;
+    padding: 11px 12px;
+    border-radius: 14px;
+  }
+
+  .toolModal.toolModalManage .tableWrap {
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  #officerDataTable,
+  #officerDataTable thead,
+  #officerDataTable tbody,
+  #officerDataTable tr,
+  #officerDataTable td {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  #officerDataTable {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  #officerDataTable thead {
+    display: none;
+  }
+
+  #officerDataTable tbody {
+    display: grid;
+    gap: 12px;
+  }
+
+  #officerDataTable tbody tr {
+    border: 3px solid #111;
+    border-radius: 16px;
+    overflow: hidden;
+    background: white;
+    box-shadow: 3px 3px 0 rgba(0,0,0,.18);
+  }
+
+  #officerDataTable tbody tr.selectedRow {
+    border-color: #c9a600;
+    background: #fff7c7;
+  }
+
+  #officerDataTable tbody tr.selectedRow td {
+    background: transparent;
+    outline: none;
+  }
+
+  #officerDataTable td {
+    display: grid;
+    grid-template-columns: minmax(92px, 34%) 1fr;
+    gap: 10px;
+    align-items: start;
+    border-right: 0;
+    border-bottom: 1px solid #ece4b5;
+    padding: 11px 12px;
+    font-size: .92rem;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  #officerDataTable td::before {
+    content: attr(data-label);
+    color: #6e5a00;
+    font-size: .72rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .35px;
+  }
+
+  #officerDataTable td:last-child {
+    border-bottom: 0;
+  }
+
+  #officerDataTable td[colspan] {
+    display: block;
+    text-align: center;
+  }
+
+  #officerDataTable td[colspan]::before {
+    content: "";
+  }
+
+  #officerDataTable .selectCell,
+  #officerDataTable .actionsDataCell {
+    grid-template-columns: 1fr;
+  }
+
+  #officerDataTable .selectCell::before,
+  #officerDataTable .actionsDataCell::before {
+    margin-bottom: 4px;
+  }
+
+  .rowSelectInput {
+    width: 28px;
+    height: 28px;
+  }
+
+  .rowNumberCell {
+    background: #fff8dc !important;
+  }
+
+  .actionCell {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .tableActionBtn {
+    width: 100%;
+    padding: 10px 8px;
+    font-size: .82rem;
+    text-align: center;
+  }
+}

@@ -154,6 +154,7 @@ function openOfficerTool(element, title) {
   titleElement.textContent = title.replace(/^[^\w]+/, "").trim() || title;
   content.appendChild(element);
   element.classList.add("toolModalPanel");
+  modal.classList.toggle("toolModalManage", element.classList.contains("managePanel"));
   modal.classList.remove("hidden");
   document.body.classList.add("toolModalOpen");
 
@@ -173,6 +174,7 @@ function closeOfficerTool() {
   activeOfficerTool = null;
   if (content) content.innerHTML = "";
   modal?.classList.add("hidden");
+  modal?.classList.remove("toolModalManage");
   document.body.classList.remove("toolModalOpen");
 }
 
@@ -570,23 +572,23 @@ function renderOfficerTable(result) {
   tableBody.innerHTML = rows.map(row => {
     return `
       <tr>
-        <td class="selectCell">
+        <td class="selectCell" data-label="Select">
           <input type="checkbox" class="rowSelectInput" data-row="${row.rowNumber}" onchange="toggleOfficerRowSelection(${row.rowNumber}, this.checked)" />
         </td>
 
-        <td>
+        <td class="actionsDataCell" data-label="Action">
           <div class="actionCell">
             <button class="tableActionBtn hideBtn" onclick="hideOfficerRecord(${row.rowNumber})">Hide</button>
           </div>
         </td>
 
-        <td class="rowNumberCell">#${row.rowNumber}</td>
+        <td class="rowNumberCell" data-label="Row">#${row.rowNumber}</td>
 
         ${visibleColumnIndexes.map(index => {
           const header = headers[index];
           const value = row.cells[index] || "";
           return `
-            <td class="${value ? "" : "emptyCell"}">
+            <td class="${value ? "" : "emptyCell"}" data-label="${escapeHtml(header)}">
               ${value ? escapeHtml(value) : "—"}
             </td>
           `;

@@ -185,6 +185,7 @@ function normalizePostMusic(raw) {
         ? (getDriveAudioStreamUrl(fileId) || safeHttpUrl(raw.music.fallbackUrl))
         : safeHttpUrl(raw.music.fallbackUrl),
       previewUrl: safeHttpUrl(raw.music.previewUrl),
+      name: getMusicDisplayName(raw.music),
       muted: true,
       started: false
     };
@@ -218,7 +219,7 @@ function normalizePostMusic(raw) {
   if (driveId) {
     return {
       kind: "drive-audio",
-      name: "Background music",
+      name: deriveMusicNameFromUrl(url) || "Google Drive music",
       fileId: driveId,
       url: getDriveStreamUrl(driveId) || safeHttpUrl(raw.MusicDownloadURL || raw.musicDownloadUrl) || getDriveAudioStreamUrl(driveId),
       fallbackUrl: getDriveAudioStreamUrl(driveId),
@@ -228,7 +229,41 @@ function normalizePostMusic(raw) {
     };
   }
 
-  return { kind: "direct-audio", name: "Background music", url, muted: true, started: false };
+  return { kind: "direct-audio", name: deriveMusicNameFromUrl(url) || "Background music", url, muted: true, started: false };
+}
+
+function getMusicDisplayName(music) {
+  const explicitName = String(music?.name || music?.title || "").trim();
+  if (explicitName && !/^background music$/i.test(explicitName)) return explicitName;
+
+  return deriveMusicNameFromUrl(
+    music?.previewUrl ||
+    music?.fullUrl ||
+    music?.url ||
+    music?.downloadUrl ||
+    music?.fallbackUrl
+  ) || explicitName || "Background music";
+}
+
+function deriveMusicNameFromUrl(value) {
+  try {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    const url = new URL(raw, window.location.href);
+    const id = getDriveFileId(url.href);
+    if (id) return "Google Drive music";
+
+    const pathPart = decodeURIComponent(url.pathname.split("/").filter(Boolean).pop() || "");
+    const clean = pathPart
+      .replace(/\.(mp3|m4a|aac|ogg|wav|webm)$/i, "")
+      .replace(/[-_]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    return clean ? clean.replace(/\b\w/g, letter => letter.toUpperCase()) : "";
+  } catch (error) {
+    return "";
+  }
 }
 
 function normalizeStoredMedia(item) {
@@ -361,7 +396,10 @@ async function fetchDriveAudioObjectUrl(fileId) {
   }
 
   const blob = base64ToBlob(result.data, result.mimeType || "audio/mpeg");
-  return URL.createObjectURL(blob);
+  return {
+    objectUrl: URL.createObjectURL(blob),
+    name: String(result.name || "").trim()
+  };
 }
 
 function base64ToBlob(base64, mimeType) {
@@ -448,6 +486,7 @@ function renderMemories() {
   feed.innerHTML = filtered.map(renderMemoryPost).join("");
   window.requestAnimationFrame(() => {
     restoreFeedPlaybackState(playbackState);
+    updateMusicTitleMarquees();
     observeFeedVideos();
     observePostMusic();
     scrollToRequestedMemory();
@@ -618,6 +657,7 @@ function renderPostMusic(post) {
   if (!music) return "";
 
   const audible = music.muted === false;
+  const musicName = getMusicDisplayName(music);
   let player = "";
 
   player = music.kind === "drive-audio"
@@ -632,8 +672,8 @@ function renderPostMusic(post) {
   return `
     <div class="postMusic" data-music-post="${escapeAttr(post.id)}">
       ${player}
-      <button class="musicToggleButton ${audible ? "audible" : ""}" type="button" data-action="music" data-id="${escapeAttr(post.id)}" aria-label="${audible ? "Mute background music" : "Play background music"}">
-        <span class="musicNote">&#9835;</span><span class="musicLabel">Music</span><span class="musicSound">${audible ? "&#128266;" : "&#128263;"}</span>
+      <button class="musicToggleButton ${audible ? "audible" : ""}" type="button" data-action="music" data-id="${escapeAttr(post.id)}" title="${escapeAttr(musicName)}" aria-label="${audible ? `Mute ${musicName}` : `Play ${musicName}`}">
+        <span class="musicNote">&#9835;</span><span class="musicLabelViewport"><span class="musicLabel">${escapeHtml(musicName)}</span></span><span class="musicSound">${audible ? "&#128266;" : "&#128263;"}</span>
       </button>
     </div>
   `;
@@ -797,7 +837,7 @@ async function togglePostMusic(postId, button) {
   } finally {
     button.disabled = false;
     button.classList.remove("loading");
-    if (label) label.textContent = "Music";
+    if (label) label.textContent = getMusicDisplayName(music);
   }
 }
 
@@ -805,7 +845,24 @@ function updateMusicButton(button, audible) {
   button.classList.toggle("audible", audible);
   const sound = button.querySelector(".musicSound");
   if (sound) sound.innerHTML = audible ? "&#128266;" : "&#128263;";
-  button.setAttribute("aria-label", audible ? "Mute background music" : "Play background music");
+  const post = memoryState.posts.find((item) => item.id === button.dataset.id);
+  const musicName = getMusicDisplayName(post?.music);
+  const label = button.querySelector(".musicLabel");
+  if (label) label.textContent = musicName;
+  button.title = musicName;
+  button.setAttribute("aria-label", audible ? `Mute ${musicName}` : `Play ${musicName}`);
+  updateMusicTitleMarquees();
+}
+
+function updateMusicTitleMarquees() {
+  document.querySelectorAll(".musicToggleButton").forEach((button) => {
+    const viewport = button.querySelector(".musicLabelViewport");
+    const label = button.querySelector(".musicLabel");
+    if (!viewport || !label) return;
+    const distance = Math.max(0, label.scrollWidth - viewport.clientWidth + 14);
+    button.style.setProperty("--music-marquee-distance", `${distance}px`);
+    button.classList.toggle("isMarquee", distance > 14);
+  });
 }
 
 async function preparePostMusic(post, article) {
@@ -827,7 +884,9 @@ async function preparePostMusic(post, article) {
 
   if (music.fileId && !music.proxyFailed) {
     try {
-      music.objectUrl = await fetchDriveAudioObjectUrl(music.fileId);
+      const proxyAudio = await fetchDriveAudioObjectUrl(music.fileId);
+      music.objectUrl = proxyAudio.objectUrl;
+      if (proxyAudio.name) music.name = proxyAudio.name;
       audio.preload = "auto";
       audio.src = music.objectUrl;
       audio.load();
@@ -933,10 +992,7 @@ function muteAllOtherMedia(activePostId, activeIndex) {
   });
 
   document.querySelectorAll(".musicToggleButton").forEach((button) => {
-    button.classList.remove("audible");
-    const sound = button.querySelector(".musicSound");
-    if (sound) sound.innerHTML = "&#128263;";
-    button.setAttribute("aria-label", "Play background music");
+    updateMusicButton(button, false);
   });
 }
 
@@ -1456,7 +1512,8 @@ async function testMusicLink() {
     let objectUrl = "";
     try {
       message.textContent = "Checking Google Drive audio through the app...";
-      objectUrl = await fetchDriveAudioObjectUrl(driveId);
+      const proxyAudio = await fetchDriveAudioObjectUrl(driveId);
+      objectUrl = proxyAudio.objectUrl;
       await testAudioSource(objectUrl);
       message.className = "musicTestMessage ok";
       message.textContent = "Playable through app audio proxy. This Drive music should work.";

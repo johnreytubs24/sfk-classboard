@@ -1229,3 +1229,240 @@ body.toolModalOpen {
   font-size: .85rem;
   box-shadow: 2px 2px 0 rgba(0,0,0,.18);
 }
+
+/* Cleaner manage modal/table layout */
+.toolModal.toolModalManage .toolModalCard {
+  width: min(1180px, calc(100vw - 28px));
+}
+
+.toolModal.toolModalManage .toolModalContent {
+  padding: 18px;
+}
+
+.toolModal.toolModalManage .managePanel {
+  max-width: none;
+}
+
+.actionsDataCell {
+  min-width: 220px;
+}
+
+@media (max-width: 980px), (pointer: coarse) {
+  .toolModal.toolModalManage {
+    align-items: stretch;
+    padding: 6px;
+  }
+
+  .toolModal.toolModalManage .toolModalCard {
+    width: 100%;
+    max-height: calc(100dvh - 12px);
+    border-radius: 16px;
+  }
+
+  .toolModal.toolModalManage .toolModalHeader {
+    padding: 12px 14px;
+  }
+
+  .toolModal.toolModalManage .toolModalHeader h2 {
+    font-size: 1.35rem;
+  }
+
+  .toolModal.toolModalManage .toolModalContent {
+    padding: 12px;
+  }
+
+  .toolModal.toolModalManage .managePanel {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: white;
+  }
+
+  .toolModal.toolModalManage .manageHeader {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    align-items: start;
+  }
+
+  .toolModal.toolModalManage .manageHeader h2 {
+    font-size: 1.45rem;
+    line-height: 1.05;
+  }
+
+  .toolModal.toolModalManage .manageHeader p {
+    font-size: .88rem;
+    line-height: 1.25;
+  }
+
+  .toolModal.toolModalManage .refreshBtn {
+    padding: 10px 13px;
+    font-size: .85rem;
+  }
+
+  .toolModal.toolModalManage .manageTabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    overflow: visible;
+    padding-bottom: 0;
+  }
+
+  .toolModal.toolModalManage .manageTabs button {
+    width: 100%;
+    min-height: 44px;
+    border-radius: 14px;
+    padding: 10px 8px;
+    font-size: .82rem;
+    line-height: 1.05;
+    white-space: normal;
+  }
+
+  .toolModal.toolModalManage .batchActions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    overflow: visible;
+    padding-bottom: 0;
+  }
+
+  .toolModal.toolModalManage .batchActions button {
+    width: 100%;
+    min-height: 42px;
+    padding: 10px 8px;
+    font-size: .78rem;
+    line-height: 1.05;
+    white-space: normal;
+  }
+
+  .toolModal.toolModalManage .manageStatus {
+    font-size: .9rem;
+    line-height: 1.25;
+    padding: 11px 12px;
+    border-radius: 14px;
+  }
+
+  .toolModal.toolModalManage .tableWrap {
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  #adminDataTable,
+  #adminDataTable thead,
+  #adminDataTable tbody,
+  #adminDataTable tr,
+  #adminDataTable td {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  #adminDataTable {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  #adminDataTable thead {
+    display: none;
+  }
+
+  #adminDataTable tbody {
+    display: grid;
+    gap: 12px;
+  }
+
+  #adminDataTable tbody tr {
+    border: 3px solid #111;
+    border-radius: 16px;
+    overflow: hidden;
+    background: white;
+    box-shadow: 3px 3px 0 rgba(0,0,0,.18);
+  }
+
+  #adminDataTable tbody tr.selectedRow {
+    border-color: #c9a600;
+    background: #fff7c7;
+  }
+
+  #adminDataTable tbody tr.selectedRow td {
+    background: transparent;
+    outline: none;
+  }
+
+  #adminDataTable td {
+    display: grid;
+    grid-template-columns: minmax(92px, 34%) 1fr;
+    gap: 10px;
+    align-items: start;
+    border-right: 0;
+    border-bottom: 1px solid #ece4b5;
+    padding: 11px 12px;
+    font-size: .92rem;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  #adminDataTable td::before {
+    content: attr(data-label);
+    color: #6e5a00;
+    font-size: .72rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .35px;
+  }
+
+  #adminDataTable td:last-child {
+    border-bottom: 0;
+  }
+
+  #adminDataTable td[colspan] {
+    display: block;
+    text-align: center;
+  }
+
+  #adminDataTable td[colspan]::before {
+    content: "";
+  }
+
+  #adminDataTable .selectCell,
+  #adminDataTable .actionsDataCell {
+    grid-template-columns: 1fr;
+  }
+
+  #adminDataTable .selectCell::before,
+  #adminDataTable .actionsDataCell::before {
+    margin-bottom: 4px;
+  }
+
+  .rowSelectInput {
+    width: 28px;
+    height: 28px;
+  }
+
+  .rowNumberCell {
+    background: #fff8dc !important;
+  }
+
+  .actionCell {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .tableActionBtn {
+    width: 100%;
+    padding: 10px 8px;
+    font-size: .82rem;
+    text-align: center;
+  }
+
+  .adminNotedCountCell {
+    text-align: left;
+  }
+}
