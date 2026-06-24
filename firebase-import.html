@@ -141,7 +141,7 @@
         const memoriesResult = await fetchJson(`${apiUrl}?type=memories`);
         await writeRows(db, "Memories", memoriesResult.memories || memoriesResult.data || memoriesResult.rows || []);
 
-        log("Done. You can now open index.html, admin.html, and officer.html using Firebase.");
+        log("Done. You can now open index.html, admin/, and officers/ using Firebase.");
       } catch (error) {
         console.error(error);
         log(`Import failed: ${error.message || error}`);

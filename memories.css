@@ -500,6 +500,59 @@ select:focus-visible {
   object-fit: contain;
 }
 
+.textOnlyPostMedia {
+  height: auto;
+  min-height: 0;
+  background:
+    linear-gradient(135deg, rgba(247,198,0,.22), rgba(255,255,255,.92)),
+    var(--paper);
+}
+
+.textOnlySlide {
+  min-height: 260px;
+  padding: 36px;
+  align-content: center;
+  justify-items: start;
+  gap: 10px;
+  background:
+    linear-gradient(rgba(17,17,17,.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(17,17,17,.055) 1px, transparent 1px),
+    #fff8dc;
+  background-size: 28px 28px;
+  color: var(--ink);
+}
+
+.textOnlyBadge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 10px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--gold);
+  font-size: .75rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.textOnlySlide strong {
+  max-width: 100%;
+  font-size: clamp(1.55rem, 4vw, 2.6rem);
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
+.textOnlySlide p {
+  max-width: 58ch;
+  margin: 0;
+  color: var(--muted);
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
 .mediaArrow {
   position: absolute;
   top: 50%;

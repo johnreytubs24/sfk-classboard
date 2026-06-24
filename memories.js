@@ -8,6 +8,7 @@ const MAX_VIDEO_BYTES = 12 * 1024 * 1024;
 const MAX_MUSIC_BYTES = 10 * 1024 * 1024;
 const MAX_TOTAL_UPLOAD_BYTES = 22 * 1024 * 1024;
 const TARGET_IMAGE_BYTES = 420 * 1024;
+const MUSIC_LIBRARY_CACHE_KEY = "sfkMemoryMusicLibraryV1";
 
 const memoryState = {
   posts: [],
@@ -162,8 +163,19 @@ function normalizeMemoryPost(raw) {
 function normalizePostMusic(raw) {
   if (raw.music && typeof raw.music === "object") {
     if (raw.music.kind === "youtube-audio") return null;
+    const fileId = String(raw.music.fileId || getDriveFileId(raw.music.url) || getDriveFileId(raw.music.previewUrl) || "").trim();
+    const isDriveAudio = raw.music.kind === "drive-audio" || Boolean(fileId);
     return {
       ...raw.music,
+      kind: isDriveAudio ? "drive-audio" : raw.music.kind,
+      fileId,
+      url: isDriveAudio
+        ? (safeHttpUrl(raw.music.url) || safeHttpUrl(raw.music.downloadUrl) || getDriveAudioStreamUrl(fileId))
+        : safeHttpUrl(raw.music.url),
+      fallbackUrl: isDriveAudio
+        ? (safeHttpUrl(raw.music.fallbackUrl) || getDriveStreamUrl(fileId))
+        : safeHttpUrl(raw.music.fallbackUrl),
+      previewUrl: safeHttpUrl(raw.music.previewUrl),
       muted: true,
       started: false
     };
@@ -373,7 +385,16 @@ function renderMemoryPost(post) {
 
 function renderPostMedia(post, currentIndex) {
   if (post.media.length === 0) {
-    return `<div class="postMedia"><div class="mediaSlide"><span style="color:#ffd700;font-weight:900">SFK Memory</span></div></div>`;
+    return `
+      <div class="postMedia textOnlyPostMedia">
+        <div class="mediaSlide textOnlySlide">
+          <span class="textOnlyBadge">SFK Memory</span>
+          <strong>${escapeHtml(post.title || "Text Memory")}</strong>
+          ${post.caption ? `<p>${escapeHtml(post.caption)}</p>` : ""}
+        </div>
+        ${renderPostMusic(post)}
+      </div>
+    `;
   }
 
   const slides = post.media.map((media, index) => renderMediaSlide(media, post.id, index)).join("");
@@ -403,7 +424,7 @@ function renderPostMusic(post) {
   let player = "";
 
   player = music.kind === "drive-audio"
-    ? `<audio class="postMusicPlayer" ${audible ? "" : "muted"} loop preload="none" data-drive-audio="true"></audio>`
+    ? `<audio class="postMusicPlayer" ${audible ? "" : "muted"} loop preload="metadata" data-drive-audio="true"></audio>`
     : `
       <audio class="postMusicPlayer" ${audible ? "" : "muted"} loop preload="metadata">
         <source src="${escapeAttr(music.url)}" />
@@ -550,7 +571,19 @@ async function togglePostMusic(postId, button) {
     music.started = true;
     audio.muted = false;
     audio.volume = 1;
-    await audio.play();
+    try {
+      await audio.play();
+    } catch (playError) {
+      if (music.kind !== "drive-audio" || !music.directPrepared || music.proxyPreferred) {
+        throw playError;
+      }
+
+      if (label) label.textContent = "Retrying...";
+      await preparePostMusicViaProxy(post, article);
+      audio.muted = false;
+      audio.volume = 1;
+      await audio.play();
+    }
     updateMusicButton(button, true);
   } catch (error) {
     music.muted = true;
@@ -578,6 +611,8 @@ async function preparePostMusic(post, article) {
 
   if (music.kind !== "drive-audio") return;
 
+  const directSource = safeHttpUrl(music.url) || safeHttpUrl(music.fallbackUrl);
+
   if (music.objectUrl) {
     if (audio.src !== music.objectUrl) {
       audio.src = music.objectUrl;
@@ -586,10 +621,10 @@ async function preparePostMusic(post, article) {
     return;
   }
 
-  const directSource = safeHttpUrl(music.url) || safeHttpUrl(music.fallbackUrl);
-  if (!music.fileId && directSource) {
+  if (directSource && !music.proxyPreferred) {
     audio.src = directSource;
     audio.load();
+    music.directPrepared = true;
     return;
   }
 
@@ -621,6 +656,17 @@ async function preparePostMusic(post, article) {
   const objectUrl = await music.loadingPromise;
   audio.src = objectUrl;
   audio.load();
+}
+
+async function preparePostMusicViaProxy(post, article) {
+  const music = post?.music;
+  const audio = article?.querySelector(".postMusicPlayer");
+  if (!music || !audio || music.kind !== "drive-audio" || !music.fileId) return false;
+
+  music.proxyPreferred = true;
+  music.directPrepared = false;
+  await preparePostMusic(post, article);
+  return Boolean(music.objectUrl);
 }
 
 function toggleMediaVolume(postId, mediaIndex, button) {
@@ -1077,6 +1123,14 @@ async function loadMemoryMusicLibrary(force = false) {
   if (!select) return;
   if (memoryState.musicLibraryLoaded && !force) return;
 
+  const cachedSongs = getCachedMusicLibrary();
+  if (cachedSongs.length > 0 && !force) {
+    setMusicLibraryOptions(select, cachedSongs);
+    memoryState.musicLibraryLoaded = true;
+    refreshMemoryMusicLibrary();
+    return;
+  }
+
   select.disabled = true;
   select.innerHTML = `<option value="">Loading Drive songs...</option>`;
 
@@ -1089,25 +1143,68 @@ async function loadMemoryMusicLibrary(force = false) {
       throw new Error(result.message || "Unable to load Drive songs.");
     }
 
-    if (songs.length === 0) {
-      select.innerHTML = `<option value="">No Drive songs found</option>`;
-    } else {
-      select.innerHTML = `
-        <option value="">No saved song</option>
-        ${songs.map(song => {
-          const id = escapeAttr(song.id || "");
-          const name = escapeHtml(song.name || "Untitled song");
-          const url = escapeAttr(song.url || `https://drive.google.com/file/d/${song.id || ""}/view`);
-          return `<option value="${id}" data-url="${url}">${name}</option>`;
-        }).join("")}
-      `;
-    }
+    setMusicLibraryOptions(select, songs);
+    cacheMusicLibrary(songs);
 
     memoryState.musicLibraryLoaded = true;
   } catch (error) {
     select.innerHTML = `<option value="">Drive song list unavailable</option>`;
   } finally {
     select.disabled = false;
+  }
+}
+
+async function refreshMemoryMusicLibrary() {
+  const select = document.getElementById("memoryMusicLibrary");
+  if (!select) return;
+
+  try {
+    const response = await fetch(`${MEMORIES_API_URL}?type=memoryMusicLibrary`, { cache: "no-store" });
+    const result = await response.json();
+    const songs = Array.isArray(result.songs) ? result.songs : [];
+    if (result.status !== "success") return;
+
+    cacheMusicLibrary(songs);
+    setMusicLibraryOptions(select, songs);
+  } catch (error) {
+    // Keep cached songs visible if the refresh is slow or unavailable.
+  }
+}
+
+function setMusicLibraryOptions(select, songs) {
+  if (!select) return;
+
+  if (!Array.isArray(songs) || songs.length === 0) {
+    select.innerHTML = `<option value="">No Drive songs found</option>`;
+    return;
+  }
+
+  select.innerHTML = `
+    <option value="">No saved song</option>
+    ${songs.map(song => {
+      const id = escapeAttr(song.id || "");
+      const name = escapeHtml(song.name || "Untitled song");
+      const url = escapeAttr(song.url || `https://drive.google.com/file/d/${song.id || ""}/view`);
+      return `<option value="${id}" data-url="${url}">${name}</option>`;
+    }).join("")}
+  `;
+}
+
+function getCachedMusicLibrary() {
+  try {
+    const songs = JSON.parse(localStorage.getItem(MUSIC_LIBRARY_CACHE_KEY) || "[]");
+    return Array.isArray(songs) ? songs : [];
+  } catch (error) {
+    localStorage.removeItem(MUSIC_LIBRARY_CACHE_KEY);
+    return [];
+  }
+}
+
+function cacheMusicLibrary(songs) {
+  try {
+    localStorage.setItem(MUSIC_LIBRARY_CACHE_KEY, JSON.stringify(Array.isArray(songs) ? songs.slice(0, 100) : []));
+  } catch (error) {
+    // The dropdown can still work without local cache.
   }
 }
 
@@ -1221,11 +1318,15 @@ async function submitMemoryPost(event) {
   const videoUrl = document.getElementById("memoryVideoUrl").value.trim();
   const musicUrl = document.getElementById("memoryMusicUrl").value.trim();
   const musicFile = document.getElementById("memoryMusicFile").files?.[0] || null;
+  const title = document.getElementById("memoryTitle").value.trim();
+  const caption = document.getElementById("memoryCaption").value.trim();
   const message = document.getElementById("postMessage");
   const button = document.getElementById("publishMemoryButton");
+  const hasAttachment = memoryState.selectedFiles.length > 0 || Boolean(videoUrl) || Boolean(musicUrl) || Boolean(musicFile);
+  const hasText = Boolean(title || caption);
 
-  if (memoryState.selectedFiles.length === 0 && !videoUrl) {
-    message.textContent = "Add at least one photo, short video, or video link.";
+  if (!hasAttachment && !hasText) {
+    message.textContent = "Write a title or caption, or add an attachment.";
     return;
   }
 
@@ -1273,10 +1374,10 @@ async function submitMemoryPost(event) {
     const payload = {
       Role: memoryState.auth.role,
       Pin: memoryState.auth.pin,
-      Title: document.getElementById("memoryTitle").value.trim(),
+      Title: title,
       Date: document.getElementById("memoryDate").value,
       PostedBy: document.getElementById("memoryPostedBy").value.trim(),
-      Caption: document.getElementById("memoryCaption").value.trim(),
+      Caption: caption,
       VideoURL: videoUrl,
       MediaFiles: mediaFiles,
       MusicURL: musicUrl,

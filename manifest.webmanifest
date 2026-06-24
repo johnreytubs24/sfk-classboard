@@ -25,7 +25,7 @@
     {
       "name": "SFK Admin",
       "short_name": "Admin",
-      "url": "admin.html",
+      "url": "admin/",
       "icons": [
         {
           "src": "icons/icon-192.png",
@@ -37,7 +37,7 @@
     {
       "name": "SFK Officers",
       "short_name": "Officers",
-      "url": "officer.html",
+      "url": "officers/",
       "icons": [
         {
           "src": "icons/icon-192.png",

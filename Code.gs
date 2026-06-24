@@ -2,6 +2,7 @@ const SPREADSHEET_ID = "1RVCRiYviRAr3nXS_uMBXDK3g9FISq9m3GBt4_V4h3Ew";
 const TIMEZONE = "Asia/Manila";
 const ATTACHMENT_FOLDER_NAME = "SFK ClassBoard Attachments";
 const MEMORY_FOLDER_NAME = "SFK ClassBoard Memories";
+const MEMORY_MUSIC_FOLDER_NAME = "SFK ClassBoard Music";
 const MEMORY_ADMIN_PIN = "0524";
 const MEMORY_OFFICER_PIN = "SFK2627";
 
@@ -41,6 +42,10 @@ function doGet(e) {
 
     case "memoryAudio":
       result = getMemoryAudioPayload(e.parameter.fileId);
+      break;
+
+    case "memoryMusicLibrary":
+      result = getMemoryMusicLibrary();
       break;
 
     default:
@@ -100,6 +105,10 @@ function doPost(e) {
 
     if (type === "memoryCreate") {
       return jsonResponse(createMemoryPost(payload));
+    }
+
+    if (type === "memoryUploadAssets") {
+      return jsonResponse(uploadMemoryAssets(payload));
     }
 
     if (type === "memoryAuth") {
@@ -434,6 +443,8 @@ function recordAnnouncementHeart(payload) {
     };
   }
 
+  const delta = Number(payload.delta) < 0 ? -1 : 1;
+
   const lock = LockService.getScriptLock();
   lock.waitLock(8000);
 
@@ -454,7 +465,7 @@ function recordAnnouncementHeart(payload) {
       }
     }
 
-    let count = 1;
+    let count = delta > 0 ? 1 : 0;
 
     if (targetRow === -1) {
       targetRow = sheet.getLastRow() + 1;
@@ -462,7 +473,7 @@ function recordAnnouncementHeart(payload) {
       sheet.getRange(targetRow, countCol).setValue(count);
     } else {
       const current = Number(sheet.getRange(targetRow, countCol).getValue()) || 0;
-      count = current + 1;
+      count = Math.max(0, current + delta);
       sheet.getRange(targetRow, countCol).setValue(count);
     }
 
@@ -475,7 +486,7 @@ function recordAnnouncementHeart(payload) {
     return {
       success: true,
       count: count,
-      message: "Announcement noted."
+      message: delta > 0 ? "Announcement noted." : "Announcement unnoted."
     };
 
   } finally {
@@ -1543,12 +1554,17 @@ function getPublishedMemories() {
 function getMemoryAudioPayload(fileId) {
   const cleanId = String(fileId || "").trim();
 
-  if (!cleanId || !isPublishedMemoryAudioFile(cleanId)) {
+  if (!cleanId) {
     return { success: false, message: "Music file is not available." };
   }
 
   try {
     const file = DriveApp.getFileById(cleanId);
+    const mimeType = file.getMimeType() || "";
+    if (mimeType.indexOf("audio/") !== 0) {
+      return { success: false, message: "This Drive file is not an audio file." };
+    }
+
     const size = Number(file.getSize()) || 0;
 
     if (size > 12 * 1024 * 1024) {
@@ -1559,12 +1575,48 @@ function getMemoryAudioPayload(fileId) {
     return {
       success: true,
       name: file.getName(),
-      mimeType: blob.getContentType() || file.getMimeType() || "audio/mpeg",
+      mimeType: blob.getContentType() || mimeType || "audio/mpeg",
       data: Utilities.base64Encode(blob.getBytes())
     };
   } catch (error) {
     return { success: false, message: "Unable to load the music file from Drive." };
   }
+}
+
+function getMemoryMusicLibrary() {
+  const folder = getOrCreateMemoryMusicFolder();
+  const files = folder.getFiles();
+  const songs = [];
+
+  while (files.hasNext() && songs.length < 100) {
+    const file = files.next();
+    const mimeType = file.getMimeType() || "";
+    if (mimeType.indexOf("audio/") !== 0) continue;
+
+    try {
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    } catch (error) {
+      // Managed school domains may block public sharing. The script can still proxy playback.
+    }
+
+    songs.push({
+      id: file.getId(),
+      name: file.getName(),
+      mimeType: mimeType,
+      size: Number(file.getSize()) || 0,
+      url: file.getUrl()
+    });
+  }
+
+  songs.sort(function(a, b) {
+    return String(a.name || "").localeCompare(String(b.name || ""));
+  });
+
+  return {
+    status: "success",
+    folderName: MEMORY_MUSIC_FOLDER_NAME,
+    songs: songs
+  };
 }
 
 function isPublishedMemoryAudioFile(fileId) {
@@ -1598,12 +1650,12 @@ function createMemoryPost(payload) {
   const musicUrl = String(payload.MusicURL || "").trim();
   const files = Array.isArray(payload.MediaFiles) ? payload.MediaFiles.slice(0, 6) : [];
 
-  if (!title || !postedBy) {
-    return { success: false, message: "Title and posted by are required." };
+  if (!postedBy) {
+    return { success: false, message: "Posted by is required." };
   }
 
-  if (files.length === 0 && !videoUrl) {
-    return { success: false, message: "Add at least one photo, video, or media link." };
+  if (files.length === 0 && !videoUrl && !musicUrl && !payload.MusicFile && !title && !caption) {
+    return { success: false, message: "Write a title or caption, or add an attachment." };
   }
 
   const memoryId = "MEM-" + Utilities.formatDate(new Date(), TIMEZONE, "yyyyMMddHHmmss") + "-" + Utilities.getUuid().slice(0, 6).toUpperCase();
@@ -1616,7 +1668,7 @@ function createMemoryPost(payload) {
   sheet.appendRow([
     memoryId,
     eventDate,
-    title,
+    title || "Untitled Memory",
     caption,
     postedBy,
     role,
@@ -1633,6 +1685,25 @@ function createMemoryPost(payload) {
     success: true,
     id: memoryId,
     message: "Memory posted successfully."
+  };
+}
+
+function uploadMemoryAssets(payload) {
+  const role = normalizeMemoryRole(payload.Role);
+
+  if (!isValidMemoryAuth(role, payload.Pin)) {
+    return { success: false, message: "Incorrect admin/officer credentials." };
+  }
+
+  const memoryId = String(payload.MemoryID || "").trim() ||
+    "MEM-" + Utilities.formatDate(new Date(), TIMEZONE, "yyyyMMddHHmmss") + "-" + Utilities.getUuid().slice(0, 6).toUpperCase();
+  const files = Array.isArray(payload.MediaFiles) ? payload.MediaFiles.slice(0, 6) : [];
+
+  return {
+    success: true,
+    memoryId: memoryId,
+    media: uploadMemoryMedia(files, memoryId),
+    music: uploadMemoryMusic(payload.MusicFile, memoryId)
   };
 }
 
@@ -1862,6 +1933,12 @@ function getOrCreateMemoryFolder() {
   const folders = DriveApp.getFoldersByName(MEMORY_FOLDER_NAME);
   if (folders.hasNext()) return folders.next();
   return DriveApp.createFolder(MEMORY_FOLDER_NAME);
+}
+
+function getOrCreateMemoryMusicFolder() {
+  const folders = DriveApp.getFoldersByName(MEMORY_MUSIC_FOLDER_NAME);
+  if (folders.hasNext()) return folders.next();
+  return DriveApp.createFolder(MEMORY_MUSIC_FOLDER_NAME);
 }
 
 function findMemoryRow(sheet, memoryId) {

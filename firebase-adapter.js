@@ -437,6 +437,8 @@
         kind: "drive-audio",
         name: "Background music",
         fileId: driveId,
+        url: getDriveAudioStreamUrl(driveId),
+        fallbackUrl: getDriveStreamUrl(driveId),
         previewUrl: url,
         muted: true,
         started: false
@@ -458,6 +460,18 @@
     if (pathMatch) return decodeURIComponent(pathMatch[1]);
     const queryMatch = text.match(/[?&]id=([^&]+)/i);
     return queryMatch ? decodeURIComponent(queryMatch[1]) : "";
+  }
+
+  function getDriveStreamUrl(fileId) {
+    return fileId
+      ? `https://drive.usercontent.google.com/download?id=${encodeURIComponent(fileId)}&export=download&confirm=t`
+      : "";
+  }
+
+  function getDriveAudioStreamUrl(fileId) {
+    return fileId
+      ? `https://drive.google.com/uc?export=download&id=${encodeURIComponent(fileId)}`
+      : "";
   }
 
   function normalizePayloadForSheet(sheetName, payload, id) {
