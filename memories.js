@@ -6,7 +6,6 @@ const MEMORIES_SEEN_IDS_KEY = "sfkMemoriesSeenPostIdsV1";
 const MEMORY_POSTED_BY_KEY = "sfkMemoryPostedByV1";
 const MAX_MEDIA_FILES = 6;
 const MAX_VIDEO_BYTES = 12 * 1024 * 1024;
-const MAX_MUSIC_BYTES = 10 * 1024 * 1024;
 const MAX_TOTAL_UPLOAD_BYTES = 22 * 1024 * 1024;
 const TARGET_IMAGE_BYTES = 420 * 1024;
 const MUSIC_LINK_TEST_TIMEOUT_MS = 8000;
@@ -53,7 +52,6 @@ function bindMemoryEvents() {
   document.getElementById("changeRoleButton")?.addEventListener("click", resetMemoryAuth);
   document.getElementById("memoryFiles")?.addEventListener("change", handleMemoryFiles);
   document.getElementById("mediaPreview")?.addEventListener("click", handleMediaPreviewAction);
-  document.getElementById("memoryMusicFile")?.addEventListener("change", handleMusicFile);
   document.getElementById("testMusicLinkButton")?.addEventListener("click", testMusicLink);
   document.getElementById("memoryForm")?.addEventListener("submit", submitMemoryPost);
   ["memoryTitle", "memoryDate", "memoryPostedBy", "memoryCaption", "memoryVideoUrl", "memoryMusicUrl"].forEach((id) => {
@@ -1071,13 +1069,13 @@ async function heartMemory(id) {
 
   const post = memoryState.posts.find((item) => item.id === id);
   if (post) post.heartCount = Math.max(0, Number(post.heartCount || 0) + delta);
-  renderMemories();
+  updateMemoryHeartDisplay(id);
 
   try {
     const result = await postMemoryApi("memoryHeart", { MemoryID: id, delta });
     if (result.success && post) {
       post.heartCount = Math.max(0, Number(result.count) || 0);
-      renderMemories();
+      updateMemoryHeartDisplay(id);
     }
   } catch (error) {
     if (wasHearted) {
@@ -1086,10 +1084,32 @@ async function heartMemory(id) {
       unsetHeartedMemory(id);
     }
     if (post) post.heartCount = Math.max(0, Number(post.heartCount || 0) - delta);
-    renderMemories();
+    updateMemoryHeartDisplay(id);
     console.warn("Memory heart sync failed:", error);
     showMemoryToast("Heart update failed. Please try again.");
   }
+}
+
+function updateMemoryHeartDisplay(id) {
+  const post = memoryState.posts.find((item) => item.id === id);
+  const article = Array.from(document.querySelectorAll(".memoryPost"))
+    .find((item) => item.dataset.postId === id);
+  if (!post || !article) return;
+
+  const hearted = getHeartedMemoryIds().includes(id);
+  const button = article.querySelector('.heartButton[data-action="heart"]');
+  const count = article.querySelector(".heartCount");
+
+  if (button) {
+    button.classList.toggle("hearted", hearted);
+    button.innerHTML = hearted ? "&#9829;" : "&#9825;";
+  }
+
+  if (count) {
+    count.textContent = formatHeartCount(post.heartCount);
+  }
+
+  updateMemoryStats();
 }
 
 function getHeartedMemoryIds() {
@@ -1324,22 +1344,6 @@ function handleMemoryFiles(event) {
   }
 }
 
-function handleMusicFile(event) {
-  const file = event.target.files?.[0] || null;
-  const label = document.getElementById("musicFileName");
-  if (!label) return;
-
-  if (!file) {
-    label.textContent = "MP3/M4A, up to 10 MB";
-    return;
-  }
-
-  label.textContent = file.size > MAX_MUSIC_BYTES
-    ? `${file.name} is too large`
-    : file.name;
-  renderComposePreview();
-}
-
 function renderSelectedMediaPreview() {
   const container = document.getElementById("mediaPreview");
   if (!container) return;
@@ -1430,7 +1434,6 @@ function renderComposePreview() {
   const date = document.getElementById("memoryDate")?.value || "";
   const videoUrl = document.getElementById("memoryVideoUrl")?.value.trim() || "";
   const musicUrl = document.getElementById("memoryMusicUrl")?.value.trim() || "";
-  const musicFile = document.getElementById("memoryMusicFile")?.files?.[0] || null;
   const firstFile = memoryState.selectedFiles[0] || null;
 
   let mediaPreview = `<div class="composePreviewMedia textOnly"><span>SFK Memory</span></div>`;
@@ -1443,11 +1446,7 @@ function renderComposePreview() {
     mediaPreview = `<div class="composePreviewMedia linked"><span>Linked video</span></div>`;
   }
 
-  const musicLabel = musicFile
-    ? musicFile.name
-    : musicUrl
-      ? "Linked background music"
-      : "";
+  const musicLabel = musicUrl ? "Linked background music" : "";
 
   container.innerHTML = `
     <div class="composePreviewTitle">
@@ -1496,12 +1495,11 @@ async function submitMemoryPost(event) {
 
   const videoUrl = document.getElementById("memoryVideoUrl").value.trim();
   const musicUrl = document.getElementById("memoryMusicUrl").value.trim();
-  const musicFile = document.getElementById("memoryMusicFile").files?.[0] || null;
   const title = document.getElementById("memoryTitle").value.trim();
   const caption = document.getElementById("memoryCaption").value.trim();
   const message = document.getElementById("postMessage");
   const button = document.getElementById("publishMemoryButton");
-  const hasAttachment = memoryState.selectedFiles.length > 0 || Boolean(videoUrl) || Boolean(musicUrl) || Boolean(musicFile);
+  const hasAttachment = memoryState.selectedFiles.length > 0 || Boolean(videoUrl) || Boolean(musicUrl);
   const hasText = Boolean(title || caption);
 
   if (!hasAttachment && !hasText) {
@@ -1515,7 +1513,7 @@ async function submitMemoryPost(event) {
 
   try {
     if (musicUrl && getYouTubeId(musicUrl)) {
-      throw new Error("YouTube cannot be used as hidden background music. Upload MP3/M4A or use a direct/public Drive audio file.");
+      throw new Error("YouTube cannot be used as hidden background music. Use a direct/public Drive audio file link or Internet Archive direct file link.");
     }
 
     const mediaFiles = [];
@@ -1534,19 +1532,6 @@ async function submitMemoryPost(event) {
       mediaFiles.push(prepared);
     }
 
-    let preparedMusic = null;
-    if (musicFile) {
-      if (musicFile.size > MAX_MUSIC_BYTES) {
-        throw new Error("Background music must be 10 MB or smaller.");
-      }
-
-      preparedMusic = await fileToPayload(musicFile);
-      uploadBytes += Math.ceil(preparedMusic.data.length * .75);
-      if (uploadBytes > MAX_TOTAL_UPLOAD_BYTES) {
-        throw new Error("The total upload is too large for one post. Use fewer files or choose a Drive song.");
-      }
-    }
-
     button.textContent = "Sharing...";
     message.textContent = "Sharing this memory with SFK...";
 
@@ -1559,8 +1544,7 @@ async function submitMemoryPost(event) {
       Caption: caption,
       VideoURL: videoUrl,
       MediaFiles: mediaFiles,
-      MusicURL: musicUrl,
-      MusicFile: preparedMusic
+      MusicURL: musicUrl
     };
 
     const result = await postMemoryApi("memoryCreate", payload);
@@ -1656,7 +1640,6 @@ function resetMemoryForm() {
   memoryState.coverIndex = 0;
   document.getElementById("mediaPreview").innerHTML = "";
   document.getElementById("postMessage").textContent = "";
-  document.getElementById("musicFileName").textContent = "MP3/M4A, up to 10 MB";
   setDefaultMemoryDate();
   restoreRememberedPostedBy();
   renderComposePreview();
