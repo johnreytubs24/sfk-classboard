@@ -1,12 +1,12 @@
-const CACHE_NAME = "sfk-admin-pwa-v5-wide-manage-cards";
+const CACHE_NAME = "sfk-admin-pwa-v6-manage-search-undo";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
   "./sw.js",
-  "../admin.html?embedded=1&v=manage-cards-2",
-  "../admin.css?v=manage-cards-2",
-  "../admin.js?v=manage-cards-2",
+  "../admin.html?embedded=1&v=manage-search-undo-1",
+  "../admin.css?v=manage-search-undo-1",
+  "../admin.js?v=manage-search-undo-1",
   "../firebase-config.js",
   "../firebase-adapter.js",
   "../icons/icon-192.png",

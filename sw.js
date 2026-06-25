@@ -1,4 +1,4 @@
-const CACHE_NAME = "sfk-classboard-v31-preview-manage-tools";
+const CACHE_NAME = "sfk-classboard-v32-intro-skip-delay";
 const APP_SHELL = [
   "./",
   "./index.html",

@@ -123,6 +123,7 @@
 
     if (type === "adminUpdate") return updateRow(payload);
     if (type === "adminUnpublish" || type === "officerHide") return unpublishRow(payload);
+    if (type === "adminRestore" || type === "officerRestore") return publishRow(payload);
     if (type === "adminDelete") return deleteRow(payload);
     if (type === "adminBatchUnpublish" || type === "officerBatchHide") return batchRows(payload, unpublishRow);
     if (type === "adminBatchDelete") return batchRows(payload, deleteRow);
@@ -272,6 +273,13 @@
     const meta = getSheetMeta(payload.sheetName);
     await db.collection(meta.collection).doc(row.id).set(withMeta({ Publish: "NO" }, false), { merge: true });
     return { success: true, message: "Record hidden." };
+  }
+
+  async function publishRow(payload) {
+    const row = await rowByNumber(payload.sheetName, payload.rowNumber);
+    const meta = getSheetMeta(payload.sheetName);
+    await db.collection(meta.collection).doc(row.id).set(withMeta({ Publish: "YES" }, false), { merge: true });
+    return { success: true, message: "Record restored." };
   }
 
   async function deleteRow(payload) {

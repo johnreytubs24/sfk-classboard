@@ -123,6 +123,16 @@
       padding: 10px 16px;
       font-size: clamp(.88rem, 1.2vw, 1rem);
       cursor: pointer;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-4px);
+      transition: opacity .28s ease, transform .28s ease;
+    }
+
+    .sfkStartIntro.skip-ready .sfkStartSkip {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
     }
 
     .sfkStartBody {
@@ -695,6 +705,10 @@
 
       sessionStorage.setItem(SFK_INTRO_SESSION_KEY, "YES");
 
+      window.sfkIntroSkipTimer = window.setTimeout(() => {
+        intro.classList.add("skip-ready");
+      }, 6000);
+
       window.setTimeout(() => {
         hideSfkIntro(false);
       }, 30000);
@@ -704,6 +718,7 @@
       const intro = document.getElementById("sfkIntroOverlay");
       if (!intro) return;
 
+      window.clearTimeout(window.sfkIntroSkipTimer);
       intro.classList.add("is-hidden");
       window.setTimeout(() => {
         if (intro.parentNode) intro.remove();
