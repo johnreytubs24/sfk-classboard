@@ -15,6 +15,7 @@ const MAX_ANNOUNCEMENT_ATTACHMENT_BYTES = 8 * 1024 * 1024;
 
 document.addEventListener("DOMContentLoaded", () => {
   initOfficerToolLauncher();
+  initRichTextEditors();
 
   if (localStorage.getItem(OFFICER_LOGIN_KEY) === "YES") {
     showOfficerPanel();
@@ -63,6 +64,7 @@ function showOfficerPanel() {
   document.getElementById("officerPanel").classList.remove("hidden");
 
   initOfficerToolLauncher();
+  initRichTextEditors();
   setTodayForOfficerDateInputs();
 }
 
@@ -283,7 +285,9 @@ function clearOfficerFields(ids) {
     const el = document.getElementById(id);
     if (!el) return;
 
-    if (el.tagName === "SELECT") {
+    if (el.classList && el.classList.contains("richHiddenTextarea")) {
+      clearRichEditorForTarget(id);
+    } else if (el.tagName === "SELECT") {
       el.selectedIndex = 0;
     } else {
       el.value = "";
@@ -293,10 +297,424 @@ function clearOfficerFields(ids) {
   setTodayForOfficerDateInputs();
 }
 
+
+/* RICH TEXT EDITOR FOR ANNOUNCEMENTS / THINGS TO BRING */
+const RICH_TEXT_PREFIX = "[rich]";
+const RICH_LIST_STYLES = ["disc", "circle", "square", "decimal", "lower-alpha", "upper-alpha", "lower-roman", "upper-roman"];
+const RICH_ALIGNMENTS = ["left", "center", "right"];
+const RICH_INDENT_STEP_EM = 1.25;
+const RICH_MAX_INDENT_LEVEL = 6;
+
+function initRichTextEditors() {
+  if (!window.__sfkRichSelectionWatcherAttached) {
+    window.__sfkRichSelectionWatcherAttached = true;
+    document.addEventListener("selectionchange", () => {
+      const activeComposer = document.activeElement && document.activeElement.closest ? document.activeElement.closest(".richComposer") : null;
+      if (activeComposer) saveRichSelection(activeComposer);
+    });
+  }
+
+  document.querySelectorAll(".richComposer").forEach(composer => {
+    if (composer.dataset.richReady === "true") return;
+    const targetId = composer.dataset.richTarget;
+    const editor = composer.querySelector(".richEditor");
+    if (!targetId || !editor) return;
+
+    composer.dataset.richReady = "true";
+
+    editor.addEventListener("input", () => syncRichEditorToTextarea(targetId));
+    editor.addEventListener("blur", () => {
+      saveRichSelection(composer);
+      syncRichEditorToTextarea(targetId);
+    });
+    editor.addEventListener("keyup", () => saveRichSelection(composer));
+    editor.addEventListener("mouseup", () => saveRichSelection(composer));
+    editor.addEventListener("touchend", () => setTimeout(() => saveRichSelection(composer), 0));
+    editor.addEventListener("paste", (event) => handleRichEditorPaste(event, targetId));
+
+    composer.querySelectorAll("[data-rich-command], [data-rich-list], [data-rich-align], [data-rich-indent], [data-rich-color]").forEach(button => {
+      button.addEventListener("mousedown", event => event.preventDefault());
+      button.addEventListener("click", () => runRichEditorToolbarAction(composer, button));
+    });
+
+    composer.querySelectorAll("[data-rich-color-picker]").forEach(input => {
+      input.addEventListener("mousedown", () => saveRichSelection(composer));
+      input.addEventListener("input", () => runRichEditorColorPickerAction(composer, input.value));
+      input.addEventListener("change", () => runRichEditorColorPickerAction(composer, input.value));
+    });
+
+    syncRichEditorToTextarea(targetId);
+  });
+}
+
+function getRichEditorToolbarMarkup(label = "Formatting tools") {
+  return `
+    <div class="richToolbar" aria-label="${escapeHtml(label)}">
+      <div class="richToolbarGroup" aria-label="Text style">
+        <button type="button" data-rich-command="bold" title="Bold selected text"><b>B</b></button>
+        <button type="button" data-rich-command="italic" title="Italic selected text"><i>I</i></button>
+        <button type="button" data-rich-command="underline" title="Underline selected text"><u>U</u></button>
+      </div>
+      <div class="richToolbarGroup" aria-label="Bullets and numbering">
+        <button type="button" data-rich-list="disc" title="Bullet list">•</button>
+        <button type="button" data-rich-list="circle" title="Circle bullet">○</button>
+        <button type="button" data-rich-list="square" title="Square bullet">▪</button>
+        <button type="button" data-rich-list="decimal" title="Numbered list">1.</button>
+        <button type="button" data-rich-list="lower-alpha" title="Letter list">a.</button>
+        <button type="button" data-rich-list="upper-alpha" title="Capital letter list">A.</button>
+      </div>
+      <div class="richToolbarGroup" aria-label="Indent">
+        <button type="button" data-rich-indent="out" title="Decrease indent">⇤</button>
+        <button type="button" data-rich-indent="in" title="Increase indent">⇥</button>
+      </div>
+      <div class="richToolbarGroup" aria-label="Text color">
+        <button type="button" class="richColorChip richColorBlack" data-rich-color="#111111" title="Black text">A</button>
+        <button type="button" class="richColorChip richColorRed" data-rich-color="#d62828" title="Red text">A</button>
+        <button type="button" class="richColorChip richColorBlue" data-rich-color="#2563eb" title="Blue text">A</button>
+        <button type="button" class="richColorChip richColorGreen" data-rich-color="#0f766e" title="Green text">A</button>
+        <button type="button" class="richColorChip richColorPurple" data-rich-color="#7c3aed" title="Purple text">A</button>
+        <label class="richColorPickerLabel" title="Custom text color"><span>Color</span><input type="color" data-rich-color-picker value="#111111" aria-label="Custom text color"></label>
+      </div>
+      <div class="richToolbarGroup" aria-label="Alignment">
+        <button type="button" data-rich-align="left" title="Align left">Left</button>
+        <button type="button" data-rich-align="center" title="Align center">Center</button>
+        <button type="button" data-rich-align="right" title="Align right">Right</button>
+        <button type="button" data-rich-command="removeFormat" title="Clear selected formatting">Clear</button>
+      </div>
+    </div>`;
+}
+
+function runRichEditorToolbarAction(composer, button) {
+  const targetId = composer.dataset.richTarget;
+  const editor = composer.querySelector(".richEditor");
+  if (!editor) return;
+
+  editor.focus();
+  restoreRichSelection(composer);
+
+  const command = button.dataset.richCommand;
+  const listStyle = button.dataset.richList;
+  const align = button.dataset.richAlign;
+  const indent = button.dataset.richIndent;
+  const color = button.dataset.richColor;
+
+  if (command) {
+    document.execCommand(command, false, null);
+  }
+
+  if (align && RICH_ALIGNMENTS.includes(align)) {
+    const commandName = align === "center" ? "justifyCenter" : align === "right" ? "justifyRight" : "justifyLeft";
+    document.execCommand(commandName, false, null);
+    applyAlignmentToSelectedBlocks(editor, align);
+  }
+
+  if (listStyle && RICH_LIST_STYLES.includes(listStyle)) {
+    applyListStyleToSelection(editor, listStyle);
+  }
+
+  if (indent === "in" || indent === "out") {
+    applyRichIndentToSelection(editor, indent === "in" ? 1 : -1);
+  }
+
+  if (color) {
+    applyRichTextColor(editor, color);
+  }
+
+  saveRichSelection(composer);
+  syncRichEditorToTextarea(targetId);
+}
+
+function runRichEditorColorPickerAction(composer, color) {
+  const targetId = composer.dataset.richTarget;
+  const editor = composer.querySelector(".richEditor");
+  if (!editor) return;
+
+  editor.focus();
+  restoreRichSelection(composer);
+  applyRichTextColor(editor, color);
+  saveRichSelection(composer);
+  syncRichEditorToTextarea(targetId);
+}
+
+function saveRichSelection(composer) {
+  const editor = composer.querySelector(".richEditor");
+  const selection = window.getSelection && window.getSelection();
+  if (!editor || !selection || !selection.rangeCount) return;
+
+  const anchor = selection.anchorNode;
+  const focus = selection.focusNode;
+  if ((anchor && editor.contains(anchor)) || (focus && editor.contains(focus))) {
+    composer.__savedRichRange = selection.getRangeAt(0).cloneRange();
+  }
+}
+
+function restoreRichSelection(composer) {
+  const editor = composer.querySelector(".richEditor");
+  const selection = window.getSelection && window.getSelection();
+  const range = composer.__savedRichRange;
+  if (!editor || !selection || !range) return;
+
+  const startInside = range.startContainer === editor || editor.contains(range.startContainer);
+  const endInside = range.endContainer === editor || editor.contains(range.endContainer);
+  if (!startInside || !endInside) return;
+
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+
+function handleRichEditorPaste(event, targetId) {
+  event.preventDefault();
+  const text = (event.clipboardData || window.clipboardData)?.getData("text/plain") || "";
+  document.execCommand("insertText", false, text);
+  syncRichEditorToTextarea(targetId);
+}
+
+function applyListStyleToSelection(editor, listStyle) {
+  const needsOrdered = ["decimal", "lower-alpha", "upper-alpha", "lower-roman", "upper-roman"].includes(listStyle);
+  const desiredTag = needsOrdered ? "OL" : "UL";
+  let list = getCurrentListElement(editor);
+
+  if (!list || list.tagName !== desiredTag) {
+    document.execCommand(needsOrdered ? "insertOrderedList" : "insertUnorderedList", false, null);
+    list = getCurrentListElement(editor);
+  }
+
+  if (list && RICH_LIST_STYLES.includes(listStyle)) {
+    list.style.listStyleType = listStyle;
+  }
+}
+
+function getCurrentListElement(editor) {
+  const selection = window.getSelection && window.getSelection();
+  let node = selection && selection.rangeCount ? selection.anchorNode : null;
+
+  if (!node || !editor.contains(node)) {
+    node = editor;
+  }
+
+  if (node.nodeType === Node.TEXT_NODE) {
+    node = node.parentElement;
+  }
+
+  while (node && node !== editor) {
+    if (node.tagName === "UL" || node.tagName === "OL") return node;
+    node = node.parentElement;
+  }
+
+  return editor.querySelector("ul, ol");
+}
+
+function applyAlignmentToSelectedBlocks(editor, align) {
+  getSelectedRichBlocks(editor).forEach(block => {
+    block.style.textAlign = align;
+  });
+}
+
+function applyRichIndentToSelection(editor, direction) {
+  const blocks = getSelectedRichBlocks(editor);
+  if (!blocks.length) return;
+
+  blocks.forEach(block => {
+    const current = parseRichIndentValue(block.style.marginLeft);
+    const next = Math.max(0, Math.min(RICH_MAX_INDENT_LEVEL * RICH_INDENT_STEP_EM, current + (direction * RICH_INDENT_STEP_EM)));
+
+    if (next <= 0.01) {
+      block.style.removeProperty("margin-left");
+    } else {
+      block.style.marginLeft = formatRichIndentValue(next);
+    }
+  });
+}
+
+function applyRichTextColor(editor, color) {
+  const cleanColor = normalizeRichColor(color);
+  if (!cleanColor) return;
+  document.execCommand("foreColor", false, cleanColor);
+}
+
+function getSelectedRichBlocks(editor) {
+  const selection = window.getSelection && window.getSelection();
+  if (!selection || !selection.rangeCount) return [];
+
+  const range = selection.getRangeAt(0);
+  const anchor = selection.anchorNode;
+  const focus = selection.focusNode;
+  if ((!anchor || !editor.contains(anchor)) && (!focus || !editor.contains(focus))) return [];
+
+  const candidates = Array.from(editor.querySelectorAll("p, div, li"))
+    .filter(el => {
+      try {
+        return range.intersectsNode(el);
+      } catch (error) {
+        return false;
+      }
+    });
+
+  const smallestBlocks = candidates.filter(el => !candidates.some(other => other !== el && el.contains(other)));
+  if (smallestBlocks.length) return smallestBlocks;
+
+  const closest = getClosestRichBlock(editor, anchor || focus);
+  if (closest) return [closest];
+
+  document.execCommand("formatBlock", false, "div");
+  const created = getClosestRichBlock(editor, selection.anchorNode);
+  return created ? [created] : [];
+}
+
+function getClosestRichBlock(editor, node) {
+  if (!node) return null;
+  if (node.nodeType === Node.TEXT_NODE) node = node.parentElement;
+
+  while (node && node !== editor) {
+    if (["P", "DIV", "LI"].includes(node.tagName)) return node;
+    node = node.parentElement;
+  }
+
+  return null;
+}
+
+function parseRichIndentValue(value) {
+  const raw = String(value || "").trim().toLowerCase();
+  if (!raw) return 0;
+
+  if (raw.endsWith("em")) return Number.parseFloat(raw) || 0;
+  if (raw.endsWith("px")) return (Number.parseFloat(raw) || 0) / 16;
+  return Number.parseFloat(raw) || 0;
+}
+
+function formatRichIndentValue(value) {
+  const rounded = Math.round(value * 100) / 100;
+  return `${String(rounded).replace(/\.00$/, "").replace(/(\.\d)0$/, "$1")}em`;
+}
+
+function normalizeRichColor(value) {
+  const raw = String(value || "").trim().toLowerCase();
+
+  const shortHex = raw.match(/^#([0-9a-f]{3})$/i);
+  if (shortHex) {
+    return `#${shortHex[1].split("").map(char => char + char).join("")}`.toLowerCase();
+  }
+
+  if (/^#[0-9a-f]{6}$/i.test(raw)) return raw.toLowerCase();
+
+  const rgb = raw.match(/^rgba?\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})(?:,\s*(?:0|1|0?\.\d+))?\)$/i);
+  if (rgb) {
+    const parts = rgb.slice(1, 4).map(part => Math.max(0, Math.min(255, Number(part) || 0)));
+    return `#${parts.map(part => part.toString(16).padStart(2, "0")).join("")}`;
+  }
+
+  return "";
+}
+
+function normalizeRichIndent(value) {
+  const parsed = parseRichIndentValue(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return "";
+  const max = RICH_MAX_INDENT_LEVEL * RICH_INDENT_STEP_EM;
+  return formatRichIndentValue(Math.min(max, parsed));
+}
+
+function syncRichEditorToTextarea(targetId) {
+  const hidden = document.getElementById(targetId);
+  const editor = document.querySelector(`.richComposer[data-rich-target="${targetId}"] .richEditor`);
+  if (!hidden || !editor) return;
+
+  const html = sanitizeRichEditorHtml(editor.innerHTML);
+  const plainText = getRichEditorPlainText(targetId);
+  hidden.value = plainText ? `${RICH_TEXT_PREFIX}\n${html}` : "";
+}
+
+function getRichEditorStorageValue(targetId) {
+  syncRichEditorToTextarea(targetId);
+  const hidden = document.getElementById(targetId);
+  return hidden ? hidden.value.trim() : "";
+}
+
+function isRichTextStorageValue(value) {
+  return /^\[rich\]\s*\n/i.test(String(value || "").replace(/\r/g, ""));
+}
+
+function getRichTextStorageHtml(value) {
+  return String(value || "")
+    .replace(/\r/g, "")
+    .replace(/^\[rich\]\s*\n?/i, "")
+    .trim();
+}
+
+function getRichEditorPlainText(targetId) {
+  const editor = document.querySelector(`.richComposer[data-rich-target="${targetId}"] .richEditor`);
+  return editor ? String(editor.innerText || "").replace(/\u00a0/g, " ").trim() : "";
+}
+
+function clearRichEditorForTarget(targetId) {
+  const hidden = document.getElementById(targetId);
+  const editor = document.querySelector(`.richComposer[data-rich-target="${targetId}"] .richEditor`);
+  if (hidden) hidden.value = "";
+  if (editor) editor.innerHTML = "";
+}
+
+function sanitizeRichEditorHtml(html) {
+  const template = document.createElement("template");
+  template.innerHTML = String(html || "");
+  const fragment = sanitizeRichNode(template.content);
+  const wrapper = document.createElement("div");
+  wrapper.appendChild(fragment);
+  return wrapper.innerHTML
+    .replace(/<div><br><\/div>/gi, "")
+    .replace(/<p><br><\/p>/gi, "")
+    .trim();
+}
+
+function sanitizeRichNode(node) {
+  const fragment = document.createDocumentFragment();
+
+  node.childNodes.forEach(child => {
+    if (child.nodeType === Node.TEXT_NODE) {
+      fragment.appendChild(document.createTextNode(child.textContent || ""));
+      return;
+    }
+
+    if (child.nodeType !== Node.ELEMENT_NODE) return;
+
+    const tag = child.tagName.toLowerCase();
+    const allowed = ["b", "strong", "i", "em", "u", "br", "div", "p", "ul", "ol", "li", "span", "font"];
+
+    if (!allowed.includes(tag)) {
+      fragment.appendChild(sanitizeRichNode(child));
+      return;
+    }
+
+    const cleanTag = tag === "font" ? "span" : tag;
+    const clean = document.createElement(cleanTag);
+    const styleParts = [];
+    const textAlign = String(child.style?.textAlign || "").toLowerCase();
+    const listStyleType = String(child.style?.listStyleType || "").toLowerCase();
+    const fontWeight = String(child.style?.fontWeight || "").toLowerCase();
+    const fontStyle = String(child.style?.fontStyle || "").toLowerCase();
+    const textDecoration = String(child.style?.textDecoration || "").toLowerCase();
+    const color = normalizeRichColor(child.getAttribute("color") || child.style?.color || "");
+    const indent = normalizeRichIndent(child.style?.marginLeft || "");
+
+    if (RICH_ALIGNMENTS.includes(textAlign)) styleParts.push(`text-align:${textAlign}`);
+    if ((cleanTag === "ul" || cleanTag === "ol") && RICH_LIST_STYLES.includes(listStyleType)) {
+      styleParts.push(`list-style-type:${listStyleType}`);
+    }
+    if (["div", "p", "li", "ul", "ol"].includes(cleanTag) && indent) styleParts.push(`margin-left:${indent}`);
+    if (cleanTag === "span" && (fontWeight === "bold" || Number(fontWeight) >= 600)) styleParts.push("font-weight:700");
+    if (cleanTag === "span" && fontStyle === "italic") styleParts.push("font-style:italic");
+    if (cleanTag === "span" && textDecoration.includes("underline")) styleParts.push("text-decoration:underline");
+    if (cleanTag === "span" && color) styleParts.push(`color:${color}`);
+    if (styleParts.length) clean.setAttribute("style", styleParts.join(";"));
+
+    clean.appendChild(sanitizeRichNode(child));
+    fragment.appendChild(clean);
+  });
+
+  return fragment;
+}
+
 /* SUBJECT ANNOUNCEMENT */
 async function saveOfficerAnnouncement() {
-  const announcementText = document.getElementById("officerAnnouncementText").value.trim();
-  const announcementFormat = document.getElementById("officerAnnouncementFormat").value;
+  const announcementText = getRichEditorStorageValue("officerAnnouncementText");
   const attachmentFiles = await buildOfficerAttachmentPayload("officerAnnouncementAttachments", showOfficerToast);
 
   if (attachmentFiles === null) return;
@@ -304,7 +722,7 @@ async function saveOfficerAnnouncement() {
   const payload = {
     Date: document.getElementById("officerAnnouncementDate").value,
     Subject: document.getElementById("officerAnnouncementSubject").value,
-    Announcement: applyTextFormat(announcementText, announcementFormat),
+    Announcement: announcementText,
     Teacher: document.getElementById("officerAnnouncementTeacher").value,
     OfficerPosition: document.getElementById("officerAnnouncementPosition").value,
     Deadline: document.getElementById("officerAnnouncementDeadline").value,
@@ -339,13 +757,12 @@ async function saveOfficerAnnouncement() {
 
 /* THINGS TO BRING */
 async function saveOfficerThings() {
-  const itemText = document.getElementById("officerThingsItem").value.trim();
-  const itemFormat = document.getElementById("officerThingsFormat").value;
+  const itemText = getRichEditorStorageValue("officerThingsItem");
 
   const payload = {
     Date: document.getElementById("officerThingsDate").value,
     Subject: document.getElementById("officerThingsSubject").value,
-    Item: applyTextFormat(itemText, itemFormat),
+    Item: itemText,
     Publish: document.getElementById("officerThingsPublish").value
   };
 
@@ -681,7 +1098,7 @@ function renderOfficerTable(result) {
           const value = row.cells[index] || "";
           return `
             <td class="${value ? "" : "emptyCell"}" data-label="${escapeHtml(header)}">
-              ${value ? escapeHtml(value) : "—"}
+              ${formatManageCellDisplay(value)}
             </td>
           `;
         }).join("")}
@@ -691,6 +1108,17 @@ function renderOfficerTable(result) {
 
   setOfficerManageStatus(`${formatSheetLabel(result.sheetName)} loaded. ${rows.length}${totalRows !== rows.length ? ` of ${totalRows}` : ""} record(s) shown.`);
   attachOfficerLongPressSelection();
+}
+
+function formatManageCellDisplay(value) {
+  if (!value) return "—";
+
+  if (typeof isRichTextStorageValue === "function" && isRichTextStorageValue(value)) {
+    const safeHtml = sanitizeRichEditorHtml(getRichTextStorageHtml(value));
+    return safeHtml ? `<div class="manageRichPreview">${safeHtml}</div>` : "—";
+  }
+
+  return escapeHtml(stripTextFormatTag(value));
 }
 
 function toggleOfficerRowSelection(rowNumber, checked) {

@@ -19,7 +19,7 @@
   <link rel="manifest" href="officer.webmanifest?v=1" />
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=3" />
   <link rel="apple-touch-icon" href="icons/icon-192.png?v=3" />
-  <link rel="stylesheet" href="officer.css?v=manage-search-undo-1" />
+  <link rel="stylesheet" href="officer.css?v=rich-editor-2" />
 </head>
 
 <body>
@@ -76,17 +76,45 @@
           <label for="officerAnnouncementSubject">Subject</label>
           <input id="officerAnnouncementSubject" list="subjectOptions" type="text" placeholder="Select or type subject" />
 
-          <label for="officerAnnouncementText">Announcement</label>
-          <textarea id="officerAnnouncementText" placeholder="Type subject announcement here..."></textarea>
-
-          <label for="officerAnnouncementFormat">Text Format</label>
-          <select id="officerAnnouncementFormat">
-            <option value="center">Center</option>
-            <option value="left">Left</option>
-            <option value="right">Right</option>
-            <option value="bullets">Bullets</option>
-            <option value="numbers">Numbers</option>
-          </select>
+          <label for="officerAnnouncementTextEditor">Announcement</label>
+          <div class="richComposer" data-rich-target="officerAnnouncementText">
+            <div class="richToolbar" aria-label="Announcement formatting tools">
+              <div class="richToolbarGroup" aria-label="Text style">
+                <button type="button" data-rich-command="bold" title="Bold selected text"><b>B</b></button>
+                <button type="button" data-rich-command="italic" title="Italic selected text"><i>I</i></button>
+                <button type="button" data-rich-command="underline" title="Underline selected text"><u>U</u></button>
+              </div>
+              <div class="richToolbarGroup" aria-label="Bullets and numbering">
+                <button type="button" data-rich-list="disc" title="Bullet list">•</button>
+                <button type="button" data-rich-list="circle" title="Circle bullet">○</button>
+                <button type="button" data-rich-list="square" title="Square bullet">▪</button>
+                <button type="button" data-rich-list="decimal" title="Numbered list">1.</button>
+                <button type="button" data-rich-list="lower-alpha" title="Letter list">a.</button>
+                <button type="button" data-rich-list="upper-alpha" title="Capital letter list">A.</button>
+              </div>
+              <div class="richToolbarGroup" aria-label="Indent">
+                <button type="button" data-rich-indent="out" title="Decrease indent">⇤</button>
+                <button type="button" data-rich-indent="in" title="Increase indent">⇥</button>
+              </div>
+              <div class="richToolbarGroup" aria-label="Text color">
+                <button type="button" class="richColorChip richColorBlack" data-rich-color="#111111" title="Black text">A</button>
+                <button type="button" class="richColorChip richColorRed" data-rich-color="#d62828" title="Red text">A</button>
+                <button type="button" class="richColorChip richColorBlue" data-rich-color="#2563eb" title="Blue text">A</button>
+                <button type="button" class="richColorChip richColorGreen" data-rich-color="#0f766e" title="Green text">A</button>
+                <button type="button" class="richColorChip richColorPurple" data-rich-color="#7c3aed" title="Purple text">A</button>
+                <label class="richColorPickerLabel" title="Custom text color"><span>Color</span><input type="color" data-rich-color-picker value="#111111" aria-label="Custom text color"></label>
+              </div>
+              <div class="richToolbarGroup" aria-label="Alignment">
+                <button type="button" data-rich-align="left" title="Align left">Left</button>
+                <button type="button" data-rich-align="center" title="Align center">Center</button>
+                <button type="button" data-rich-align="right" title="Align right">Right</button>
+                <button type="button" data-rich-command="removeFormat" title="Clear selected formatting">Clear</button>
+              </div>
+            </div>
+            <div id="officerAnnouncementTextEditor" class="richEditor" contenteditable="true" data-placeholder="Type announcement here. Select words or lines, then apply bold or bullets."></div>
+            <textarea id="officerAnnouncementText" class="richHiddenTextarea" aria-hidden="true" tabindex="-1"></textarea>
+          </div>
+          <small class="fieldHint">Format only selected words or lines. You can add bullets, numbering, indent, alignment, and text color.</small>
 
           <label for="officerAnnouncementTeacher">Teacher</label>
           <select id="officerAnnouncementTeacher">
@@ -164,17 +192,45 @@
           <label for="officerThingsSubject">Subject</label>
           <input id="officerThingsSubject" list="subjectOptions" type="text" placeholder="Select or type subject" />
 
-          <label for="officerThingsItem">Item / Reminder</label>
-          <textarea id="officerThingsItem" placeholder="Example: Bring notebook / project materials..."></textarea>
-
-          <label for="officerThingsFormat">Text Format</label>
-          <select id="officerThingsFormat">
-            <option value="left">Left</option>
-            <option value="center">Center</option>
-            <option value="right">Right</option>
-            <option value="bullets">Bullets</option>
-            <option value="numbers">Numbers</option>
-          </select>
+          <label for="officerThingsItemEditor">Item / Reminder</label>
+          <div class="richComposer" data-rich-target="officerThingsItem">
+            <div class="richToolbar" aria-label="Things to Bring formatting tools">
+              <div class="richToolbarGroup" aria-label="Text style">
+                <button type="button" data-rich-command="bold" title="Bold selected text"><b>B</b></button>
+                <button type="button" data-rich-command="italic" title="Italic selected text"><i>I</i></button>
+                <button type="button" data-rich-command="underline" title="Underline selected text"><u>U</u></button>
+              </div>
+              <div class="richToolbarGroup" aria-label="Bullets and numbering">
+                <button type="button" data-rich-list="disc" title="Bullet list">•</button>
+                <button type="button" data-rich-list="circle" title="Circle bullet">○</button>
+                <button type="button" data-rich-list="square" title="Square bullet">▪</button>
+                <button type="button" data-rich-list="decimal" title="Numbered list">1.</button>
+                <button type="button" data-rich-list="lower-alpha" title="Letter list">a.</button>
+                <button type="button" data-rich-list="upper-alpha" title="Capital letter list">A.</button>
+              </div>
+              <div class="richToolbarGroup" aria-label="Indent">
+                <button type="button" data-rich-indent="out" title="Decrease indent">⇤</button>
+                <button type="button" data-rich-indent="in" title="Increase indent">⇥</button>
+              </div>
+              <div class="richToolbarGroup" aria-label="Text color">
+                <button type="button" class="richColorChip richColorBlack" data-rich-color="#111111" title="Black text">A</button>
+                <button type="button" class="richColorChip richColorRed" data-rich-color="#d62828" title="Red text">A</button>
+                <button type="button" class="richColorChip richColorBlue" data-rich-color="#2563eb" title="Blue text">A</button>
+                <button type="button" class="richColorChip richColorGreen" data-rich-color="#0f766e" title="Green text">A</button>
+                <button type="button" class="richColorChip richColorPurple" data-rich-color="#7c3aed" title="Purple text">A</button>
+                <label class="richColorPickerLabel" title="Custom text color"><span>Color</span><input type="color" data-rich-color-picker value="#111111" aria-label="Custom text color"></label>
+              </div>
+              <div class="richToolbarGroup" aria-label="Alignment">
+                <button type="button" data-rich-align="left" title="Align left">Left</button>
+                <button type="button" data-rich-align="center" title="Align center">Center</button>
+                <button type="button" data-rich-align="right" title="Align right">Right</button>
+                <button type="button" data-rich-command="removeFormat" title="Clear selected formatting">Clear</button>
+              </div>
+            </div>
+            <div id="officerThingsItemEditor" class="richEditor" contenteditable="true" data-placeholder="Example: Bring notebook / project materials..."></div>
+            <textarea id="officerThingsItem" class="richHiddenTextarea" aria-hidden="true" tabindex="-1"></textarea>
+          </div>
+          <small class="fieldHint">Use bullets, numbering, and bold only where needed.</small>
 
           <label for="officerThingsPublish">Publish</label>
           <select id="officerThingsPublish">
@@ -326,6 +382,6 @@
   <script src="firebase-config.js?v=1"></script>
   <script src="firebase-adapter.js?v=2"></script>
   <script src="pwa.js?v=14"></script>
-  <script src="officer.js?v=manage-search-undo-1"></script>
+  <script src="officer.js?v=rich-editor-2"></script>
 </body>
 </html>

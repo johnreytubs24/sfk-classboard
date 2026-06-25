@@ -1306,3 +1306,230 @@ body.toolModalOpen {
     text-align: center;
   }
 }
+
+/* =========================================================
+   RICH TEXT MINI EDITOR - ANNOUNCEMENTS / THINGS TO BRING
+========================================================= */
+.richComposer {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.richHiddenTextarea {
+  display: none !important;
+}
+
+.richToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  border: 2px solid #111;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #fff7c7, #fff0a3);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, .14);
+}
+
+.richToolbarGroup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  padding: 5px;
+  border: 1px solid rgba(0, 0, 0, .12);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, .52);
+}
+
+.richToolbar button,
+.richColorPickerLabel {
+  width: auto;
+  min-width: 36px;
+  min-height: 34px;
+  margin: 0;
+  padding: 7px 10px;
+  border-radius: 11px;
+  border: 2px solid #111;
+  background: #fff;
+  color: #111;
+  font-size: .84rem;
+  font-weight: 950;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, .18);
+}
+
+.richToolbar button:active,
+.richColorPickerLabel:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, .18);
+}
+
+.richToolbarDivider {
+  display: none;
+}
+
+.richColorChip {
+  position: relative;
+  overflow: hidden;
+}
+
+.richColorChip::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 5px;
+  height: 4px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.richColorBlack { color: #111111 !important; }
+.richColorRed { color: #d62828 !important; }
+.richColorBlue { color: #2563eb !important; }
+.richColorGreen { color: #0f766e !important; }
+.richColorPurple { color: #7c3aed !important; }
+
+.richColorPickerLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 78px;
+}
+
+.richColorPickerLabel span {
+  font-size: .78rem;
+}
+
+.richColorPickerLabel input[type="color"] {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid #111;
+  border-radius: 7px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.richEditor {
+  width: 100%;
+  min-height: 185px;
+  max-height: 430px;
+  overflow: auto;
+  border: 2px solid #111;
+  border-radius: 18px;
+  padding: 16px;
+  background: #fff;
+  color: #111;
+  font-size: 1.04rem;
+  font-weight: 700;
+  line-height: 1.52;
+  outline: none;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.richEditor:focus {
+  box-shadow: 0 0 0 5px rgba(247, 198, 0, .24);
+}
+
+.richEditor:empty::before {
+  content: attr(data-placeholder);
+  color: #7b6b28;
+  font-weight: 750;
+  pointer-events: none;
+}
+
+.richEditor ul,
+.richEditor ol {
+  margin: .35em 0 .55em;
+  padding-left: 1.5em;
+}
+
+.richEditor li {
+  margin: .2em 0;
+}
+
+.richEditor [style*="margin-left"] {
+  display: block;
+}
+
+.editRichComposer .richEditor {
+  min-height: 210px;
+  max-height: 52vh;
+}
+
+@media (max-width: 760px), (pointer: coarse) {
+  .richComposer {
+    gap: 9px;
+  }
+
+  .richToolbar {
+    gap: 7px;
+    padding: 8px;
+    border-radius: 16px;
+  }
+
+  .richToolbarGroup {
+    gap: 4px;
+    padding: 4px;
+    border-radius: 12px;
+  }
+
+  .richToolbar button,
+  .richColorPickerLabel {
+    min-width: 33px;
+    min-height: 32px;
+    padding: 6px 8px;
+    font-size: .78rem;
+    border-radius: 10px;
+  }
+
+  .richColorPickerLabel {
+    min-width: 68px;
+  }
+
+  .richColorPickerLabel span {
+    font-size: .7rem;
+  }
+
+  .richColorPickerLabel input[type="color"] {
+    width: 22px;
+    height: 22px;
+  }
+
+  .richEditor {
+    min-height: 175px;
+    max-height: 42vh;
+    padding: 14px;
+    font-size: 1rem;
+    line-height: 1.48;
+    border-radius: 16px;
+  }
+
+  .editRichComposer .richEditor {
+    min-height: 185px;
+    max-height: 45vh;
+  }
+}
+
+.manageRichPreview {
+  display: block;
+  max-height: 140px;
+  overflow: auto;
+  line-height: 1.28;
+  text-align: left;
+}
+
+.manageRichPreview ul,
+.manageRichPreview ol {
+  margin: .2em 0 .35em;
+  padding-left: 1.25em;
+}
+
+.manageRichPreview li {
+  margin: .1em 0;
+}

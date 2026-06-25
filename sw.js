@@ -1,4 +1,4 @@
-const CACHE_NAME = "sfk-classboard-v33-current-period-fix";
+const CACHE_NAME = "sfk-classboard-v41-resume-media-on-return";
 const APP_SHELL = [
   "./",
   "./index.html",

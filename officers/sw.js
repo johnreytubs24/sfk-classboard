@@ -1,12 +1,12 @@
-const CACHE_NAME = "sfk-officers-pwa-v6-manage-search-undo";
+const CACHE_NAME = "sfk-officers-pwa-v8-rich-editor-enhanced";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
   "./sw.js",
-  "../officer.html?embedded=1&v=manage-search-undo-1",
-  "../officer.css?v=manage-search-undo-1",
-  "../officer.js?v=manage-search-undo-1",
+  "../officer.html?embedded=1&v=rich-editor-2",
+  "../officer.css?v=rich-editor-2",
+  "../officer.js?v=rich-editor-2",
   "../firebase-config.js",
   "../firebase-adapter.js",
   "../icons/icon-192.png",

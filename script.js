@@ -1357,7 +1357,9 @@ function getBringStatus(dateValue) {
     };
   }
 
-  if (diffDays <= 7) {
+  const week = getManilaWeekRangeUTC(todayUTC);
+
+  if (dueUTC <= week.endThisWeekUTC) {
     return {
       type: "this-week",
       label: `🟡 THIS WEEK • ${formatShortBringDate(dueParts)}`,
@@ -1367,11 +1369,21 @@ function getBringStatus(dateValue) {
     };
   }
 
+  if (dueUTC >= week.startNextWeekUTC && dueUTC <= week.endNextWeekUTC) {
+    return {
+      type: "next-week",
+      label: `🔵 NEXT WEEK • ${formatShortBringDate(dueParts)}`,
+      className: "status-next-week",
+      priority: 5,
+      sortValue: dueUTC
+    };
+  }
+
   return {
     type: "future",
-    label: `🟢 ${formatShortBringDate(dueParts)}`,
+    label: `🟢 FUTURE DATE • ${formatShortBringDate(dueParts)}`,
     className: "status-future",
-    priority: 5,
+    priority: 6,
     sortValue: dueUTC
   };
 }
@@ -1388,6 +1400,21 @@ function getTodayManilaParts() {
     year: Number(parts.find(part => part.type === "year")?.value || 0),
     month: Number(parts.find(part => part.type === "month")?.value || 0),
     day: Number(parts.find(part => part.type === "day")?.value || 0)
+  };
+}
+
+function getManilaWeekRangeUTC(todayUTC) {
+  const dayMs = 86400000;
+  const today = new Date(todayUTC);
+  const dayOfWeek = today.getUTCDay(); // 0 Sunday, 1 Monday, ... 6 Saturday
+  const daysSinceMonday = (dayOfWeek + 6) % 7;
+  const startThisWeekUTC = todayUTC - (daysSinceMonday * dayMs);
+
+  return {
+    startThisWeekUTC,
+    endThisWeekUTC: startThisWeekUTC + (6 * dayMs),
+    startNextWeekUTC: startThisWeekUTC + (7 * dayMs),
+    endNextWeekUTC: startThisWeekUTC + (13 * dayMs)
   };
 }
 
@@ -1488,8 +1515,20 @@ function escapeHTML(value) {
 }
 
 function formatBoardText(value, defaultAlign = "center") {
-  const rawLines = String(value || "")
-    .replace(/\r/g, "")
+  const rawValue = String(value || "").replace(/\r/g, "").trim();
+
+  if (!rawValue) {
+    return "";
+  }
+
+  if (isRichBoardText(rawValue)) {
+    const richHtml = extractRichBoardHtml(rawValue);
+    const safeHtml = sanitizeBoardRichHtml(richHtml);
+    if (!safeHtml) return "";
+    return `<div class="formattedText richBoardText">${safeHtml}</div>`;
+  }
+
+  const rawLines = rawValue
     .split("\n")
     .map(line => line.trim())
     .filter(Boolean);
@@ -1526,9 +1565,128 @@ function formatBoardText(value, defaultAlign = "center") {
   return `<div class="formattedText ${alignClass}">${safeLines.join("<br>")}</div>`;
 }
 
-function stripBoardTextFormatTag(value) {
+function isRichBoardText(value) {
+  return /^\[rich\]\s*\n/i.test(String(value || "").replace(/\r/g, ""));
+}
+
+function extractRichBoardHtml(value) {
   return String(value || "")
     .replace(/\r/g, "")
+    .replace(/^\[rich\]\s*\n?/i, "")
+    .trim();
+}
+
+function sanitizeBoardRichHtml(html) {
+  const template = document.createElement("template");
+  template.innerHTML = String(html || "");
+  const cleanFragment = sanitizeBoardRichNode(template.content);
+  const wrapper = document.createElement("div");
+  wrapper.appendChild(cleanFragment);
+  return wrapper.innerHTML.trim();
+}
+
+function sanitizeBoardRichNode(node) {
+  const fragment = document.createDocumentFragment();
+  const allowedTags = ["b", "strong", "i", "em", "u", "br", "div", "p", "ul", "ol", "li", "span", "font"];
+  const allowedAlignments = ["left", "center", "right"];
+  const allowedListStyles = ["disc", "circle", "square", "decimal", "lower-alpha", "upper-alpha", "lower-roman", "upper-roman"];
+  const maxIndentEm = 7.5;
+
+  node.childNodes.forEach(child => {
+    if (child.nodeType === Node.TEXT_NODE) {
+      fragment.appendChild(document.createTextNode(child.textContent || ""));
+      return;
+    }
+
+    if (child.nodeType !== Node.ELEMENT_NODE) return;
+
+    const tag = child.tagName.toLowerCase();
+    if (!allowedTags.includes(tag)) {
+      fragment.appendChild(sanitizeBoardRichNode(child));
+      return;
+    }
+
+    const cleanTag = tag === "font" ? "span" : tag;
+    const clean = document.createElement(cleanTag);
+    const styleParts = [];
+    const textAlign = String(child.style?.textAlign || "").toLowerCase();
+    const listStyleType = String(child.style?.listStyleType || "").toLowerCase();
+    const fontWeight = String(child.style?.fontWeight || "").toLowerCase();
+    const fontStyle = String(child.style?.fontStyle || "").toLowerCase();
+    const textDecoration = String(child.style?.textDecoration || "").toLowerCase();
+    const color = normalizeBoardRichColor(child.getAttribute("color") || child.style?.color || "");
+    const indent = normalizeBoardRichIndent(child.style?.marginLeft || "", maxIndentEm);
+
+    if (allowedAlignments.includes(textAlign)) styleParts.push(`text-align:${textAlign}`);
+    if ((cleanTag === "ul" || cleanTag === "ol") && allowedListStyles.includes(listStyleType)) {
+      styleParts.push(`list-style-type:${listStyleType}`);
+    }
+    if (["div", "p", "li", "ul", "ol"].includes(cleanTag) && indent) styleParts.push(`margin-left:${indent}`);
+    if (cleanTag === "span" && (fontWeight === "bold" || Number(fontWeight) >= 600)) styleParts.push("font-weight:700");
+    if (cleanTag === "span" && fontStyle === "italic") styleParts.push("font-style:italic");
+    if (cleanTag === "span" && textDecoration.includes("underline")) styleParts.push("text-decoration:underline");
+    if (cleanTag === "span" && color) styleParts.push(`color:${color}`);
+    if (styleParts.length) clean.setAttribute("style", styleParts.join(";"));
+
+    clean.appendChild(sanitizeBoardRichNode(child));
+    fragment.appendChild(clean);
+  });
+
+  return fragment;
+}
+
+
+function normalizeBoardRichColor(value) {
+  const raw = String(value || "").trim().toLowerCase();
+
+  const shortHex = raw.match(/^#([0-9a-f]{3})$/i);
+  if (shortHex) {
+    return `#${shortHex[1].split("").map(char => char + char).join("")}`.toLowerCase();
+  }
+
+  if (/^#[0-9a-f]{6}$/i.test(raw)) return raw.toLowerCase();
+
+  const rgb = raw.match(/^rgba?\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})(?:,\s*(?:0|1|0?\.\d+))?\)$/i);
+  if (rgb) {
+    const parts = rgb.slice(1, 4).map(part => Math.max(0, Math.min(255, Number(part) || 0)));
+    return `#${parts.map(part => part.toString(16).padStart(2, "0")).join("")}`;
+  }
+
+  return "";
+}
+
+function normalizeBoardRichIndent(value, maxIndentEm = 7.5) {
+  const raw = String(value || "").trim().toLowerCase();
+  if (!raw) return "";
+
+  let parsed = 0;
+  if (raw.endsWith("em")) {
+    parsed = Number.parseFloat(raw) || 0;
+  } else if (raw.endsWith("px")) {
+    parsed = (Number.parseFloat(raw) || 0) / 16;
+  } else {
+    parsed = Number.parseFloat(raw) || 0;
+  }
+
+  if (!Number.isFinite(parsed) || parsed <= 0) return "";
+  const rounded = Math.round(Math.min(maxIndentEm, parsed) * 100) / 100;
+  return `${String(rounded).replace(/\.00$/, "").replace(/(\.\d)0$/, "$1")}em`;
+}
+
+function stripHtmlToPlainText(html) {
+  const template = document.createElement("template");
+  template.innerHTML = sanitizeBoardRichHtml(html);
+  return String(template.content.textContent || "").replace(/\s+/g, " ").trim();
+}
+
+function stripBoardTextFormatTag(value) {
+  const raw = String(value || "").replace(/\r/g, "").trim();
+
+  if (isRichBoardText(raw)) {
+    return stripHtmlToPlainText(extractRichBoardHtml(raw));
+  }
+
+  return raw
     .replace(/^\[(left|center|right|bullets|numbers)\]\s*\n?/i, "")
     .trim();
 }
@@ -1938,15 +2096,39 @@ function startLiveClock() {
 
 function updateClock() {
   const now = new Date();
+  const timeEl = document.getElementById("timeText");
+  if (!timeEl) return;
 
-  document.getElementById("timeText").textContent =
-    now.toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: true,
-      timeZone: "Asia/Manila"
-    });
+  const isPhoneHeader = window.matchMedia && window.matchMedia("(max-width: 700px)").matches;
+
+  const formatterOptions = {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+    timeZone: "Asia/Manila"
+  };
+
+  if (!isPhoneHeader) {
+    // Desktop/tablet should keep the original one-line browser text sizing.
+    timeEl.textContent = new Intl.DateTimeFormat("en-US", formatterOptions).format(now);
+    timeEl.classList.remove("phoneCompactTime");
+    return;
+  }
+
+  const parts = new Intl.DateTimeFormat("en-US", formatterOptions).formatToParts(now);
+
+  const getPart = (type) => parts.find((part) => part.type === type)?.value || "";
+  const hour = getPart("hour") || "--";
+  const minute = getPart("minute") || "--";
+  const second = getPart("second") || "--";
+  const dayPeriod = getPart("dayPeriod") || "";
+
+  timeEl.innerHTML = `
+    <span class="timeMain">${hour}:${minute}</span><span class="timeSeconds">:${second}</span><span class="timePeriod">${dayPeriod}</span>
+  `.trim();
+
+  timeEl.classList.add("phoneCompactTime");
 }
 
 function startAutoScroll(id) {

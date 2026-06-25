@@ -1414,6 +1414,12 @@ ol.formattedText li {
   border-color: rgba(128, 101, 0, .45);
 }
 
+.status-next-week {
+  background: rgba(0, 122, 255, .18);
+  color: #0057b8;
+  border-color: rgba(0, 87, 184, .42);
+}
+
 .status-future {
   background: rgba(48, 209, 88, .22);
   color: #157a32;
@@ -5269,4 +5275,190 @@ ol.formattedText li {
     padding: 9px 14px;
     font-size: .9rem;
   }
+}
+
+
+/* Phone time fix: keep seconds visible, but make seconds/AM-PM smaller so 10/12 PM fits */
+.timeBox h2 {
+  font-variant-numeric: tabular-nums;
+}
+
+.timeBox .timeMain,
+.timeBox .timeSeconds,
+.timeBox .timePeriod {
+  display: inline-block;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.timeBox .timeSeconds {
+  font-size: .72em;
+  margin-left: .03em;
+  opacity: .96;
+}
+
+.timeBox .timePeriod {
+  font-size: .72em;
+  margin-left: .16em;
+  letter-spacing: -0.02em;
+}
+
+@media (max-width: 700px) {
+  .timeBox {
+    min-width: 0 !important;
+    width: clamp(116px, 31vw, 132px) !important;
+    max-width: 132px !important;
+    padding: 5px 6px !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+
+  .timeBox h2 {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    font-size: clamp(.98rem, 4.25vw, 1.17rem) !important;
+    letter-spacing: -0.04em !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: clip !important;
+    font-variant-numeric: tabular-nums !important;
+  }
+
+  .timeBox .timeSeconds {
+    font-size: .58em !important;
+    margin-left: .01em !important;
+    letter-spacing: -0.045em !important;
+    vertical-align: baseline;
+  }
+
+  .timeBox .timePeriod {
+    font-size: .58em !important;
+    margin-left: .12em !important;
+    letter-spacing: -0.035em !important;
+    vertical-align: baseline;
+  }
+
+  .timeBox p {
+    width: 100% !important;
+    font-size: clamp(.46rem, 2vw, .56rem) !important;
+    line-height: 1.05 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .topbar {
+    grid-template-columns: minmax(0, 1fr) 112px !important;
+  }
+
+  .timeBox {
+    width: 112px !important;
+    max-width: 112px !important;
+  }
+
+  .timeBox h2 {
+    font-size: .95rem !important;
+    letter-spacing: -0.055em !important;
+  }
+
+  .timeBox .timeSeconds,
+  .timeBox .timePeriod {
+    font-size: .54em !important;
+  }
+}
+
+
+/* Phone clock v37: only seconds are small; AM/PM stays same size as hour/minute. Desktop/tablet are not affected because script outputs plain text there. */
+@media (max-width: 700px) {
+  .timeBox h2.phoneCompactTime {
+    font-variant-numeric: tabular-nums !important;
+  }
+
+  .timeBox h2.phoneCompactTime .timeMain,
+  .timeBox h2.phoneCompactTime .timePeriod {
+    display: inline-block !important;
+    font-size: 1em !important;
+    line-height: 1 !important;
+    vertical-align: baseline !important;
+    white-space: nowrap !important;
+  }
+
+  .timeBox h2.phoneCompactTime .timeSeconds {
+    display: inline-block !important;
+    font-size: .58em !important;
+    line-height: 1 !important;
+    margin-left: .015em !important;
+    letter-spacing: -0.04em !important;
+    vertical-align: baseline !important;
+    white-space: nowrap !important;
+  }
+
+  .timeBox h2.phoneCompactTime .timePeriod {
+    margin-left: .13em !important;
+    letter-spacing: -0.035em !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .timeBox h2.phoneCompactTime .timePeriod {
+    font-size: 1em !important;
+  }
+
+  .timeBox h2.phoneCompactTime .timeSeconds {
+    font-size: .54em !important;
+  }
+}
+
+/* =========================================================
+   RICH TEXT DISPLAY - ANNOUNCEMENTS / THINGS TO BRING
+========================================================= */
+.richBoardText {
+  text-align: inherit;
+}
+
+.richBoardText p,
+.richBoardText div {
+  margin: 0 0 .34em;
+}
+
+.richBoardText p:last-child,
+.richBoardText div:last-child {
+  margin-bottom: 0;
+}
+
+.richBoardText ul,
+.richBoardText ol {
+  width: fit-content;
+  max-width: 100%;
+  margin: .28em auto .38em;
+  padding-left: 1.35em;
+  text-align: left;
+  list-style-position: outside;
+}
+
+.richBoardText li {
+  margin: .14em 0;
+  padding-left: .06em;
+}
+
+.richBoardText b,
+.richBoardText strong {
+  font-weight: 950;
+}
+
+.richBoardText i,
+.richBoardText em {
+  font-style: italic;
+}
+
+.richBoardText u {
+  text-underline-offset: .12em;
+}
+
+.thing-detail .richBoardText ul,
+.thing-detail .richBoardText ol {
+  margin-left: 0;
+  margin-right: 0;
 }
