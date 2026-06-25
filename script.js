@@ -663,16 +663,18 @@ function renderAnnouncements(items) {
         <div class="announcement-main-text">
           ${formattedAnnouncement}
         </div>
+      </div>
 
+      <div class="announcement-bottom-stack">
         ${metadataMarkup}
 
         ${attachmentMarkup}
-      </div>
 
-      <div class="announcement-controls">
-        <button class="announcement-btn prev-btn" onclick="previousAnnouncement()">← Previous</button>
-        ${renderAnnouncementHeartButton(item)}
-        <button class="announcement-btn next-btn" onclick="nextAnnouncement()">Next →</button>
+        <div class="announcement-controls">
+          <button class="announcement-btn prev-btn" onclick="previousAnnouncement()">← Previous</button>
+          ${renderAnnouncementHeartButton(item)}
+          <button class="announcement-btn next-btn" onclick="nextAnnouncement()">Next →</button>
+        </div>
       </div>
 
     </div>
@@ -771,11 +773,13 @@ function getAnnouncementAvailableTextHeight(center, text) {
 }
 
 function announcementContentOverflows(card, center, text, availableTextHeight) {
-  return (
-    text.scrollHeight > availableTextHeight + 3 ||
-    center.scrollHeight > center.clientHeight + 3 ||
-    card.scrollHeight > card.clientHeight + 3
-  );
+  if (!center || !text) return false;
+
+  // Only the text slot is allowed to shrink/scroll.
+  // The deadline/teacher row and navigation buttons live in a fixed bottom stack,
+  // so they must not be used as part of the text-fit calculation.
+  const slotHeight = availableTextHeight || center.clientHeight || 0;
+  return text.scrollHeight > slotHeight + 3 || center.scrollHeight > center.clientHeight + 3;
 }
 
 function estimateAnnouncementVisualUnits(text) {

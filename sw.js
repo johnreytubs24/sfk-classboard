@@ -1,4 +1,4 @@
-const CACHE_NAME = "sfk-classboard-v45-smart-announcement-fit";
+const CACHE_NAME = "sfk-classboard-v46-announcement-stable-slots";
 const APP_SHELL = [
   "./",
   "./index.html",
