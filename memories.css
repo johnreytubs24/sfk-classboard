@@ -1274,12 +1274,60 @@ textarea {
   line-height: 1.4;
 }
 
+
+.addMusicButton {
+  width: 100%;
+  min-height: 52px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 4px 0 14px;
+  border: 1px dashed #b89a1d;
+  border-radius: 8px;
+  background: #fffdf2;
+  color: var(--ink);
+  font-weight: 1000;
+  cursor: pointer;
+  transition: transform .16s ease, background .16s ease, border-color .16s ease;
+}
+
+.addMusicButton:hover {
+  background: #fff6c8;
+  border-color: #7d6500;
+}
+
+.addMusicButton:active {
+  transform: scale(.99);
+}
+
+.addMusicButton span {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--gold);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.addMusicButton.isOpen {
+  border-style: solid;
+  background: #fff4bd;
+}
+
 .musicFields {
   padding: 14px;
-  margin: 4px 0 16px;
+  margin: 0 0 16px;
   border: 1px solid #d2bd56;
   border-radius: 8px;
   background: #fff9d9;
+}
+
+.musicFields[hidden] {
+  display: none !important;
 }
 
 .musicFieldsTitle {
@@ -1975,4 +2023,36 @@ textarea {
     right: 14px;
     bottom: 24px;
   }
+}
+
+/* sfk add music mobile tweak */
+
+@media (max-width: 720px) {
+  .addMusicButton {
+    min-height: 46px;
+    margin-bottom: 12px;
+    font-size: .92rem;
+  }
+
+  .addMusicButton span {
+    width: 28px;
+    height: 28px;
+  }
+
+  .musicFields {
+    padding: 12px;
+  }
+}
+
+
+/* TEMPORARY HEART REMOVAL: Memories */
+.heartButton,
+.heartCount {
+  display: none !important;
+}
+.postActionsNoHeart {
+  padding-top: 8px !important;
+}
+.postDetailsNoHeart {
+  padding-top: 2px !important;
 }

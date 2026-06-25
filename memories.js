@@ -55,9 +55,10 @@ function bindMemoryEvents() {
   document.getElementById("changeRoleButton")?.addEventListener("click", resetMemoryAuth);
   document.getElementById("memoryFiles")?.addEventListener("change", handleMemoryFiles);
   document.getElementById("mediaPreview")?.addEventListener("click", handleMediaPreviewAction);
+  document.getElementById("toggleMusicFieldsButton")?.addEventListener("click", () => toggleMusicFields());
   document.getElementById("testMusicLinkButton")?.addEventListener("click", testMusicLink);
   document.getElementById("memoryForm")?.addEventListener("submit", submitMemoryPost);
-  ["memoryTitle", "memoryDate", "memoryPostedBy", "memoryCaption", "memoryVideoUrl", "memoryMusicUrl"].forEach((id) => {
+  ["memoryTitle", "memoryDate", "memoryPostedBy", "memoryCaption", "memoryVideoUrl", "memoryMusicUrl", "memoryMusicTitle"].forEach((id) => {
     document.getElementById(id)?.addEventListener("input", renderComposePreview);
   });
   const feed = document.getElementById("memoryFeed");
@@ -102,6 +103,7 @@ async function loadMemories() {
   try {
     const rows = await loadMemoriesFromFirebaseFirst();
     memoryState.posts = rows.map(normalizeMemoryPost);
+    // Hearts temporarily removed from Memories.
     localStorage.setItem(MEMORY_CACHE_KEY, JSON.stringify(memoryState.posts));
     markLoadedMemoriesSeen(memoryState.posts);
     renderMemories();
@@ -225,9 +227,22 @@ function renderCachedMemories() {
 }
 
 function readMemoryHeartCount(raw) {
-  const value = raw?.HeartCount ?? raw?.heartCount ?? raw?.Hearts ?? raw?.hearts ?? raw?.Count ?? raw?.count ?? raw?.notedCount ?? raw?.NotedCount ?? 0;
-  const count = Number(value);
-  return Number.isFinite(count) ? Math.max(0, count) : 0;
+  const values = [
+    raw?.HeartCount,
+    raw?.heartCount,
+    raw?.Hearts,
+    raw?.hearts,
+    raw?.Count,
+    raw?.count,
+    raw?.notedCount,
+    raw?.NotedCount,
+    raw?.AcknowledgeCount,
+    raw?.acknowledgeCount
+  ]
+    .map(value => Number(value))
+    .filter(value => Number.isFinite(value) && value >= 0);
+
+  return values.length ? Math.max(...values) : 0;
 }
 
 function normalizeMemoryPost(raw) {
@@ -260,6 +275,7 @@ function normalizeMemoryPost(raw) {
     postedBy: String(raw.PostedBy || "SFK").trim(),
     role: String(raw.Role || "Officer").trim(),
     heartCount: readMemoryHeartCount(raw),
+    heartedDevices: normalizeHeartedDevices(raw.HeartedDevices || raw.heartedDevices),
     createdAt: String(raw.CreatedAt || "").trim(),
     videoUrl: String(raw.VideoURL || raw.videoUrl || "").trim(),
     media,
@@ -268,6 +284,10 @@ function normalizeMemoryPost(raw) {
 }
 
 function normalizePostMusic(raw) {
+  const customMusicTitle = String(
+    raw.MusicTitle || raw.musicTitle || raw.MusicDisplayTitle || raw.musicDisplayTitle || raw.MusicName || raw.musicName || ""
+  ).trim();
+
   if (raw.music && typeof raw.music === "object") {
     if (raw.music.kind === "youtube-audio") return null;
     const fileId = String(raw.music.fileId || getDriveFileId(raw.music.url) || getDriveFileId(raw.music.previewUrl) || "").trim();
@@ -283,7 +303,8 @@ function normalizePostMusic(raw) {
         ? (getDriveAudioStreamUrl(fileId) || safeHttpUrl(raw.music.fallbackUrl))
         : safeHttpUrl(raw.music.fallbackUrl),
       previewUrl: safeHttpUrl(raw.music.previewUrl),
-      name: getMusicDisplayName(raw.music),
+      name: customMusicTitle || getMusicDisplayName(raw.music),
+      customTitle: customMusicTitle,
       muted: true,
       started: false
     };
@@ -299,7 +320,8 @@ function normalizePostMusic(raw) {
   if (uploaded && uploaded.fileId) {
     return {
       kind: "drive-audio",
-      name: String(uploaded.name || "Background music"),
+      name: customMusicTitle || String(uploaded.name || "Background music"),
+      customTitle: customMusicTitle,
       fileId: String(uploaded.fileId),
       url: getDriveStreamUrl(uploaded.fileId) || safeHttpUrl(uploaded.downloadUrl) || getDriveAudioStreamUrl(uploaded.fileId),
       fallbackUrl: getDriveAudioStreamUrl(uploaded.fileId),
@@ -317,7 +339,8 @@ function normalizePostMusic(raw) {
   if (driveId) {
     return {
       kind: "drive-audio",
-      name: deriveMusicNameFromUrl(url) || "Google Drive music",
+      name: customMusicTitle || deriveMusicNameFromUrl(url) || "Google Drive music",
+      customTitle: customMusicTitle,
       fileId: driveId,
       url: getDriveStreamUrl(driveId) || safeHttpUrl(raw.MusicDownloadURL || raw.musicDownloadUrl) || getDriveAudioStreamUrl(driveId),
       fallbackUrl: getDriveAudioStreamUrl(driveId),
@@ -327,11 +350,11 @@ function normalizePostMusic(raw) {
     };
   }
 
-  return { kind: "direct-audio", name: deriveMusicNameFromUrl(url) || "Background music", url, muted: true, started: false };
+  return { kind: "direct-audio", name: customMusicTitle || deriveMusicNameFromUrl(url) || "Background music", customTitle: customMusicTitle, url, muted: true, started: false };
 }
 
 function getMusicDisplayName(music) {
-  const explicitName = String(music?.name || music?.title || "").trim();
+  const explicitName = String(music?.customTitle || music?.displayTitle || music?.MusicTitle || music?.name || music?.title || "").trim();
   if (explicitName && !/^background music$/i.test(explicitName)) return explicitName;
 
   return deriveMusicNameFromUrl(
@@ -684,7 +707,7 @@ function getFilteredPosts() {
 
 function renderMemoryPost(post) {
   const currentIndex = Math.min(memoryState.carousel.get(post.id) || 0, Math.max(0, post.media.length - 1));
-  const hearted = getHeartedMemoryIds().includes(post.id);
+  // Hearts temporarily removed from Memories.
   const avatar = escapeHtml(getInitials(post.postedBy));
   const menu = memoryState.auth
     ? `<button class="postMenuButton" type="button" data-action="manage" data-id="${escapeAttr(post.id)}" aria-label="Manage memory">&#8943;</button>`
@@ -703,13 +726,11 @@ function renderMemoryPost(post) {
 
       ${renderPostMedia(post, currentIndex)}
 
-      <div class="postActions">
-        <button class="heartButton ${hearted ? "hearted" : ""}" type="button" data-action="heart" data-id="${escapeAttr(post.id)}" aria-label="Heart this memory">${hearted ? "&#9829;" : "&#9825;"}</button>
+      <div class="postActions postActionsNoHeart">
         <button class="shareButton" type="button" data-action="share" data-id="${escapeAttr(post.id)}" aria-label="Share this memory">&#8599;</button>
       </div>
 
-      <div class="postDetails">
-        <strong class="heartCount">${formatHeartCount(post.heartCount)}</strong>
+      <div class="postDetails postDetailsNoHeart">
         <p class="postCaption"><strong>${escapeHtml(post.title)}</strong>${post.caption ? ` ${escapeHtml(post.caption)}` : ""}</p>
         <time class="postDate">${escapeHtml(post.date || post.createdAt || "SFK Memory")}</time>
       </div>
@@ -851,7 +872,7 @@ function handleFeedClick(event) {
   if (action === "heart") {
     event.preventDefault();
     event.stopPropagation();
-    return heartMemory(id);
+    return false;
   }
   if (action === "share") return shareMemory(id);
   if (action === "manage") return openManageActions(id);
@@ -985,7 +1006,7 @@ async function preparePostMusic(post, article) {
     try {
       const proxyAudio = await fetchDriveAudioObjectUrl(music.fileId);
       music.objectUrl = proxyAudio.objectUrl;
-      if (proxyAudio.name) music.name = proxyAudio.name;
+      if (proxyAudio.name && !music.customTitle) music.name = proxyAudio.name;
       audio.preload = "auto";
       audio.src = music.objectUrl;
       audio.load();
@@ -1722,91 +1743,65 @@ function getViewerSwipeDirection(start, endTouch) {
 }
 
 async function heartMemory(id) {
-  if (!id) return;
-
-  const post = memoryState.posts.find((item) => item.id === id);
-  const previousCount = post ? readMemoryHeartCount(post) : 0;
-  let wasHearted = getHeartedMemoryIds().includes(id);
-
-  // Repair stale local hearts from earlier failed saves: if the server says zero
-  // hearts but this device still thinks it hearted the post, the next tap should
-  // count as a fresh heart instead of sending another -1.
-  if (wasHearted && previousCount === 0) {
-    unsetHeartedMemory(id);
-    wasHearted = false;
-  }
-
-  const delta = wasHearted ? -1 : 1;
-  if (wasHearted) {
-    unsetHeartedMemory(id);
-  } else {
-    setHeartedMemory(id);
-  }
-
-  if (post) {
-    post.heartCount = Math.max(0, previousCount + delta);
-    saveMemoryCacheSnapshot();
-  }
-  updateMemoryHeartDisplay(id);
-
-  try {
-    const result = await saveMemoryHeartToDatabase(id, delta);
-    if (!result || result.success !== true) {
-      throw new Error((result && result.message) || "Heart was not saved.");
-    }
-
-    if (post && result.count !== undefined && result.count !== null) {
-      const serverCount = Number(result.count);
-      if (Number.isFinite(serverCount)) {
-        post.heartCount = Math.max(0, serverCount);
-      }
-    }
-    saveMemoryCacheSnapshot();
-    updateMemoryHeartDisplay(id);
-  } catch (error) {
-    if (wasHearted) {
-      setHeartedMemory(id);
-    } else {
-      unsetHeartedMemory(id);
-    }
-    if (post) {
-      post.heartCount = previousCount;
-      saveMemoryCacheSnapshot();
-    }
-    updateMemoryHeartDisplay(id);
-    console.warn("Memory heart sync failed:", error);
-    showMemoryToast("Heart update failed. Please try again.");
-  }
+  // Hearts are temporarily disabled in Memories.
+  return false;
 }
 
-async function saveMemoryHeartToDatabase(id, delta) {
+async function saveMemoryHeartToDatabase(id, delta, hearted) {
   const db = getClassBoardFirestore();
   if (db) {
-    return saveMemoryHeartDirectToFirebase(id, delta);
+    return saveMemoryHeartDirectToFirebase(id, delta, hearted);
   }
 
-  return postMemoryApi("memoryHeart", { MemoryID: id, memoryId: id, id, delta });
+  return postMemoryApi("memoryHeart", { MemoryID: id, memoryId: id, id, delta, hearted, deviceId: getClassBoardHeartDeviceId() });
 }
 
-async function saveMemoryHeartDirectToFirebase(id, delta) {
+async function saveMemoryHeartDirectToFirebase(id, delta, hearted) {
   const db = getClassBoardFirestore();
   if (!db) throw new Error("Firebase is not ready.");
 
   const ref = await resolveMemoryDocumentRef(db, id);
   if (!ref) throw new Error("Memory record was not found in Firebase.");
 
+  const deviceId = getClassBoardHeartDeviceId();
+  const requestedHearted = typeof hearted === "boolean" ? hearted : null;
+
   let nextCount = 0;
+  let serverHearted = false;
+
   await db.runTransaction(async (transaction) => {
     const doc = await transaction.get(ref);
     if (!doc.exists) throw new Error("Memory record was not found in Firebase.");
 
-    const current = readMemoryHeartCount(doc.data() || {});
-    nextCount = Math.max(0, current + (Number(delta) < 0 ? -1 : 1));
+    const data = doc.data() || {};
+    const currentCount = readMemoryHeartCount(data);
+    const heartedDevices = normalizeHeartedDevices(data.HeartedDevices || data.heartedDevices);
+    const currentlyHearted = Boolean(heartedDevices[deviceId]);
+    const nextHearted = requestedHearted === null ? !currentlyHearted : requestedHearted;
+
+    nextCount = currentCount;
+    if (nextHearted && !currentlyHearted) {
+      heartedDevices[deviceId] = true;
+      serverHearted = true;
+      nextCount = currentCount + 1;
+    } else if (!nextHearted && currentlyHearted) {
+      delete heartedDevices[deviceId];
+      serverHearted = false;
+      nextCount = Math.max(0, currentCount - 1);
+    } else {
+      serverHearted = currentlyHearted;
+      nextCount = currentCount;
+    }
+
     const update = {
       HeartCount: nextCount,
       heartCount: nextCount,
       Hearts: nextCount,
-      hearts: nextCount
+      hearts: nextCount,
+      NotedCount: nextCount,
+      notedCount: nextCount,
+      HeartedDevices: heartedDevices,
+      heartedDevices
     };
     if (window.firebase?.firestore?.FieldValue) {
       update.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
@@ -1814,7 +1809,7 @@ async function saveMemoryHeartDirectToFirebase(id, delta) {
     transaction.set(ref, update, { merge: true });
   });
 
-  return { success: true, count: nextCount };
+  return { success: true, count: nextCount, hearted: serverHearted };
 }
 
 async function resolveMemoryDocumentRef(db, id) {
@@ -1849,7 +1844,7 @@ function updateMemoryHeartDisplay(id) {
     .find((item) => item.dataset.postId === id);
   if (!post || !article) return;
 
-  const hearted = getHeartedMemoryIds().includes(id);
+  const hearted = readMemoryHeartCount(post) > 0 && getHeartedMemoryIds().includes(id);
   const button = article.querySelector('.heartButton[data-action="heart"]');
   const count = article.querySelector(".heartCount");
 
@@ -1865,12 +1860,61 @@ function updateMemoryHeartDisplay(id) {
   updateMemoryStats();
 }
 
+function syncMemoryHeartStatesFromServer(posts) {
+  const deviceId = getClassBoardHeartDeviceId();
+  (posts || []).forEach(post => {
+    const id = String(post?.id || "").trim();
+    if (!id) return;
+
+    const keys = Object.keys(post.heartedDevices || {});
+    if (keys.length && post.heartedDevices[deviceId]) setHeartedMemory(id);
+    else if (keys.length || readMemoryHeartCount(post) === 0) unsetHeartedMemory(id);
+  });
+}
+
 function saveMemoryCacheSnapshot() {
   try {
     localStorage.setItem(MEMORY_CACHE_KEY, JSON.stringify(memoryState.posts));
   } catch (error) {
     console.warn("Unable to update memories cache:", error);
   }
+}
+
+
+const HEART_DEVICE_ID_KEY = "sfkClassBoardHeartDeviceId.v1";
+
+function getClassBoardHeartDeviceId() {
+  try {
+    const existing = localStorage.getItem(HEART_DEVICE_ID_KEY);
+    if (existing) return existing;
+    const random = window.crypto && crypto.getRandomValues
+      ? Array.from(crypto.getRandomValues(new Uint8Array(12))).map(value => value.toString(16).padStart(2, "0")).join("")
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const id = `device-${random}`;
+    localStorage.setItem(HEART_DEVICE_ID_KEY, id);
+    return id;
+  } catch (error) {
+    return "device-fallback";
+  }
+}
+
+function normalizeHeartedDevices(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key, isHearted]) => key && Boolean(isHearted))
+      .map(([key]) => [String(key), true])
+  );
+}
+
+function makeHeartDocId(targetId, deviceId) {
+  return `${safeHeartDocPart(targetId)}__${safeHeartDocPart(deviceId)}`.slice(0, 1400);
+}
+
+function safeHeartDocPart(value) {
+  return encodeURIComponent(String(value || ""))
+    .replace(/\./g, "%2E")
+    .replace(/%/g, "_");
 }
 
 function getHeartedMemoryIds() {
@@ -2101,6 +2145,36 @@ function resetMemoryAuth() {
   renderMemories();
 }
 
+function setMusicFieldsOpen(open) {
+  const panel = document.getElementById("musicFieldsPanel");
+  const button = document.getElementById("toggleMusicFieldsButton");
+  if (!panel || !button) return;
+
+  panel.hidden = !open;
+  button.setAttribute("aria-expanded", open ? "true" : "false");
+  button.classList.toggle("isOpen", Boolean(open));
+  button.innerHTML = open
+    ? `<span>&#9835;</span> Hide background music`
+    : `<span>&#9835;</span> Add background music`;
+
+  if (open) {
+    window.setTimeout(() => document.getElementById("memoryMusicUrl")?.focus(), 80);
+  }
+}
+
+function toggleMusicFields(forceOpen) {
+  const panel = document.getElementById("musicFieldsPanel");
+  const next = typeof forceOpen === "boolean" ? forceOpen : Boolean(panel?.hidden);
+  setMusicFieldsOpen(next);
+}
+
+function hasMusicDraft() {
+  return Boolean(
+    document.getElementById("memoryMusicUrl")?.value.trim() ||
+    document.getElementById("memoryMusicTitle")?.value.trim()
+  );
+}
+
 function restoreMemoryAuth() {
   try {
     const saved = JSON.parse(sessionStorage.getItem(MEMORY_AUTH_SESSION_KEY) || "null");
@@ -2216,6 +2290,7 @@ function renderComposePreview() {
   const date = document.getElementById("memoryDate")?.value || "";
   const videoUrl = document.getElementById("memoryVideoUrl")?.value.trim() || "";
   const musicUrl = document.getElementById("memoryMusicUrl")?.value.trim() || "";
+  const musicTitle = document.getElementById("memoryMusicTitle")?.value.trim() || "";
   const firstFile = memoryState.selectedFiles[0] || null;
 
   let mediaPreview = `<div class="composePreviewMedia textOnly"><span>Text-only memory</span></div>`;
@@ -2228,7 +2303,7 @@ function renderComposePreview() {
     mediaPreview = `<div class="composePreviewMedia linked"><span>Linked video</span></div>`;
   }
 
-  const musicLabel = musicUrl ? (deriveMusicNameFromUrl(musicUrl) || "Background music link") : "";
+  const musicLabel = musicUrl ? (musicTitle || deriveMusicNameFromUrl(musicUrl) || "Background music link") : "";
   const previewChips = [
     memoryState.selectedFiles.length ? `${memoryState.selectedFiles.length} media file${memoryState.selectedFiles.length > 1 ? "s" : ""}` : "",
     videoUrl ? "Linked video" : "",
@@ -2282,6 +2357,7 @@ async function submitMemoryPost(event) {
 
   const videoUrl = document.getElementById("memoryVideoUrl").value.trim();
   const musicUrl = document.getElementById("memoryMusicUrl").value.trim();
+  const musicTitle = document.getElementById("memoryMusicTitle").value.trim();
   const title = document.getElementById("memoryTitle").value.trim();
   const caption = document.getElementById("memoryCaption").value.trim();
   const message = document.getElementById("postMessage");
@@ -2331,7 +2407,8 @@ async function submitMemoryPost(event) {
       Caption: caption,
       VideoURL: videoUrl,
       MediaFiles: mediaFiles,
-      MusicURL: musicUrl
+      MusicURL: musicUrl,
+      MusicTitle: musicTitle
     };
 
     const result = await postMemoryApi("memoryCreate", payload);
@@ -2427,6 +2504,12 @@ function resetMemoryForm() {
   memoryState.coverIndex = 0;
   document.getElementById("mediaPreview").innerHTML = "";
   document.getElementById("postMessage").textContent = "";
+  const musicTestMessage = document.getElementById("musicTestMessage");
+  if (musicTestMessage) {
+    musicTestMessage.textContent = "Paste a direct audio link, then test before posting.";
+    musicTestMessage.className = "musicTestMessage";
+  }
+  setMusicFieldsOpen(false);
   setDefaultMemoryDate();
   restoreRememberedPostedBy();
   renderComposePreview();
@@ -2492,6 +2575,7 @@ function openManageActions(id) {
 
 function renderEditMemoryForm(layer, post) {
   const videoUrl = post.videoUrl || "";
+  const musicTitle = getMusicDisplayName(post.music);
 
   layer.innerHTML = `
     <div class="modalBackdrop" data-manage-close></div>
@@ -2512,6 +2596,10 @@ function renderEditMemoryForm(layer, post) {
       <label>Video link
         <input id="editMemoryVideoUrl" type="url" value="${escapeAttr(videoUrl)}" />
         <small class="fieldHint">This edits the linked video only. Uploaded photos/videos stay as-is.</small>
+      </label>
+      <label>Displayed music title
+        <input id="editMemoryMusicTitle" type="text" maxlength="80" value="${escapeAttr(musicTitle || "")}" />
+        <small class="fieldHint">This changes the title shown on the music marquee. It does not replace the music link.</small>
       </label>
       <p id="editMemoryMessage" class="formMessage" aria-live="polite"></p>
       <div class="manageActionsRow">
@@ -2544,6 +2632,7 @@ function renderEditMemoryForm(layer, post) {
     const postedBy = document.getElementById("editMemoryPostedBy").value.trim();
     const date = document.getElementById("editMemoryDate").value;
     const videoUrlValue = document.getElementById("editMemoryVideoUrl").value.trim();
+    const musicTitleValue = document.getElementById("editMemoryMusicTitle")?.value.trim() || "";
     const message = document.getElementById("editMemoryMessage");
 
     if (!postedBy) {
@@ -2568,7 +2657,8 @@ function renderEditMemoryForm(layer, post) {
         Date: date,
         PostedBy: postedBy,
         Caption: caption,
-        VideoURL: videoUrlValue
+        VideoURL: videoUrlValue,
+        MusicTitle: musicTitleValue
       });
 
       if (!result.success) throw new Error(result.message || "Memory could not be updated.");

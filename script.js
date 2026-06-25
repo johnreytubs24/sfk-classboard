@@ -113,6 +113,7 @@ async function loadClassBoard() {
     clearTimeout(timeout);
 
     const data = await response.json();
+    // Hearts/Noted temporarily removed from the viewer.
     const newDataString = JSON.stringify(data);
 
     localStorage.setItem(CACHE_KEY, newDataString);
@@ -670,9 +671,8 @@ function renderAnnouncements(items) {
 
         ${attachmentMarkup}
 
-        <div class="announcement-controls">
+        <div class="announcement-controls announcement-controls-no-heart">
           <button class="announcement-btn prev-btn" onclick="previousAnnouncement()">← Previous</button>
-          ${renderAnnouncementHeartButton(item)}
           <button class="announcement-btn next-btn" onclick="nextAnnouncement()">Next →</button>
         </div>
       </div>
@@ -869,7 +869,7 @@ function renderAnnouncementHeartButton(item) {
 
   const id = getAnnouncementId(item);
   const count = getAnnouncementHeartCount(item);
-  const isHearted = id ? isAnnouncementHearted(id) : false;
+  const isHearted = id && count > 0 ? isAnnouncementHearted(id) : false;
   const label = isHearted ? "Noted" : "Noted";
 
   return `
@@ -951,18 +951,24 @@ function simpleAnnouncementHash(value) {
 
 
 function getAnnouncementHeartCount(item) {
-  const value =
-    item && (
-      item.HeartCount ||
-      item.heartCount ||
-      item.NotedCount ||
-      item.AcknowledgementCount ||
-      item.AcknowledgeCount ||
-      item.Hearts
-    );
+  const values = [
+    item?.HeartCount,
+    item?.heartCount,
+    item?.NotedCount,
+    item?.notedCount,
+    item?.AcknowledgementCount,
+    item?.acknowledgementCount,
+    item?.AcknowledgeCount,
+    item?.acknowledgeCount,
+    item?.Hearts,
+    item?.hearts,
+    item?.Count,
+    item?.count
+  ]
+    .map(value => Number(value))
+    .filter(value => Number.isFinite(value) && value >= 0);
 
-  const count = Number(value);
-  return Number.isFinite(count) && count > 0 ? count : 0;
+  return values.length ? Math.max(...values) : 0;
 }
 
 function getHeartedAnnouncements() {
@@ -997,6 +1003,62 @@ function unmarkAnnouncementHearted(id) {
   saveHeartedAnnouncements(getHeartedAnnouncements().filter(item => item !== cleanId));
 }
 
+
+const HEART_DEVICE_ID_KEY = "sfkClassBoardHeartDeviceId.v1";
+const ANNOUNCEMENT_HEART_PENDING = new Set();
+
+function getClassBoardHeartDeviceId() {
+  try {
+    const existing = localStorage.getItem(HEART_DEVICE_ID_KEY);
+    if (existing) return existing;
+    const random = window.crypto && crypto.getRandomValues
+      ? Array.from(crypto.getRandomValues(new Uint8Array(12))).map(value => value.toString(16).padStart(2, "0")).join("")
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const id = `device-${random}`;
+    localStorage.setItem(HEART_DEVICE_ID_KEY, id);
+    return id;
+  } catch (error) {
+    return "device-fallback";
+  }
+}
+
+function setAnnouncementHeartState(id, hearted) {
+  if (hearted) markAnnouncementHearted(id);
+  else unmarkAnnouncementHearted(id);
+}
+
+
+function syncAnnouncementHeartStatesFromServer(data) {
+  const announcements = Array.isArray(data?.announcements) ? data.announcements : [];
+  if (announcements.length === 0) return;
+
+  const deviceId = getClassBoardHeartDeviceId();
+  announcements.forEach(item => {
+    const id = getAnnouncementId(item);
+    if (!id) return;
+
+    const serverState = getServerHeartStateForDevice(item, deviceId);
+    if (serverState === true) setAnnouncementHeartState(id, true);
+    else if (serverState === false || getAnnouncementHeartCount(item) === 0) setAnnouncementHeartState(id, false);
+  });
+}
+
+function getServerHeartStateForDevice(item, deviceId) {
+  const map = normalizeHeartedDevices(item?.HeartedDevices || item?.heartedDevices);
+  const keys = Object.keys(map);
+  if (keys.length === 0) return null;
+  return Boolean(map[deviceId]);
+}
+
+function normalizeHeartedDevices(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key, isHearted]) => key && Boolean(isHearted))
+      .map(([key]) => [String(key), true])
+  );
+}
+
 function escapeJsAttribute(value) {
   return String(value || "")
     .replace(/\\/g, "\\\\")
@@ -1007,50 +1069,8 @@ function escapeJsAttribute(value) {
 }
 
 async function heartAnnouncement(id) {
-  id = String(id || "").trim();
-
-  if (!id) return;
-
-  const wasHearted = isAnnouncementHearted(id);
-  const delta = wasHearted ? -1 : 1;
-
-  if (wasHearted) {
-    unmarkAnnouncementHearted(id);
-  } else {
-    markAnnouncementHearted(id);
-  }
-
-  updateAnnouncementHeartCountLocal(id, delta);
-  renderDashboard(latestData);
-
-  try {
-    const response = await fetch(API_URL, {
-      method: "POST",
-      body: JSON.stringify({
-        type: "announcementHeart",
-        payload: {
-          announcementId: id,
-          delta
-        }
-      })
-    });
-
-    const result = await response.json();
-
-    if (result && result.success && Number.isFinite(Number(result.count))) {
-      updateAnnouncementHeartCountLocal(id, Number(result.count), true);
-      renderDashboard(latestData);
-    }
-  } catch (error) {
-    console.warn("Heart acknowledgement sync failed:", error);
-    if (wasHearted) {
-      markAnnouncementHearted(id);
-    } else {
-      unmarkAnnouncementHearted(id);
-    }
-    updateAnnouncementHeartCountLocal(id, -delta);
-    renderDashboard(latestData);
-  }
+  // Hearts/Noted are temporarily disabled.
+  return false;
 }
 
 function updateAnnouncementHeartCountLocal(id, value, absolute = false) {
@@ -1062,9 +1082,17 @@ function updateAnnouncementHeartCountLocal(id, value, absolute = false) {
     const current = getAnnouncementHeartCount(item);
     const nextCount = absolute ? value : current + value;
 
+    const safeCount = Math.max(0, Number(nextCount) || 0);
     return {
       ...item,
-      HeartCount: Math.max(0, Number(nextCount) || 0)
+      HeartCount: safeCount,
+      heartCount: safeCount,
+      NotedCount: safeCount,
+      notedCount: safeCount,
+      AcknowledgementCount: safeCount,
+      AcknowledgeCount: safeCount,
+      Hearts: safeCount,
+      hearts: safeCount
     };
   });
 
@@ -1079,10 +1107,18 @@ function updateAnnouncementHeartCountLocal(id, value, absolute = false) {
 
         if (itemId !== id) return item;
 
-        const current = Number(item.HeartCount || 0);
+        const current = getAnnouncementHeartCount(item);
+        const safeCount = Math.max(0, Number(absolute ? value : current + value) || 0);
         return {
           ...item,
-          HeartCount: Math.max(0, Number(absolute ? value : current + value) || 0)
+          HeartCount: safeCount,
+          heartCount: safeCount,
+          NotedCount: safeCount,
+          notedCount: safeCount,
+          AcknowledgementCount: safeCount,
+          AcknowledgeCount: safeCount,
+          Hearts: safeCount,
+          hearts: safeCount
         };
       });
 

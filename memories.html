@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest?v=14" />
   <link rel="icon" href="icons/icon-192.png?v=14" />
   <link rel="apple-touch-icon" href="icons/icon-192.png?v=14" />
-  <link rel="stylesheet" href="memories.css?v=20" />
+  <link rel="stylesheet" href="memories.css?v=21-hearts-removed" />
 </head>
 <body>
   <header class="memoryTopbar">
@@ -140,11 +140,19 @@
           <small class="fieldHint">For large videos, upload as YouTube Unlisted or Google Drive, then paste the link here.</small>
         </label>
 
-        <div class="musicFields">
-          <div class="musicFieldsTitle"><span>&#9835;</span><div><strong>Background music</strong><small>Optional. Continues while swiping photos.</small></div></div>
+        <button id="toggleMusicFieldsButton" class="addMusicButton" type="button" aria-expanded="false" aria-controls="musicFieldsPanel">
+          <span>&#9835;</span> Add background music
+        </button>
+
+        <div id="musicFieldsPanel" class="musicFields" hidden>
+          <div class="musicFieldsTitle"><span>&#9835;</span><div><strong>Background music</strong><small>Optional. Add this only when the memory needs a song.</small></div></div>
           <label>Music link
             <input id="memoryMusicUrl" type="url" placeholder="Direct MP3/M4A/OGG URL, e.g. archive.org/download/.../song.mp3" />
             <small class="fieldHint">Internet Archive direct links are fastest. Public Google Drive MP3 links can work through the app, but may load slower.</small>
+          </label>
+          <label>Displayed music title
+            <input id="memoryMusicTitle" type="text" maxlength="80" placeholder="Optional. Example: SFK Theme Song" />
+            <small class="fieldHint">This is the title shown on the music marquee. Leave blank to use the file/source name.</small>
           </label>
           <div class="musicTestRow">
             <button id="testMusicLinkButton" class="secondaryButton" type="button">Test Music Link</button>
@@ -174,8 +182,8 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
   <script src="firebase-config.js?v=1"></script>
-  <script src="firebase-adapter.js?v=4"></script>
+  <script src="firebase-adapter.js?v=6-music-title"></script>
   <script src="pwa.js?v=15"></script>
-  <script src="memories.js?v=22"></script>
+  <script src="memories.js?v=25-hearts-removed"></script>
 </body>
 </html>

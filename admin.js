@@ -1193,7 +1193,7 @@ function renderAdminTable(result) {
   const headers = result.headers || [];
   const rows = result.rows || [];
   const totalRows = Number.isFinite(result.totalRows) ? result.totalRows : rows.length;
-  const isAnnouncementsSheet = result.sheetName === "Announcements";
+  const isAnnouncementsSheet = false; // Noted/heart column temporarily removed.
   const visibleColumnIndexes = getVisibleManageColumnIndexes(headers);
 
   if (!tableHead || !tableBody) return;
@@ -1263,12 +1263,7 @@ function renderAdminTable(result) {
     `;
   }).join("");
 
-  if (isAnnouncementsSheet) {
-    const totalNoted = rows.reduce((sum, row) => sum + (Number(row.notedCount || row.heartCount || 0) || 0), 0);
-    setManageStatus(`${formatSheetLabel(result.sheetName)} loaded. ${rows.length}${totalRows !== rows.length ? ` of ${totalRows}` : ""} record(s) shown. Total noted: ${totalNoted}.`);
-  } else {
-    setManageStatus(`${formatSheetLabel(result.sheetName)} loaded. ${rows.length}${totalRows !== rows.length ? ` of ${totalRows}` : ""} record(s) shown.`);
-  }
+  setManageStatus(`${formatSheetLabel(result.sheetName)} loaded. ${rows.length}${totalRows !== rows.length ? ` of ${totalRows}` : ""} record(s) shown.`);
   attachAdminLongPressSelection();
 }
 
@@ -1285,13 +1280,30 @@ function formatManageCellDisplay(value) {
 }
 
 function renderAdminNotedCountCell(row) {
-  const count = Number(row.notedCount || row.heartCount || 0) || 0;
+  const count = getManageHeartCount(row);
 
   return `
     <td class="adminNotedCountCell" data-label="Noted" title="Students who clicked Noted / Heart">
       <span class="adminNotedPill">❤️ ${count}</span>
     </td>
   `;
+}
+
+
+function getManageHeartCount(row) {
+  const values = [
+    row?.notedCount,
+    row?.NotedCount,
+    row?.heartCount,
+    row?.HeartCount,
+    row?.Hearts,
+    row?.hearts,
+    row?.Count,
+    row?.count
+  ]
+    .map(value => Number(value))
+    .filter(value => Number.isFinite(value) && value >= 0);
+  return values.length ? Math.max(...values) : 0;
 }
 
 function toggleAdminRowSelection(rowNumber, checked) {

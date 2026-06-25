@@ -5900,3 +5900,19 @@ ol.formattedText li {
     gap: 9px !important;
   }
 }
+
+
+/* TEMPORARY HEART REMOVAL: Subject Announcements */
+.announcement-heart-btn,
+.announcement-heart-spacer {
+  display: none !important;
+}
+.announcement-controls-no-heart {
+  justify-content: space-between !important;
+}
+.announcement-controls-no-heart .prev-btn {
+  margin-right: 0 !important;
+}
+.announcement-controls-no-heart .next-btn {
+  margin-left: 0 !important;
+}

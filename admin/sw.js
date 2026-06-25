@@ -1,14 +1,14 @@
-const CACHE_NAME = "sfk-admin-pwa-v12-things-date-modal-center";
+const CACHE_NAME = "sfk-admin-pwa-v15-hearts-removed-temporary";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
   "./sw.js",
-  "../admin.html?embedded=1&v=things-date-modal-center-1",
-  "../admin.css?v=things-date-modal-center-1",
-  "../admin.js?v=things-date-modal-center-1",
+  "../admin.html?embedded=1&v=solid-heart-1",
+  "../admin.css?v=solid-heart-1",
+  "../admin.js?v=solid-heart-1",
   "../firebase-config.js",
-  "../firebase-adapter.js",
+  "../firebase-adapter.js?v=6-attachment-upload",
   "../icons/icon-192.png",
   "../icons/icon-512.png",
   "../icons/icon-maskable-512.png"

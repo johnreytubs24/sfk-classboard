@@ -13,7 +13,7 @@
     },
     Announcements: {
       collection: "announcements",
-      headers: ["ID", "Date", "Subject", "Announcement", "Teacher", "Deadline", "ShowDeadline", "AttachmentFiles", "Priority", "Publish", "HeartCount"]
+      headers: ["ID", "Date", "Subject", "Announcement", "Teacher", "Deadline", "ShowDeadline", "AttachmentURLs", "AttachmentNames", "Priority", "Publish", "HeartCount"]
     },
     ThingsToBring: {
       collection: "thingsToBring",
@@ -127,16 +127,16 @@
     if (type === "adminDelete") return deleteRow(payload);
     if (type === "adminBatchUnpublish" || type === "officerBatchHide") return batchRows(payload, unpublishRow);
     if (type === "adminBatchDelete") return batchRows(payload, deleteRow);
-    if (type === "officerAdd") return addTypedRow(payload.kind, payload);
-    if (type === "announcementHeart") return recordHeart("Announcements", payload.announcementId || payload.AnnouncementID || payload.ID || payload.id, payload.delta);
-    if (type === "memoryHeart") return recordHeart("Memories", payload.memoryId || payload.MemoryID || payload.ID || payload.id, payload.delta);
+    if (type === "officerAdd") return addTypedRow(payload.kind, payload, sourceUrl);
+    if (type === "announcementHeart") return recordHeart("Announcements", payload.announcementId || payload.AnnouncementID || payload.ID || payload.id, payload.delta, payload);
+    if (type === "memoryHeart") return recordHeart("Memories", payload.memoryId || payload.MemoryID || payload.ID || payload.id, payload.delta, payload);
     if (type === "memoryAuth") return checkMemoryAuth(payload);
     if (type === "memoryHide") return hideMemory(payload.memoryId || payload.MemoryID || payload.ID || payload.id);
     if (type === "memoryDelete") return deleteMemory(payload.memoryId || payload.MemoryID || payload.ID || payload.id);
     if (type === "memoryUpdate") return updateMemory(payload.memoryId || payload.MemoryID || payload.ID || payload.id, payload);
     if (type === "memoryCreate") return createMemory(payload, sourceUrl);
 
-    if (TYPE_TO_SHEET[type]) return addTypedRow(type, payload);
+    if (TYPE_TO_SHEET[type]) return addTypedRow(type, payload, sourceUrl);
 
     return { success: false, message: `Unknown Firebase request type: ${type}` };
   }
@@ -247,22 +247,114 @@
         docId: row.id,
         rowNumber: index + 2,
         sheetName,
-        notedCount: Number(row.HeartCount || row.heartCount || 0) || 0,
-        heartCount: Number(row.HeartCount || row.heartCount || 0) || 0,
+        notedCount: readHeartCount(row),
+        heartCount: readHeartCount(row),
         cells: meta.headers.map(header => serializeCell(row[header]))
       }))
     };
   }
 
-  async function addTypedRow(type, payload) {
+  async function addTypedRow(type, payload, sourceUrl) {
     const sheetName = TYPE_TO_SHEET[type] || TYPE_TO_SHEET[payload.kind];
     if (!sheetName) return { success: false, message: "Unknown row type." };
 
     const meta = getSheetMeta(sheetName);
     const id = generateId(type);
-    const row = normalizePayloadForSheet(sheetName, payload, id);
-    await db.collection(meta.collection).doc(id).set(withMeta(row));
+    const preparedPayload = sheetName === "Announcements"
+      ? await prepareAnnouncementPayload(payload, id, sourceUrl)
+      : payload;
+    const row = normalizePayloadForSheet(sheetName, preparedPayload, id);
+    await db.collection(meta.collection).doc(id).set(withMeta(cleanFirestoreData(row)));
     return { success: true, message: "Saved successfully.", id };
+  }
+
+
+  async function prepareAnnouncementPayload(payload, id, sourceUrl) {
+    const files = Array.isArray(payload.AttachmentFiles)
+      ? payload.AttachmentFiles.filter(file => file && file.data)
+      : [];
+
+    const prepared = { ...payload };
+    delete prepared.AttachmentFiles;
+
+    if (files.length === 0) {
+      prepared.AttachmentURLs = normalizeAttachmentText(
+        prepared.AttachmentURLs || prepared.Attachments || prepared.AttachmentURL || ""
+      );
+      prepared.AttachmentNames = normalizeAttachmentText(
+        prepared.AttachmentNames || prepared.AttachmentLabels || prepared.AttachmentName || ""
+      );
+      return prepared;
+    }
+
+    if (!sourceUrl) {
+      throw new Error("Attachment upload service is not available. Please refresh and try again.");
+    }
+
+    const uploadResult = await uploadAnnouncementAttachmentsViaAppsScript(sourceUrl, id, files);
+    prepared.AttachmentURLs = uploadResult.urls || "";
+    prepared.Attachments = uploadResult.urls || "";
+    prepared.AttachmentURL = uploadResult.urls || "";
+    prepared.AttachmentNames = uploadResult.names || "";
+    prepared.AttachmentLabels = uploadResult.names || "";
+    prepared.AttachmentName = uploadResult.names || "";
+    return prepared;
+  }
+
+  async function uploadAnnouncementAttachmentsViaAppsScript(sourceUrl, id, files) {
+    const response = await originalFetch(sourceUrl, {
+      method: "POST",
+      body: JSON.stringify({
+        type: "announcementUploadAttachments",
+        payload: {
+          RecordID: id,
+          AttachmentFiles: files
+        }
+      })
+    });
+
+    const text = await response.text();
+    let result = {};
+    try {
+      result = JSON.parse(text || "{}");
+    } catch (error) {
+      throw new Error(text.slice(0, 180) || "Attachment upload failed.");
+    }
+
+    if (!result.success) {
+      throw new Error(result.message || "Attachment upload failed.");
+    }
+
+    const attachments = result.attachments || result.AttachmentFiles || {};
+    return {
+      urls: normalizeAttachmentText(result.AttachmentURLs || attachments.urls || result.urls || ""),
+      names: normalizeAttachmentText(result.AttachmentNames || attachments.names || result.names || "")
+    };
+  }
+
+  function normalizeAttachmentText(value) {
+    if (Array.isArray(value)) return value.map(item => String(item || "").trim()).filter(Boolean).join("\n");
+    return String(value || "").replace(/\r\n/g, "\n").trim();
+  }
+
+  function cleanFirestoreData(value) {
+    if (value === undefined) return "";
+    if (value === null) return null;
+    if (Array.isArray(value)) {
+      return value
+        .map(item => cleanFirestoreData(item))
+        .filter(item => item !== undefined);
+    }
+    if (value && typeof value === "object" && typeof value.toMillis !== "function") {
+      const clean = {};
+      Object.entries(value).forEach(([key, item]) => {
+        if (!key) return;
+        const next = cleanFirestoreData(item);
+        if (next !== undefined) clean[key] = next;
+      });
+      return clean;
+    }
+    return value;
   }
 
   async function updateRow(payload) {
@@ -275,7 +367,7 @@
       next[header] = deserializeCell(values[index]);
     });
 
-    await db.collection(meta.collection).doc(row.id).set(withMeta(next, false), { merge: true });
+    await db.collection(meta.collection).doc(row.id).set(withMeta(cleanFirestoreData(next), false), { merge: true });
     return { success: true, message: "Record updated." };
   }
 
@@ -314,7 +406,7 @@
     return row;
   }
 
-  async function recordHeart(sheetName, id, deltaValue) {
+  async function recordHeart(sheetName, id, deltaValue, payload = {}) {
     const recordId = String(id || "").trim();
     if (!recordId) return { success: false, message: "Missing record ID." };
 
@@ -324,15 +416,49 @@
       return { success: false, message: "Record not found. Please refresh and try again." };
     }
 
-    const delta = Number(deltaValue) < 0 ? -1 : 1;
+    const deviceId = normalizeHeartDeviceId(payload.deviceId || payload.DeviceID || payload.device || "anonymous-device");
+    const requestedState = parseHeartRequestedState(payload);
     let count = 0;
+    let hearted = false;
+
     await db.runTransaction(async transaction => {
       const doc = await transaction.get(ref);
       if (!doc.exists) throw new Error("Record not found.");
-      count = Math.max(0, readHeartCount(doc.data()) + delta);
-      transaction.set(ref, withMeta({ HeartCount: count, heartCount: count, Hearts: count, hearts: count }, false), { merge: true });
+
+      const data = doc.data() || {};
+      const currentCount = readHeartCount(data);
+      const heartedDevices = normalizeHeartedDevices(data.HeartedDevices || data.heartedDevices);
+      const currentlyHearted = Boolean(heartedDevices[deviceId]);
+      const nextHearted = requestedState === null ? !currentlyHearted : requestedState;
+
+      count = currentCount;
+      if (nextHearted && !currentlyHearted) {
+        heartedDevices[deviceId] = true;
+        hearted = true;
+        count = currentCount + 1;
+      } else if (!nextHearted && currentlyHearted) {
+        delete heartedDevices[deviceId];
+        hearted = false;
+        count = Math.max(0, currentCount - 1);
+      } else {
+        hearted = currentlyHearted;
+        count = currentCount;
+      }
+
+      const update = withMeta({
+        HeartCount: count,
+        heartCount: count,
+        Hearts: count,
+        hearts: count,
+        NotedCount: count,
+        notedCount: count,
+        HeartedDevices: heartedDevices,
+        heartedDevices
+      }, false);
+      transaction.set(ref, update, { merge: true });
     });
-    return { success: true, count };
+
+    return { success: true, count, hearted };
   }
 
   async function resolveRecordRef(collectionName, recordId) {
@@ -356,9 +482,55 @@
   }
 
   function readHeartCount(row) {
-    const value = row?.HeartCount ?? row?.heartCount ?? row?.Hearts ?? row?.hearts ?? row?.Count ?? row?.count ?? row?.notedCount ?? row?.NotedCount ?? 0;
-    const count = Number(value);
-    return Number.isFinite(count) ? Math.max(0, count) : 0;
+    const values = [
+      row?.HeartCount,
+      row?.heartCount,
+      row?.Hearts,
+      row?.hearts,
+      row?.Count,
+      row?.count,
+      row?.notedCount,
+      row?.NotedCount,
+      row?.AcknowledgeCount,
+      row?.acknowledgeCount
+    ]
+      .map(value => Number(value))
+      .filter(value => Number.isFinite(value) && value >= 0);
+
+    return values.length ? Math.max(...values) : 0;
+  }
+
+  function normalizeHeartedDevices(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+    return Object.fromEntries(
+      Object.entries(value)
+        .filter(([key, isHearted]) => key && Boolean(isHearted))
+        .map(([key]) => [normalizeHeartDeviceId(key), true])
+    );
+  }
+
+  function parseHeartRequestedState(payload = {}) {
+    const raw = payload.hearted ?? payload.isHearted ?? payload.Noted ?? payload.noted ?? payload.action;
+    if (raw === undefined || raw === null || raw === "") return null;
+    const text = String(raw).trim().toLowerCase();
+    if (["true", "1", "yes", "heart", "hearted", "note", "noted", "add"].includes(text)) return true;
+    if (["false", "0", "no", "unheart", "unhearted", "remove", "delete"].includes(text)) return false;
+    return null;
+  }
+
+  function normalizeHeartDeviceId(value) {
+    const text = String(value || "").trim();
+    return text || "anonymous-device";
+  }
+
+  function makeHeartDocId(targetId, deviceId) {
+    return `${safeHeartDocPart(targetId)}__${safeHeartDocPart(deviceId)}`.slice(0, 1400);
+  }
+
+  function safeHeartDocPart(value) {
+    return encodeURIComponent(String(value || ""))
+      .replace(/\./g, "%2E")
+      .replace(/%/g, "_");
   }
 
   function checkMemoryAuth(payload) {
@@ -387,6 +559,7 @@
       Role: payload.Role || payload.role || "",
       media,
       music,
+      MusicTitle: String(payload.MusicTitle || payload.MusicDisplayTitle || payload.MusicName || "").trim(),
       MusicJSON: music ? JSON.stringify(music) : "",
       VideoURL: payload.VideoURL || "",
       Publish: payload.Publish || "YES",
@@ -450,8 +623,20 @@
       Date: normalizeInputDate(payload.Date) || formatLongDate(new Date()),
       Caption: payload.Caption || "",
       PostedBy: payload.PostedBy || "SFK",
-      VideoURL: payload.VideoURL || ""
+      VideoURL: payload.VideoURL || "",
+      MusicTitle: String(payload.MusicTitle || payload.MusicDisplayTitle || payload.MusicName || "").trim()
     };
+
+    const cleanMusicTitle = next.MusicTitle;
+    const current = await db.collection(SHEETS.Memories.collection).doc(String(id)).get();
+    const currentMusic = current.exists ? current.data()?.music : null;
+    if (currentMusic && typeof currentMusic === "object") {
+      const fallbackName = deriveMusicNameFromUrl(
+        currentMusic.previewUrl || currentMusic.fullUrl || currentMusic.url || currentMusic.downloadUrl || currentMusic.fallbackUrl
+      ) || "Background music";
+      next.music = { ...currentMusic, name: cleanMusicTitle || fallbackName, customTitle: cleanMusicTitle };
+      next.MusicJSON = JSON.stringify(next.music);
+    }
 
     await db.collection(SHEETS.Memories.collection).doc(String(id)).set(withMeta(next, false), { merge: true });
     return { success: true, message: "Memory updated." };
@@ -487,11 +672,14 @@
   }
 
   function buildMemoryMusic(payload) {
+    const musicTitle = String(payload.MusicTitle || payload.MusicDisplayTitle || payload.MusicName || "").trim();
+
     if (payload.MusicFile && payload.MusicFile.data) {
       const mimeType = String(payload.MusicFile.mimeType || "audio/mpeg");
       return {
         kind: "direct-audio",
-        name: payload.MusicFile.name || "Background music",
+        name: musicTitle || payload.MusicFile.name || "Background music",
+        customTitle: musicTitle,
         url: `data:${mimeType};base64,${payload.MusicFile.data}`,
         mimeType,
         muted: true,
@@ -506,7 +694,8 @@
     if (driveId) {
       return {
         kind: "drive-audio",
-        name: "Background music",
+        name: musicTitle || "Google Drive music",
+        customTitle: musicTitle,
         fileId: driveId,
         url: getDriveAudioStreamUrl(driveId),
         fallbackUrl: getDriveStreamUrl(driveId),
@@ -518,11 +707,25 @@
 
     return {
       kind: "direct-audio",
-      name: "Background music",
+      name: musicTitle || deriveMusicNameFromUrl(url) || "Background music",
+      customTitle: musicTitle,
       url,
       muted: true,
       started: false
     };
+  }
+
+  function deriveMusicNameFromUrl(value) {
+    try {
+      const raw = String(value || "").trim();
+      if (!raw) return "";
+      const parsed = new URL(raw, window.location.href);
+      const last = decodeURIComponent((parsed.pathname.split("/").filter(Boolean).pop() || "").replace(/[_-]+/g, " "));
+      const cleaned = last.replace(/\.(mp3|m4a|aac|ogg|wav|webm)$/i, "").trim();
+      return cleaned ? cleaned.replace(/\s+/g, " ") : "";
+    } catch (error) {
+      return "";
+    }
   }
 
   function getDriveFileId(url) {
@@ -555,7 +758,12 @@
         Teacher: payload.Teacher || "",
         Deadline: normalizeInputDate(payload.Deadline),
         ShowDeadline: payload.ShowDeadline || "",
-        AttachmentFiles: payload.AttachmentFiles || [],
+        AttachmentURLs: payload.AttachmentURLs || payload.Attachments || payload.AttachmentURL || "",
+        Attachments: payload.AttachmentURLs || payload.Attachments || payload.AttachmentURL || "",
+        AttachmentURL: payload.AttachmentURLs || payload.Attachments || payload.AttachmentURL || "",
+        AttachmentNames: payload.AttachmentNames || payload.AttachmentLabels || payload.AttachmentName || "",
+        AttachmentLabels: payload.AttachmentNames || payload.AttachmentLabels || payload.AttachmentName || "",
+        AttachmentName: payload.AttachmentNames || payload.AttachmentLabels || payload.AttachmentName || "",
         Priority: payload.Priority || "Normal",
         Publish: payload.Publish || "YES",
         HeartCount: Number(payload.HeartCount || 0) || 0

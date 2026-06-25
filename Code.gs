@@ -93,6 +93,10 @@ function doPost(e) {
       return jsonResponse(batchDeleteAdminRows(payload));
     }
 
+    if (type === "announcementUploadAttachments") {
+      return jsonResponse(uploadAnnouncementAttachmentsOnly(payload));
+    }
+
     /* OFFICER SAFE ACTIONS */
     if (type === "officerAdd") {
       return jsonResponse(addOfficerRow(payload));
@@ -1234,6 +1238,19 @@ function sanitizeRowNumbers(rowNumbers) {
     });
 }
 
+function uploadAnnouncementAttachmentsOnly(payload) {
+  const recordId = String(payload.RecordID || payload.ID || generateAdminId("announcement-attachment")).trim();
+  const attachments = uploadAnnouncementAttachments(payload.AttachmentFiles, recordId);
+
+  return {
+    success: true,
+    message: "Attachment upload complete.",
+    attachments: attachments,
+    AttachmentURLs: attachments.urls || "",
+    AttachmentNames: attachments.names || ""
+  };
+}
+
 function uploadAnnouncementAttachments(files, recordId) {
   const safeFiles = Array.isArray(files) ? files.slice(0, 5) : [];
 
@@ -1740,6 +1757,7 @@ function createMemoryPost(payload) {
   const postedBy = String(payload.PostedBy || "").trim();
   const videoUrl = String(payload.VideoURL || "").trim();
   const musicUrl = String(payload.MusicURL || "").trim();
+  const musicTitle = String(payload.MusicTitle || payload.MusicDisplayTitle || payload.MusicName || "").trim();
   const files = Array.isArray(payload.MediaFiles) ? payload.MediaFiles.slice(0, 6) : [];
 
   if (!postedBy) {
@@ -1770,7 +1788,8 @@ function createMemoryPost(payload) {
     "YES",
     createdAt,
     musicUrl,
-    JSON.stringify(music)
+    JSON.stringify(music),
+    musicTitle
   ]);
 
   return {
@@ -1975,6 +1994,7 @@ function updateMemoryPost(payload) {
   const caption = String(payload.Caption || "").trim();
   const postedBy = String(payload.PostedBy || "").trim() || "SFK";
   const videoUrl = String(payload.VideoURL || "").trim();
+  const musicTitle = String(payload.MusicTitle || payload.MusicDisplayTitle || payload.MusicName || "").trim();
   const eventDate = formatInputDateToSheetDate(payload.Date) ||
     Utilities.formatDate(new Date(), TIMEZONE, "MMMM d, yyyy");
 
@@ -1983,6 +2003,7 @@ function updateMemoryPost(payload) {
   sheet.getRange(rowNumber, getMemoryColumn(sheet, "Caption")).setValue(caption);
   sheet.getRange(rowNumber, getMemoryColumn(sheet, "PostedBy")).setValue(postedBy);
   sheet.getRange(rowNumber, getMemoryColumn(sheet, "VideoURL")).setValue(videoUrl);
+  sheet.getRange(rowNumber, getMemoryColumn(sheet, "MusicTitle")).setValue(musicTitle);
 
   return { success: true, message: "Memory updated." };
 }
@@ -2017,7 +2038,7 @@ function ensureMemoriesSheet() {
   const headers = [
     "ID", "Date", "Title", "Caption", "PostedBy", "Role",
     "MediaJSON", "VideoURL", "HeartCount", "Publish", "CreatedAt",
-    "MusicURL", "MusicJSON"
+    "MusicURL", "MusicJSON", "MusicTitle"
   ];
 
   if (!sheet) {
