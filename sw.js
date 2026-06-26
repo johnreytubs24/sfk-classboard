@@ -1,4 +1,4 @@
-const CACHE_NAME = "sfk-classboard-v57-fast-heart-feedback";
+const CACHE_NAME = "sfk-classboard-v58-sticky-manage-loading-fix";
 const APP_SHELL = [
   "./",
   "./index.html",

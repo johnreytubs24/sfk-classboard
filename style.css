@@ -5910,8 +5910,23 @@ ol.formattedText li {
   cursor: pointer !important;
 }
 
-/* Fast heart feedback: no wait cursor. Count updates instantly while save syncs quietly. */
-.announcement-heart-btn.is-saving {
-  opacity: 1 !important;
-  cursor: pointer !important;
+/* Phone sticky header: keep the compact ClassBoard header visible while scrolling */
+@media (max-width: 700px) {
+  .topbar {
+    position: sticky !important;
+    top: max(6px, env(safe-area-inset-top)) !important;
+    z-index: 5000 !important;
+    margin-bottom: 10px !important;
+    will-change: transform !important;
+  }
+
+  .topbar::after {
+    content: "";
+    position: absolute;
+    inset: -7px -8px -9px -8px;
+    background: linear-gradient(135deg, #f7c600, #ffdf3a);
+    border-radius: 18px;
+    z-index: -1;
+    pointer-events: none;
+  }
 }

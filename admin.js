@@ -1193,7 +1193,7 @@ function renderAdminTable(result) {
   const headers = result.headers || [];
   const rows = result.rows || [];
   const totalRows = Number.isFinite(result.totalRows) ? result.totalRows : rows.length;
-  const isAnnouncementsSheet = sheetName === "Announcements";
+  const isAnnouncementsSheet = result.sheetName === "Announcements";
   const visibleColumnIndexes = getVisibleManageColumnIndexes(headers);
 
   if (!tableHead || !tableBody) return;
