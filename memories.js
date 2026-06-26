@@ -2115,13 +2115,13 @@ async function createMemoryShareImage(post) {
   drawShareHeader(ctx, post, margin, 78, canvas.width - (margin * 2));
 
   const mediaX = margin;
-  const mediaY = 182;
+  const mediaY = 190;
   const mediaW = canvas.width - (margin * 2);
   const imageCount = (post.media || []).filter((item) => item.kind === "image").length;
-  const mediaH = imageCount ? 666 : 590;
+  const mediaH = imageCount ? 640 : 575;
   await drawShareMedia(ctx, post, mediaX, mediaY, mediaW, mediaH);
 
-  const detailsY = mediaY + mediaH + 44;
+  const detailsY = mediaY + mediaH + 54;
   drawShareDetails(ctx, post, margin, detailsY, canvas.width - (margin * 2), imageCount > 0);
   drawShareFooter(ctx, canvas.width, canvas.height);
 
@@ -2196,10 +2196,10 @@ function drawShareHeader(ctx, post, x, y, width) {
 
   ctx.textAlign = "left";
   ctx.fillStyle = "#111111";
-  ctx.font = "900 39px Arial, Helvetica, sans-serif";
+  ctx.font = "900 38px Arial, Helvetica, sans-serif";
   ctx.fillText("SFK Updates 🫶", x + 162, y + 24);
   ctx.fillStyle = "#7a7568";
-  ctx.font = "800 18px Arial, Helvetica, sans-serif";
+  ctx.font = "800 17px Arial, Helvetica, sans-serif";
   ctx.fillText("Grade 8 - St. Faustina Kowalska (SY \'26-\'27) • #BeKind", x + 163, y + 58);
 
   const dateText = post.date || post.createdAt || "Class Memory";
@@ -2226,9 +2226,9 @@ function drawShareHeader(ctx, post, x, y, width) {
 
 async function drawShareMedia(ctx, post, x, y, width, height) {
   ctx.save();
-  ctx.shadowColor = "rgba(17,17,17,.16)";
-  ctx.shadowBlur = 24;
-  ctx.shadowOffsetY = 10;
+  ctx.shadowColor = "rgba(17,17,17,.13)";
+  ctx.shadowBlur = 18;
+  ctx.shadowOffsetY = 7;
   drawRoundRect(ctx, x, y, width, height, 34);
   ctx.fillStyle = "#ffffff";
   ctx.fill();
@@ -2263,35 +2263,62 @@ async function drawShareMedia(ctx, post, x, y, width, height) {
   const images = await Promise.all(items.map((item) => loadShareImage(item)));
   const gap = 10;
   const layouts = getShareMediaLayout(items.length, innerX, innerY, innerW, innerH, gap);
+  const heartSize = imageMedia.length >= 4 ? 21 : 19;
+  const heartCx = innerX + (innerW / 2);
+  const heartCy = innerY + (innerH / 2);
+
+  if (imageMedia.length >= 3) {
+    drawShareHeartGapBase(ctx, heartCx, heartCy, heartSize);
+  }
+
+  const tempCanvas = document.createElement("canvas");
+  tempCanvas.width = Math.max(1, Math.round(innerW));
+  tempCanvas.height = Math.max(1, Math.round(innerH));
+  const tempCtx = tempCanvas.getContext("2d");
+  if (!tempCtx) {
+    return;
+  }
 
   layouts.forEach((box, index) => {
-    ctx.save();
-    drawRoundRect(ctx, box.x, box.y, box.w, box.h, box.r || 22);
-    ctx.clip();
-    ctx.fillStyle = "#f5f3ed";
-    ctx.fillRect(box.x, box.y, box.w, box.h);
+    const localX = box.x - innerX;
+    const localY = box.y - innerY;
+    tempCtx.save();
+    drawRoundRect(tempCtx, localX, localY, box.w, box.h, box.r || 22);
+    tempCtx.clip();
+    tempCtx.fillStyle = "#f5f3ed";
+    tempCtx.fillRect(localX, localY, box.w, box.h);
     if (images[index]) {
       if (imageMedia.length === 1) {
-        drawContainImageWithSoftBackdrop(ctx, images[index], box.x, box.y, box.w, box.h);
+        drawContainImageWithSoftBackdrop(tempCtx, images[index], localX, localY, box.w, box.h);
       } else {
-        drawCoverImage(ctx, images[index], box.x, box.y, box.w, box.h);
+        drawCoverImage(tempCtx, images[index], localX, localY, box.w, box.h);
       }
     } else {
-      drawShareMediaPlaceholder(ctx, box.x, box.y, box.w, box.h, "Photo");
+      drawShareMediaPlaceholder(tempCtx, localX, localY, box.w, box.h, "Photo");
     }
     if (index === layouts.length - 1 && imageMedia.length > MEMORY_SHARE_PREVIEW_LIMIT) {
-      ctx.fillStyle = "rgba(17,17,17,.58)";
-      ctx.fillRect(box.x, box.y, box.w, box.h);
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "900 82px Arial, Helvetica, sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(`+${imageMedia.length - MEMORY_SHARE_PREVIEW_LIMIT}`, box.x + box.w / 2, box.y + box.h / 2);
-      ctx.textAlign = "left";
-      ctx.textBaseline = "alphabetic";
+      tempCtx.fillStyle = "rgba(17,17,17,.58)";
+      tempCtx.fillRect(localX, localY, box.w, box.h);
+      tempCtx.fillStyle = "#ffffff";
+      tempCtx.font = "900 82px Arial, Helvetica, sans-serif";
+      tempCtx.textAlign = "center";
+      tempCtx.textBaseline = "middle";
+      tempCtx.fillText(`+${imageMedia.length - MEMORY_SHARE_PREVIEW_LIMIT}`, localX + box.w / 2, localY + box.h / 2);
+      tempCtx.textAlign = "left";
+      tempCtx.textBaseline = "alphabetic";
     }
-    ctx.restore();
+    tempCtx.restore();
   });
+
+  if (imageMedia.length >= 3) {
+    tempCtx.save();
+    tempCtx.globalCompositeOperation = "destination-out";
+    drawHeartPath(tempCtx, heartCx - innerX, heartCy - innerY, heartSize + 5);
+    tempCtx.fill();
+    tempCtx.restore();
+  }
+
+  ctx.drawImage(tempCanvas, innerX, innerY);
 
   images.forEach((image) => {
     if (image?._shareObjectUrl) {
@@ -2371,26 +2398,61 @@ function drawShareMediaPlaceholder(ctx, x, y, width, height, label) {
   ctx.textBaseline = "alphabetic";
 }
 
+function drawShareHeartGapBase(ctx, cx, cy, size) {
+  ctx.save();
+  ctx.shadowColor = "rgba(17,17,17,.16)";
+  ctx.shadowBlur = 10;
+  ctx.shadowOffsetY = 4;
+  drawHeartPath(ctx, cx, cy, size + 6);
+  ctx.fillStyle = "rgba(255,255,255,.96)";
+  ctx.fill();
+  ctx.restore();
+
+  ctx.save();
+  drawHeartPath(ctx, cx, cy, size);
+  const heartGradient = ctx.createLinearGradient(cx - size, cy - size, cx + size, cy + size * 1.1);
+  heartGradient.addColorStop(0, "#fff8bf");
+  heartGradient.addColorStop(0.45, "#f7c600");
+  heartGradient.addColorStop(1, "#d7a600");
+  ctx.fillStyle = heartGradient;
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "#111111";
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawHeartPath(ctx, cx, cy, size) {
+  const topCurveHeight = size * 0.55;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy + size * 0.9);
+  ctx.bezierCurveTo(
+    cx - size * 1.35, cy + size * 0.18,
+    cx - size * 1.2, cy - size * 0.72,
+    cx, cy - size * 0.18
+  );
+  ctx.bezierCurveTo(
+    cx + size * 1.2, cy - size * 0.72,
+    cx + size * 1.35, cy + size * 0.18,
+    cx, cy + size * 0.9
+  );
+  ctx.closePath();
+}
+
 function drawShareDetails(ctx, post, x, y, width, hasPhoto = false) {
   const titleMaxY = MEMORY_SHARE_IMAGE_HEIGHT - 275;
   const captionMaxY = MEMORY_SHARE_IMAGE_HEIGHT - 210;
 
-  ctx.save();
-  drawRoundRect(ctx, x, y - 20, 86, 7, 4);
-  ctx.fillStyle = "#f7c600";
-  ctx.fill();
-  ctx.restore();
-
   ctx.fillStyle = "#111111";
-  ctx.font = hasPhoto ? "900 42px Arial, Helvetica, sans-serif" : "900 48px Arial, Helvetica, sans-serif";
-  const titleLineHeight = hasPhoto ? 50 : 58;
+  ctx.font = hasPhoto ? "900 39px Arial, Helvetica, sans-serif" : "900 48px Arial, Helvetica, sans-serif";
+  const titleLineHeight = hasPhoto ? 47 : 58;
   const titleLines = wrapCanvasText(ctx, post.title || "Untitled Memory", x, y, width, titleLineHeight, hasPhoto ? 2 : 3);
   let cursorY = y + (titleLines * titleLineHeight) + 18;
 
   if (post.caption && cursorY < titleMaxY) {
     ctx.fillStyle = "#36332d";
-    ctx.font = hasPhoto ? "700 28px Arial, Helvetica, sans-serif" : "700 31px Arial, Helvetica, sans-serif";
-    const captionLineHeight = hasPhoto ? 37 : 42;
+    ctx.font = hasPhoto ? "700 26px Arial, Helvetica, sans-serif" : "700 31px Arial, Helvetica, sans-serif";
+    const captionLineHeight = hasPhoto ? 34 : 42;
     const maxCaptionLines = Math.max(1, Math.min(hasPhoto ? 2 : 4, Math.floor((captionMaxY - cursorY) / captionLineHeight)));
     const captionLines = wrapCanvasText(ctx, post.caption, x, cursorY, width, captionLineHeight, maxCaptionLines);
     cursorY += (captionLines * captionLineHeight) + 26;
@@ -2426,10 +2488,7 @@ function drawShareDetails(ctx, post, x, y, width, hasPhoto = false) {
   ctx.textBaseline = "alphabetic";
   ctx.fillStyle = "#111111";
   ctx.font = "900 27px Arial, Helvetica, sans-serif";
-  ctx.fillText(post.postedBy || "SFK", x + avatarSize + 18, metaY + 28);
-  ctx.fillStyle = "#7a7568";
-  ctx.font = "800 21px Arial, Helvetica, sans-serif";
-  ctx.fillText(post.role || "Officer", x + avatarSize + 18, metaY + 58);
+  ctx.fillText(post.postedBy || "SFK", x + avatarSize + 18, metaY + 40);
 
   if (post.media.length) {
     const attachmentText = `${post.media.length} attachment${post.media.length > 1 ? "s" : ""}`;
