@@ -412,6 +412,7 @@ function normalizeStoredMedia(item) {
     url: safeHttpUrl(item.url),
     viewerUrl: safeHttpUrl(item.viewerUrl) || derivedViewerUrl || safeHttpUrl(item.url),
     fullUrl: safeHttpUrl(item.fullUrl) || safeHttpUrl(item.url),
+    downloadUrl: safeHttpUrl(item.downloadUrl),
     name: String(item.name || "SFK memory"),
     mimeType: String(item.mimeType || ""),
     fileId,
@@ -473,6 +474,12 @@ function getDriveAudioStreamUrl(fileId) {
 function getMemoryAudioProxyUrl(fileId) {
   return fileId
     ? `${MEMORIES_API_URL}?type=memoryAudio&fileId=${encodeURIComponent(fileId)}`
+    : "";
+}
+
+function getMemoryImageProxyUrl(fileId) {
+  return fileId
+    ? `${MEMORIES_API_URL}?type=memoryMedia&fileId=${encodeURIComponent(fileId)}`
     : "";
 }
 
@@ -2096,11 +2103,12 @@ async function createMemoryShareImage(post) {
   const mediaX = margin;
   const mediaY = 238;
   const mediaW = canvas.width - (margin * 2);
-  const mediaH = post.media.length ? 610 : 520;
+  const imageCount = (post.media || []).filter((item) => item.kind === "image").length;
+  const mediaH = imageCount ? 610 : 560;
   await drawShareMedia(ctx, post, mediaX, mediaY, mediaW, mediaH);
 
-  const detailsY = mediaY + mediaH + 44;
-  drawShareDetails(ctx, post, margin, detailsY, canvas.width - (margin * 2));
+  const detailsY = mediaY + mediaH + 30;
+  drawShareDetails(ctx, post, margin, detailsY, canvas.width - (margin * 2), imageCount > 0);
   drawShareFooter(ctx, canvas.width, canvas.height);
 
   const blob = await canvasToBlob(canvas);
@@ -2194,7 +2202,7 @@ async function drawShareMedia(ctx, post, x, y, width, height) {
   }
 
   const items = imageMedia.slice(0, MEMORY_SHARE_PREVIEW_LIMIT);
-  const images = await Promise.all(items.map((item) => loadShareImage(item.url)));
+  const images = await Promise.all(items.map((item) => loadShareImage(item)));
   const gap = 8;
   const layouts = getShareMediaLayout(items.length, x, y, width, height, gap);
 
@@ -2205,7 +2213,11 @@ async function drawShareMedia(ctx, post, x, y, width, height) {
     ctx.fillStyle = "#f5f3ed";
     ctx.fillRect(box.x, box.y, box.w, box.h);
     if (images[index]) {
-      drawCoverImage(ctx, images[index], box.x, box.y, box.w, box.h);
+      if (imageMedia.length === 1) {
+        drawContainImageWithSoftBackdrop(ctx, images[index], box.x, box.y, box.w, box.h);
+      } else {
+        drawCoverImage(ctx, images[index], box.x, box.y, box.w, box.h);
+      }
     } else {
       drawShareMediaPlaceholder(ctx, box.x, box.y, box.w, box.h, "Photo");
     }
@@ -2221,6 +2233,12 @@ async function drawShareMedia(ctx, post, x, y, width, height) {
       ctx.textBaseline = "alphabetic";
     }
     ctx.restore();
+  });
+
+  images.forEach((image) => {
+    if (image?._shareObjectUrl) {
+      window.setTimeout(() => URL.revokeObjectURL(image._shareObjectUrl), 1200);
+    }
   });
 }
 
@@ -2294,25 +2312,32 @@ function drawShareMediaPlaceholder(ctx, x, y, width, height, label) {
   ctx.textBaseline = "alphabetic";
 }
 
-function drawShareDetails(ctx, post, x, y, width) {
-  ctx.fillStyle = "#111111";
-  ctx.font = "900 48px Arial, Helvetica, sans-serif";
-  const titleLines = wrapCanvasText(ctx, post.title || "Untitled Memory", x, y, width, 58, 2);
-  let cursorY = y + (titleLines * 58) + 10;
+function drawShareDetails(ctx, post, x, y, width, hasPhoto = false) {
+  const titleMaxY = MEMORY_SHARE_IMAGE_HEIGHT - 275;
+  const captionMaxY = MEMORY_SHARE_IMAGE_HEIGHT - 210;
 
-  if (post.caption) {
+  ctx.fillStyle = "#111111";
+  ctx.font = hasPhoto ? "900 45px Arial, Helvetica, sans-serif" : "900 50px Arial, Helvetica, sans-serif";
+  const titleLineHeight = hasPhoto ? 54 : 60;
+  const titleLines = wrapCanvasText(ctx, post.title || "Untitled Memory", x, y, width, titleLineHeight, hasPhoto ? 2 : 3);
+  let cursorY = y + (titleLines * titleLineHeight) + 14;
+
+  if (post.caption && cursorY < titleMaxY) {
     ctx.fillStyle = "#2d2b25";
-    ctx.font = "700 30px Arial, Helvetica, sans-serif";
-    const captionLines = wrapCanvasText(ctx, post.caption, x, cursorY, width, 42, 5);
-    cursorY += (captionLines * 42) + 34;
+    ctx.font = hasPhoto ? "700 28px Arial, Helvetica, sans-serif" : "700 31px Arial, Helvetica, sans-serif";
+    const captionLineHeight = hasPhoto ? 37 : 42;
+    const maxCaptionLines = Math.max(1, Math.min(hasPhoto ? 2 : 4, Math.floor((captionMaxY - cursorY) / captionLineHeight)));
+    const captionLines = wrapCanvasText(ctx, post.caption, x, cursorY, width, captionLineHeight, maxCaptionLines);
+    cursorY += (captionLines * captionLineHeight) + 24;
   } else {
-    cursorY += 20;
+    cursorY += 14;
   }
 
-  const avatarSize = 64;
+  const metaY = Math.min(cursorY, MEMORY_SHARE_IMAGE_HEIGHT - 214);
+  const avatarSize = 60;
   ctx.fillStyle = "#f7c600";
   ctx.beginPath();
-  ctx.arc(x + avatarSize / 2, cursorY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
+  ctx.arc(x + avatarSize / 2, metaY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
   ctx.fill();
   ctx.lineWidth = 3;
   ctx.strokeStyle = "#111111";
@@ -2321,16 +2346,16 @@ function drawShareDetails(ctx, post, x, y, width) {
   ctx.font = "900 24px Arial, Helvetica, sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(getInitials(post.postedBy), x + avatarSize / 2, cursorY + avatarSize / 2 + 1);
+  ctx.fillText(getInitials(post.postedBy), x + avatarSize / 2, metaY + avatarSize / 2 + 1);
 
   ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
   ctx.fillStyle = "#111111";
   ctx.font = "900 27px Arial, Helvetica, sans-serif";
-  ctx.fillText(post.postedBy || "SFK", x + avatarSize + 18, cursorY + 29);
+  ctx.fillText(post.postedBy || "SFK", x + avatarSize + 18, metaY + 29);
   ctx.fillStyle = "#6d6a62";
   ctx.font = "800 21px Arial, Helvetica, sans-serif";
-  ctx.fillText(post.role || "Officer", x + avatarSize + 18, cursorY + 58);
+  ctx.fillText(post.role || "Officer", x + avatarSize + 18, metaY + 58);
 
   const meta = [];
   if (post.media.length) meta.push(`${post.media.length} attachment${post.media.length > 1 ? "s" : ""}`);
@@ -2339,7 +2364,7 @@ function drawShareDetails(ctx, post, x, y, width) {
     ctx.textAlign = "right";
     ctx.fillStyle = "#111111";
     ctx.font = "800 23px Arial, Helvetica, sans-serif";
-    ctx.fillText(meta.join(" • "), x + width, cursorY + 43);
+    ctx.fillText(meta.join(" • "), x + width, metaY + 43);
     ctx.textAlign = "left";
   }
 }
@@ -2363,22 +2388,168 @@ function drawShareFooter(ctx, width, height) {
   ctx.textAlign = "left";
 }
 
-async function loadShareImage(url) {
+async function loadShareImage(mediaItem) {
+  const item = typeof mediaItem === "string" ? { url: mediaItem } : (mediaItem || {});
+  const fileId = String(item.fileId || getDriveFileId(item.url) || getDriveFileId(item.viewerUrl) || getDriveFileId(item.fullUrl) || getDriveFileId(item.downloadUrl) || "").trim();
+
+  // 1) If the media already has a data URL/base64 source, use it directly.
+  const inlineImage = await loadInlineShareImage(item);
+  if (inlineImage) return inlineImage;
+
+  // 2) Safest path for Google Drive photos: Apps Script reads the Drive file and
+  // returns base64. This avoids the browser canvas/CORS issue that causes the
+  // yellow "Photo" placeholder.
+  if (fileId) {
+    const proxied = await fetchShareImageThroughApi(fileId);
+    if (proxied) return proxied;
+  }
+
+  // 3) Fallback to public Google image URLs and stored URLs. Every image is
+  // verified on a tiny canvas first, so the final share card can export cleanly.
+  const candidates = getShareImageCandidates(item, fileId);
+  for (const url of candidates) {
+    const image = await loadVerifiedShareImage(url);
+    if (image) return image;
+  }
+
+  return null;
+}
+
+async function loadInlineShareImage(item) {
+  const inlineValues = [
+    item.dataUrl,
+    item.dataURL,
+    item.base64,
+    item.data && item.mimeType ? `data:${item.mimeType};base64,${item.data}` : ""
+  ];
+
+  for (const value of inlineValues) {
+    const text = String(value || "").trim();
+    if (!text || !text.startsWith("data:image/")) continue;
+    const image = await loadShareImageElement(text, false);
+    if (image && canUseImageInCanvas(image)) return image;
+  }
+
+  return null;
+}
+
+function getShareImageCandidates(item, fileId) {
+  const urls = [];
+  const add = (value) => {
+    const safe = safeHttpUrl(value);
+    if (safe && !urls.includes(safe)) urls.push(safe);
+  };
+
+  if (fileId) {
+    add(`https://lh3.googleusercontent.com/d/${encodeURIComponent(fileId)}=w2400`);
+    add(`https://drive.google.com/thumbnail?id=${encodeURIComponent(fileId)}&sz=w4000`);
+    add(`https://drive.google.com/thumbnail?id=${encodeURIComponent(fileId)}&sz=w2000`);
+    add(`https://drive.google.com/uc?export=view&id=${encodeURIComponent(fileId)}`);
+    add(`https://drive.google.com/uc?export=download&id=${encodeURIComponent(fileId)}`);
+  }
+
+  add(item.viewerUrl);
+  add(item.url);
+  add(item.downloadUrl);
+  add(item.fullUrl);
+  return urls;
+}
+
+async function fetchShareImageThroughApi(fileId) {
+  const url = getMemoryImageProxyUrl(fileId);
+  if (!url) return null;
+
+  try {
+    const response = await fetch(`${url}&_=${Date.now()}`, { cache: "no-store" });
+    if (!response.ok) throw new Error(`Image request failed (${response.status}).`);
+
+    const result = await response.json();
+    if (!result.success || !result.data) throw new Error(result.message || "Image data is missing.");
+
+    const blob = base64ToBlob(result.data, result.mimeType || "image/jpeg");
+    const objectUrl = URL.createObjectURL(blob);
+    const image = await loadShareImageElement(objectUrl, false);
+    if (image && canUseImageInCanvas(image)) {
+      image._shareObjectUrl = objectUrl;
+      return image;
+    }
+    URL.revokeObjectURL(objectUrl);
+    return null;
+  } catch (error) {
+    console.warn("Memory image proxy failed. Trying direct image source.", error);
+    return null;
+  }
+}
+
+async function loadVerifiedShareImage(url) {
+  // Try normal CORS image loading first.
+  const direct = await loadShareImageElement(url, true);
+  if (direct && canUseImageInCanvas(direct)) return direct;
+
+  // Some public image URLs are easier to use as a fetched blob/object URL.
+  const fetched = await fetchShareImageAsObjectUrl(url);
+  if (fetched) return fetched;
+
+  return null;
+}
+
+async function fetchShareImageAsObjectUrl(url) {
   const cleanUrl = safeHttpUrl(url);
   if (!cleanUrl) return null;
+
+  try {
+    const response = await fetch(cleanUrl, { mode: "cors", cache: "no-store" });
+    if (!response.ok) return null;
+    const blob = await response.blob();
+    if (!String(blob.type || "").startsWith("image/")) return null;
+    const objectUrl = URL.createObjectURL(blob);
+    const image = await loadShareImageElement(objectUrl, false);
+    if (image && canUseImageInCanvas(image)) {
+      image._shareObjectUrl = objectUrl;
+      return image;
+    }
+    URL.revokeObjectURL(objectUrl);
+  } catch (error) {
+    // Keep quiet; the next candidate may work.
+  }
+
+  return null;
+}
+
+function loadShareImageElement(url, useCors) {
+  const cleanUrl = String(url || "").trim().startsWith("data:image/") ? String(url).trim() : safeHttpUrl(url);
+  if (!cleanUrl) return Promise.resolve(null);
+
   return new Promise((resolve) => {
     const image = new Image();
     const done = (value) => {
       window.clearTimeout(timer);
       resolve(value);
     };
-    const timer = window.setTimeout(() => done(null), 9000);
-    image.crossOrigin = "anonymous";
+    const timer = window.setTimeout(() => done(null), 12000);
+    if (useCors) image.crossOrigin = "anonymous";
     image.onload = () => done(image);
     image.onerror = () => done(null);
     image.src = cleanUrl;
   });
 }
+
+function canUseImageInCanvas(image) {
+  if (!image || !image.naturalWidth || !image.naturalHeight) return false;
+
+  try {
+    const testCanvas = document.createElement("canvas");
+    testCanvas.width = 2;
+    testCanvas.height = 2;
+    const testCtx = testCanvas.getContext("2d");
+    testCtx.drawImage(image, 0, 0, 2, 2);
+    testCanvas.toDataURL("image/png");
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
 
 function drawCoverImage(ctx, image, x, y, width, height) {
   const imageRatio = image.naturalWidth / image.naturalHeight;
@@ -2397,6 +2568,41 @@ function drawCoverImage(ctx, image, x, y, width, height) {
   }
 
   ctx.drawImage(image, sourceX, sourceY, sourceW, sourceH, x, y, width, height);
+}
+
+function drawContainImageWithSoftBackdrop(ctx, image, x, y, width, height) {
+  // Main share card should show the whole photo, not crop important edges.
+  ctx.save();
+  ctx.globalAlpha = 0.38;
+  drawCoverImage(ctx, image, x, y, width, height);
+  ctx.restore();
+
+  ctx.fillStyle = "rgba(17,17,17,.18)";
+  ctx.fillRect(x, y, width, height);
+
+  const imageRatio = image.naturalWidth / image.naturalHeight;
+  const boxRatio = width / height;
+  let drawW = width;
+  let drawH = height;
+  let drawX = x;
+  let drawY = y;
+
+  if (imageRatio > boxRatio) {
+    drawW = width;
+    drawH = width / imageRatio;
+    drawY = y + (height - drawH) / 2;
+  } else {
+    drawH = height;
+    drawW = height * imageRatio;
+    drawX = x + (width - drawW) / 2;
+  }
+
+  ctx.save();
+  ctx.shadowColor = "rgba(0,0,0,.28)";
+  ctx.shadowBlur = 24;
+  ctx.shadowOffsetY = 10;
+  ctx.drawImage(image, drawX, drawY, drawW, drawH);
+  ctx.restore();
 }
 
 function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight, maxLines = 4) {

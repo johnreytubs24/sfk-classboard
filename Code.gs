@@ -44,6 +44,10 @@ function doGet(e) {
       result = getMemoryAudioPayload(e.parameter.fileId);
       break;
 
+    case "memoryMedia":
+      result = getMemoryMediaPayload(e.parameter.fileId);
+      break;
+
     default:
       result = {
         status: "error",
@@ -1689,6 +1693,49 @@ function getMemoryAudioPayload(fileId) {
     };
   } catch (error) {
     return { success: false, message: "Unable to load the music file from Drive." };
+  }
+}
+
+function getMemoryMediaPayload(fileId) {
+  const cleanId = String(fileId || "").trim();
+
+  if (!cleanId) {
+    return { success: false, status: "error", message: "Memory photo is not available." };
+  }
+
+  try {
+    const file = DriveApp.getFileById(cleanId);
+    const blob = file.getBlob();
+    const originalMimeType = file.getMimeType() || blob.getContentType() || "";
+    const name = file.getName() || "memory-photo";
+    let mimeType = blob.getContentType() || originalMimeType || "image/jpeg";
+
+    if (mimeType.indexOf("image/") !== 0) {
+      const lowerName = name.toLowerCase();
+      if (lowerName.endsWith(".png")) mimeType = "image/png";
+      else if (lowerName.endsWith(".webp")) mimeType = "image/webp";
+      else if (lowerName.endsWith(".gif")) mimeType = "image/gif";
+      else if (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg")) mimeType = "image/jpeg";
+    }
+
+    if (mimeType.indexOf("image/") !== 0) {
+      return { success: false, status: "error", message: "This Drive file is not an image file." };
+    }
+
+    const size = Number(file.getSize()) || 0;
+    if (size > 25 * 1024 * 1024) {
+      return { success: false, status: "error", message: "This photo is too large for the share card." };
+    }
+
+    return {
+      success: true,
+      status: "success",
+      name: name,
+      mimeType: mimeType,
+      data: Utilities.base64Encode(blob.getBytes())
+    };
+  } catch (error) {
+    return { success: false, status: "error", message: "Unable to load the memory photo from Drive: " + error.message };
   }
 }
 

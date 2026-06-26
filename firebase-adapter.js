@@ -87,7 +87,8 @@
 
     try {
       const parsed = new URL(url);
-      if (parsed.searchParams.get("type") === "memoryAudio") {
+      const requestType = parsed.searchParams.get("type");
+      if (requestType === "memoryAudio" || requestType === "memoryMedia") {
         return originalFetch(input, options);
       }
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = "sfk-classboard-v63-memory-share-card";
+const CACHE_NAME = "sfk-classboard-v65-memory-photo-share-final-photo-v32";
 const APP_SHELL = [
   "./",
   "./index.html",
