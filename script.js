@@ -6,6 +6,11 @@ const BIRTHDAY_ROTATE_MS = 30000;
 const CACHE_KEY = "sfkClassBoardData";
 const ANNOUNCEMENT_HEARTS_KEY = "sfkClassBoardHeartedAnnouncements";
 const MEMORIES_SEEN_IDS_KEY = "sfkMemoriesSeenPostIdsV1";
+const IS_PHONE_DEVICE = /Android|iPhone|iPod|Windows Phone|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+if (IS_PHONE_DEVICE) {
+  document.documentElement.classList.add("phone-device");
+}
 
 /* PRAYER AUDIO PLAYER SYSTEM
    No autoplay / no bell.
@@ -675,9 +680,15 @@ function renderAnnouncements(items) {
         ${attachmentMarkup}
 
         <div class="announcement-controls">
-          <button class="announcement-btn prev-btn" onclick="previousAnnouncement()">← Previous</button>
+          <button class="announcement-btn prev-btn" onclick="previousAnnouncement()" aria-label="Previous announcement">
+            <span class="announcement-nav-icon" aria-hidden="true">←</span>
+            <span class="announcement-nav-label">Previous</span>
+          </button>
           ${renderAnnouncementHeartButton(item)}
-          <button class="announcement-btn next-btn" onclick="nextAnnouncement()">Next →</button>
+          <button class="announcement-btn next-btn" onclick="nextAnnouncement()" aria-label="Next announcement">
+            <span class="announcement-nav-label">Next</span>
+            <span class="announcement-nav-icon" aria-hidden="true">→</span>
+          </button>
         </div>
       </div>
 
