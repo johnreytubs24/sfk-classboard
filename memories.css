@@ -777,14 +777,35 @@ select:focus-visible {
 }
 
 .heartButton:hover,
-.shareButton:hover {
+.heartButton:focus-visible {
   background: #f5f3ed;
+}
+
+.shareButton,
+.shareButton:hover,
+.shareButton:focus,
+.shareButton:active,
+.shareButton:disabled,
+.shareButton.loading {
+  appearance: none;
+  background: transparent;
+  box-shadow: none;
+  outline: none;
 }
 
 .shareButton.loading {
   opacity: .72;
-  animation: shareSpin .8s linear infinite;
   pointer-events: none;
+}
+
+.shareButtonIcon {
+  display: inline-block;
+  line-height: 1;
+  transform-origin: center;
+}
+
+.shareButton.loading .shareButtonIcon {
+  animation: shareSpin .8s linear infinite;
 }
 
 @keyframes shareSpin {

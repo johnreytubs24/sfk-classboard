@@ -744,7 +744,7 @@ function renderMemoryPost(post) {
 
       <div class="postActions">
         <button class="heartButton ${hearted ? "hearted" : ""}" type="button" data-action="heart" data-id="${escapeAttr(post.id)}" aria-label="Heart this memory">${hearted ? "&#9829;" : "&#9825;"}</button>
-        <button class="shareButton" type="button" data-action="share" data-id="${escapeAttr(post.id)}" aria-label="Create share image for this memory" title="Create share image">&#8599;</button>
+        <button class="shareButton" type="button" data-action="share" data-id="${escapeAttr(post.id)}" aria-label="Create share image for this memory" title="Create share image"><span class="shareButtonIcon" aria-hidden="true">&#8599;</span></button>
       </div>
 
       <div class="postDetails">
@@ -2073,7 +2073,7 @@ function setShareButtonBusy(button, busy) {
   button.disabled = busy;
   button.classList.toggle("loading", busy);
   button.setAttribute("aria-busy", busy ? "true" : "false");
-  button.innerHTML = busy ? "&#8635;" : "&#8599;";
+  button.innerHTML = `<span class="shareButtonIcon" aria-hidden="true">${busy ? "&#8635;" : "&#8599;"}</span>`;
 }
 
 async function createMemoryShareImage(post) {
@@ -2263,11 +2263,12 @@ async function drawShareMedia(ctx, post, x, y, width, height) {
   const images = await Promise.all(items.map((item) => loadShareImage(item)));
   const gap = 10;
   const layouts = getShareMediaLayout(items.length, innerX, innerY, innerW, innerH, gap);
-  const heartSize = imageMedia.length >= 4 ? 21 : 19;
+  const hasHeartGap = imageMedia.length >= 4;
+  const heartSize = 21;
   const heartCx = innerX + (innerW / 2);
   const heartCy = innerY + (innerH / 2);
 
-  if (imageMedia.length >= 3) {
+  if (hasHeartGap) {
     drawShareHeartGapBase(ctx, heartCx, heartCy, heartSize);
   }
 
@@ -2310,7 +2311,7 @@ async function drawShareMedia(ctx, post, x, y, width, height) {
     tempCtx.restore();
   });
 
-  if (imageMedia.length >= 3) {
+  if (hasHeartGap) {
     tempCtx.save();
     tempCtx.globalCompositeOperation = "destination-out";
     drawHeartPath(tempCtx, heartCx - innerX, heartCy - innerY, heartSize + 5);
