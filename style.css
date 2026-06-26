@@ -5910,25 +5910,142 @@ ol.formattedText li {
   cursor: pointer !important;
 }
 
-/* Phone sticky header: keep compact header sticky WITHOUT changing its black design */
+/* Compact professional attachment rows for Subject Announcements */
+.announcement-attachments.compact-attachments,
+.announcement-bottom-stack .announcement-attachments.compact-attachments {
+  width: min(420px, 92%) !important;
+  max-width: min(420px, 92%) !important;
+  display: grid !important;
+  justify-items: stretch !important;
+  gap: 5px !important;
+  margin: 4px auto 0 !important;
+  padding: 0 !important;
+}
+
+.announcement-attachments-label.compact-attachments-label {
+  display: inline-flex !important;
+  width: max-content !important;
+  max-width: 100% !important;
+  justify-self: center !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 2px 8px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: transparent !important;
+  color: #111 !important;
+  box-shadow: none !important;
+  font-size: clamp(.64rem, .82vw, .78rem) !important;
+  font-weight: 900 !important;
+  line-height: 1.1 !important;
+  letter-spacing: .02em !important;
+  text-transform: none !important;
+}
+
+.announcement-attachment-list.compact-attachment-list {
+  width: 100% !important;
+  max-width: 100% !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 5px !important;
+  margin: 0 !important;
+  justify-content: stretch !important;
+}
+
+.announcement-attachment-chip.compact-attachment-row {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  display: grid !important;
+  grid-template-columns: auto minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  justify-content: stretch !important;
+  gap: 7px !important;
+  padding: 5px 9px !important;
+  border: 2px solid #111 !important;
+  border-radius: 14px !important;
+  background: rgba(255, 255, 255, .86) !important;
+  color: #111 !important;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, .18) !important;
+  font-size: clamp(.68rem, .88vw, .84rem) !important;
+  font-weight: 900 !important;
+  line-height: 1.1 !important;
+  text-align: left !important;
+  text-decoration: none !important;
+}
+
+.announcement-attachment-chip.compact-attachment-row .attachment-file-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 1.35em !important;
+  height: 1.35em !important;
+  font-size: 1em !important;
+  flex: 0 0 auto !important;
+}
+
+.announcement-attachment-chip.compact-attachment-row .attachment-file-name {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.announcement-attachment-chip.compact-attachment-row .attachment-file-open {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 1.45em !important;
+  height: 1.45em !important;
+  border-radius: 999px !important;
+  background: #111 !important;
+  color: #ffd700 !important;
+  font-size: .78em !important;
+  line-height: 1 !important;
+  flex: 0 0 auto !important;
+}
+
+.announcement-attachment-chip.compact-attachment-row:hover,
+.announcement-attachment-chip.compact-attachment-row:focus {
+  background: #fff8cc !important;
+  transform: translateY(-1px) !important;
+  outline: none !important;
+}
+
 @media (max-width: 700px) {
-  .topbar {
-    position: sticky !important;
-    top: max(6px, env(safe-area-inset-top)) !important;
-    z-index: 5000 !important;
-    margin-bottom: 10px !important;
-    will-change: transform !important;
-    background: #111 !important;
-    color: #fff !important;
-    border: 2px solid #fff !important;
-    opacity: 1 !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    isolation: isolate !important;
+  .announcement-attachments.compact-attachments,
+  .announcement-bottom-stack .announcement-attachments.compact-attachments {
+    width: min(310px, 88%) !important;
+    max-width: min(310px, 88%) !important;
+    gap: 4px !important;
+    margin-top: 3px !important;
   }
 
+  .announcement-attachments-label.compact-attachments-label {
+    font-size: .62rem !important;
+    padding: 1px 6px !important;
+  }
+
+  .announcement-attachment-chip.compact-attachment-row {
+    padding: 4px 8px !important;
+    border-radius: 12px !important;
+    font-size: .74rem !important;
+    gap: 6px !important;
+  }
+}
+
+/* Phone sticky header must stay black, not yellow. */
+@media (max-width: 700px) {
+  .topbar {
+    background: #111 !important;
+    background-color: #111 !important;
+    background-image: none !important;
+  }
+
+  .topbar::before,
   .topbar::after {
-    content: none !important;
-    display: none !important;
+    background: transparent !important;
+    background-image: none !important;
+    box-shadow: none !important;
   }
 }

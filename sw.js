@@ -1,4 +1,4 @@
-const CACHE_NAME = "sfk-classboard-v59-phone-sticky-black-header";
+const CACHE_NAME = "sfk-classboard-v61-compact-attachments";
 const APP_SHELL = [
   "./",
   "./index.html",

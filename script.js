@@ -1442,15 +1442,18 @@ function renderAnnouncementAttachments(item) {
   const links = safeUrls
     .map((url, index) => {
       const label = labels[index] || `Attachment ${index + 1}`;
-      const icon = isImageUrl(url) || isImageUrl(label) ? "🖼️" : "📎";
+      const isImage = isImageUrl(url) || isImageUrl(label);
+      const icon = isImage ? "🖼️" : "📎";
 
       return `
-        <a class="announcement-attachment-chip"
+        <a class="announcement-attachment-chip compact-attachment-row"
            href="${escapeHtml(url)}"
            target="_blank"
-           rel="noopener noreferrer">
-          <span>${icon}</span>
-          <span>${escapeHtml(label)}</span>
+           rel="noopener noreferrer"
+           title="Open ${escapeHtml(label)}">
+          <span class="attachment-file-icon" aria-hidden="true">${icon}</span>
+          <span class="attachment-file-name">${escapeHtml(label)}</span>
+          <span class="attachment-file-open" aria-hidden="true">↗</span>
         </a>
       `;
     })
@@ -1458,10 +1461,12 @@ function renderAnnouncementAttachments(item) {
 
   if (!links) return "";
 
+  const attachmentLabel = safeUrls.length === 1 ? "Attachment" : "Attachments";
+
   return `
-    <div class="announcement-attachments" aria-label="Announcement attachments">
-      <div class="announcement-attachments-label">Attachments (${safeUrls.length})</div>
-      <div class="announcement-attachment-list">
+    <div class="announcement-attachments compact-attachments" aria-label="Announcement attachments">
+      <div class="announcement-attachments-label compact-attachments-label">📎 ${attachmentLabel} (${safeUrls.length})</div>
+      <div class="announcement-attachment-list compact-attachment-list">
         ${links}
       </div>
     </div>
@@ -3129,114 +3134,3 @@ heartAnnouncement = async function heartAnnouncementV3(id) {
 };
 
 initClassBoard();
-
-/* ========================================================================
-   FAST HEART LEDGER V4 UI
-   Optimistic UI: button/count updates instantly; Firebase save happens behind
-   the scenes. This removes the visible wait/loading cursor on desktop.
-======================================================================== */
-function updateAnnouncementHeartButtonInstantV4(id, hearted, count) {
-  const button = document.querySelector(`.announcement-heart-btn[data-announcement-id="${cssEscapeSafe(id)}"]`);
-  if (!button) return;
-  button.classList.toggle("is-hearted", Boolean(hearted));
-  button.classList.remove("is-saving");
-  button.disabled = false;
-  const icon = button.querySelector(".heart-icon");
-  if (icon) icon.textContent = hearted ? "❤️" : "🤍";
-  const countEl = button.querySelector("strong");
-  if (countEl) countEl.textContent = String(Math.max(0, Number(count) || 0));
-}
-
-function updateAnnouncementHeartRecordInstantV4(id, targetKey, hearted, count) {
-  const safeCount = Math.max(0, Number(count) || 0);
-  if (latestData && Array.isArray(latestData.announcements)) {
-    latestData.announcements.forEach(record => {
-      if (getAnnouncementId(record) === id) {
-        record._heartV3TargetKey = targetKey;
-        record._heartV3Count = safeCount;
-        record._heartV3Mine = Boolean(hearted);
-      }
-    });
-    try {
-      latestDataString = JSON.stringify(latestData);
-      localStorage.setItem(CACHE_KEY, latestDataString);
-    } catch (error) {
-      // Ignore cache write issues.
-    }
-  }
-  updateAnnouncementHeartButtonInstantV4(id, hearted, safeCount);
-}
-
-async function writeAnnouncementHeartLedgerFastV4(targetType, targetKey, shouldHeart) {
-  const db = getHeartLedgerDbV3();
-  if (!db) throw new Error("Firebase is not ready for hearts.");
-  const deviceId = getClassBoardHeartDeviceId();
-  const cleanTargetKey = String(targetKey || "").trim();
-  if (!cleanTargetKey) throw new Error("Missing heart target.");
-  const docId = makeHeartLedgerDocIdV3(cleanTargetKey, deviceId);
-  const ref = db.collection(HEART_LEDGER_COLLECTION_V3).doc(docId);
-  if (shouldHeart) {
-    const payload = {
-      Kind: HEART_LEDGER_KIND_V3,
-      TargetType: String(targetType || "record"),
-      TargetKey: cleanTargetKey,
-      DeviceID: deviceId,
-      Active: true,
-      UpdatedAtText: new Date().toISOString()
-    };
-    if (window.firebase?.firestore?.FieldValue) payload.UpdatedAt = firebase.firestore.FieldValue.serverTimestamp();
-    await ref.set(payload, { merge: true });
-  } else {
-    await ref.delete().catch(async () => {
-      await ref.set({
-        Kind: HEART_LEDGER_KIND_V3,
-        TargetType: String(targetType || "record"),
-        TargetKey: cleanTargetKey,
-        DeviceID: deviceId,
-        Active: false,
-        UpdatedAtText: new Date().toISOString()
-      }, { merge: true });
-    });
-  }
-  return { success: true, targetKey: cleanTargetKey, hearted: Boolean(shouldHeart) };
-}
-
-setAnnouncementHeartButtonSaving = function setAnnouncementHeartButtonSavingFastV4(id, saving) {
-  const button = document.querySelector(`.announcement-heart-btn[data-announcement-id="${cssEscapeSafe(id)}"]`);
-  if (!button) return;
-  // Do not disable the button or show wait cursor. The pending set still blocks double saves.
-  button.classList.toggle("is-saving", Boolean(saving));
-  button.disabled = false;
-};
-
-heartAnnouncement = function heartAnnouncementFastV4(id) {
-  const cleanId = String(id || "").trim();
-  if (!cleanId || ANNOUNCEMENT_HEART_LEDGER_PENDING.has(cleanId)) return false;
-
-  const item = findAnnouncementById(cleanId);
-  if (!item) {
-    console.warn("Announcement not found for heart:", cleanId);
-    return false;
-  }
-
-  const targetKey = makeAnnouncementHeartTargetKeyV3(item);
-  const previousHearted = Boolean(item._heartV3Mine);
-  const previousCount = Math.max(0, Number(item._heartV3Count) || 0);
-  const nextHearted = !previousHearted;
-  const optimisticCount = Math.max(0, previousCount + (nextHearted ? 1 : -1));
-
-  ANNOUNCEMENT_HEART_LEDGER_PENDING.add(cleanId);
-  updateAnnouncementHeartRecordInstantV4(cleanId, targetKey, nextHearted, optimisticCount);
-
-  writeAnnouncementHeartLedgerFastV4("announcement", targetKey, nextHearted)
-    .catch(error => {
-      console.error("Announcement heart save failed:", error);
-      updateAnnouncementHeartRecordInstantV4(cleanId, targetKey, previousHearted, previousCount);
-    })
-    .finally(() => {
-      ANNOUNCEMENT_HEART_LEDGER_PENDING.delete(cleanId);
-      setAnnouncementHeartButtonSaving(cleanId, false);
-    });
-
-  return false;
-};
