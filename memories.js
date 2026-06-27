@@ -132,7 +132,9 @@ function bindMemoryEvents() {
   document.getElementById("changeRoleButton")?.addEventListener("click", resetMemoryAuth);
   document.getElementById("memoryFiles")?.addEventListener("change", handleMemoryFiles);
   document.getElementById("mediaPreview")?.addEventListener("click", handleMediaPreviewAction);
+  document.getElementById("togglePostPreviewButton")?.addEventListener("click", togglePostPreview);
   document.getElementById("toggleMusicFieldsButton")?.addEventListener("click", () => toggleMusicFields());
+  document.getElementById("toggleAdditionalMusicSources")?.addEventListener("click", toggleAdditionalMusicSources);
   document.getElementById("testMusicLinkButton")?.addEventListener("click", testMusicLink);
   document.getElementById("musicLibrarySearch")?.addEventListener("input", renderMemoryMusicLibrary);
   document.getElementById("musicLibraryList")?.addEventListener("click", handleMusicLibraryListClick);
@@ -3127,6 +3129,7 @@ function closeModal(id) {
   if (id === "composeModal") {
     stopMusicLibraryPreview();
     closeMusicLibraryManager();
+    setPostPreviewOpen(false);
   }
   modal.hidden = true;
   document.body.style.overflow = "";
@@ -4416,7 +4419,7 @@ function setMusicFieldsOpen(open) {
     : `<span>&#9835;</span> Add background music`;
 
   if (open) {
-    window.setTimeout(() => document.getElementById("memoryMusicUrl")?.focus(), 80);
+    window.setTimeout(() => document.getElementById("youtubeSongSearch")?.focus(), 80);
   }
 }
 
@@ -4424,6 +4427,23 @@ function toggleMusicFields(forceOpen) {
   const panel = document.getElementById("musicFieldsPanel");
   const next = typeof forceOpen === "boolean" ? forceOpen : Boolean(panel?.hidden);
   setMusicFieldsOpen(next);
+}
+
+function setAdditionalMusicSourcesOpen(open) {
+  const panel = document.getElementById("additionalMusicSources");
+  const button = document.getElementById("toggleAdditionalMusicSources");
+  if (!panel || !button) return;
+
+  panel.hidden = !open;
+  button.setAttribute("aria-expanded", open ? "true" : "false");
+  button.textContent = open
+    ? "Hide Music Library & Direct Link"
+    : "Show Music Library & Direct Link";
+}
+
+function toggleAdditionalMusicSources() {
+  const panel = document.getElementById("additionalMusicSources");
+  setAdditionalMusicSourcesOpen(Boolean(panel?.hidden));
 }
 
 function hasMusicDraft() {
@@ -4584,6 +4604,21 @@ function renderComposePreview() {
       </div>
     </article>
   `;
+}
+
+function setPostPreviewOpen(open) {
+  const preview = document.getElementById("composePreview");
+  const button = document.getElementById("togglePostPreviewButton");
+  if (!preview || !button) return;
+
+  preview.hidden = !open;
+  button.setAttribute("aria-expanded", open ? "true" : "false");
+  button.textContent = open ? "Hide Post Preview" : "Show Post Preview";
+}
+
+function togglePostPreview() {
+  const preview = document.getElementById("composePreview");
+  setPostPreviewOpen(Boolean(preview?.hidden));
 }
 
 function formatPreviewDate(value) {
@@ -4775,6 +4810,8 @@ function resetMemoryForm() {
   const musicLibraryStatus = document.getElementById("musicLibraryStatus");
   if (musicLibraryStatus) musicLibraryStatus.textContent = "";
   renderMemoryMusicLibrary();
+  setPostPreviewOpen(false);
+  setAdditionalMusicSourcesOpen(false);
   setMusicFieldsOpen(false);
   setDefaultMemoryDate();
   restoreRememberedPostedBy();

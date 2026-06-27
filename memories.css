@@ -988,6 +988,10 @@ select:focus-visible {
   padding: 24px;
 }
 
+.memoryForm {
+  padding-top: 14px;
+}
+
 .authStep {
   width: min(400px, 100%);
   margin: 0 auto;
@@ -1034,39 +1038,35 @@ textarea {
 
 .postingIdentity {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) auto;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 10px;
-  padding: 10px;
-  margin-bottom: 18px;
+  gap: 8px;
+  min-height: 42px;
+  padding: 5px 9px 5px 6px;
+  margin-bottom: 12px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 7px;
   background: var(--white);
 }
 
-.miniBrandMark {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  font-size: .78rem;
+.postingIdentity .miniBrandMark {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  font-size: .62rem;
 }
 
-.postingIdentity > span:nth-child(2) {
+.postingIdentity > strong {
   min-width: 0;
-  display: grid;
-  gap: 2px;
-}
-
-.postingIdentity small {
-  color: var(--muted);
-  font-size: .72rem;
+  font-size: .84rem;
 }
 
 .postingIdentity button {
   border: 0;
   background: transparent;
   color: #6f5b00;
-  font-size: .78rem;
+  padding: 5px 7px;
+  font-size: .7rem;
   font-weight: 900;
   cursor: pointer;
 }
@@ -1205,8 +1205,31 @@ textarea {
   background: var(--white);
 }
 
+.composePreview[hidden] {
+  display: none !important;
+}
+
 .composePreview:empty {
   display: none;
+}
+
+.previewToggleButton {
+  width: 100%;
+  min-height: 40px;
+  margin: 0 0 14px;
+  padding: 8px 12px;
+  border: 1px solid #c6b45d;
+  border-radius: 7px;
+  background: #fffdf4;
+  color: var(--ink);
+  font-size: .76rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.previewToggleButton:hover,
+.previewToggleButton[aria-expanded="true"] {
+  background: #fff1a8;
 }
 
 .composePreviewTitle {
@@ -1464,6 +1487,29 @@ textarea {
   border: 1px solid #d8c777;
   border-radius: 7px;
   background: rgba(255, 255, 255, .78);
+}
+
+.additionalMusicToggle {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid #b89a17;
+  border-radius: 7px;
+  background: transparent;
+  color: #5e4c00;
+  font-size: .74rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.additionalMusicToggle:hover,
+.additionalMusicToggle[aria-expanded="true"] {
+  background: #fff1a8;
+  color: var(--ink);
+}
+
+#additionalMusicSources[hidden] {
+  display: none !important;
 }
 
 .youtubeSearchRow {
@@ -2575,6 +2621,10 @@ textarea {
   .authStep,
   .memoryForm {
     padding: 18px 15px calc(20px + env(safe-area-inset-bottom));
+  }
+
+  .memoryForm {
+    padding-top: 10px;
   }
 
   .formGrid {

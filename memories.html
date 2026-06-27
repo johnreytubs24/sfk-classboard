@@ -11,7 +11,7 @@
   <link rel="manifest" href="manifest.webmanifest?v=14" />
   <link rel="icon" href="icons/icon-192.png?v=14" />
   <link rel="apple-touch-icon" href="icons/icon-192.png?v=14" />
-  <link rel="stylesheet" href="memories.css?v=48-youtube-pill-overlay" />
+  <link rel="stylesheet" href="memories.css?v=51-compact-compose-header" />
 </head>
 <body>
   <header class="memoryTopbar">
@@ -105,8 +105,8 @@
       <form id="memoryForm" class="memoryForm" hidden>
         <div class="postingIdentity">
           <span class="miniBrandMark">SFK</span>
-          <span><strong id="postingRole">Officer</strong><small>Posting to SFK Memories</small></span>
-          <button id="changeRoleButton" type="button">Change</button>
+          <strong id="postingRole">Officer</strong>
+          <button id="changeRoleButton" type="button">Change role</button>
         </div>
 
         <div class="formGrid">
@@ -133,7 +133,10 @@
           <input id="memoryFiles" type="file" accept="image/*,video/*" multiple />
         </label>
         <div id="mediaPreview" class="mediaPreview"></div>
-        <div id="composePreview" class="composePreview" aria-live="polite"></div>
+        <button id="togglePostPreviewButton" class="previewToggleButton" type="button" aria-expanded="false" aria-controls="composePreview">
+          Show Post Preview
+        </button>
+        <div id="composePreview" class="composePreview" aria-live="polite" hidden></div>
 
         <div class="orDivider"><span>or</span></div>
         <label>Video link
@@ -163,37 +166,44 @@
             <div id="youtubeSongResults" class="youtubeSongResults"></div>
           </section>
 
-          <div class="musicLibraryOr"><span>or choose saved audio</span></div>
-          <section class="memoryMusicLibrary" aria-labelledby="memoryMusicLibraryTitle">
-            <div class="memoryMusicLibraryHeader">
-              <div>
-                <strong id="memoryMusicLibraryTitle">Music Library</strong>
-                <small>Select a saved song or preview it first.</small>
-              </div>
-              <button id="manageMusicLibraryButton" type="button">Manage</button>
-            </div>
-            <label class="musicLibrarySearchLabel" for="musicLibrarySearch">
-              <span aria-hidden="true">&#128269;</span>
-              <input id="musicLibrarySearch" type="search" placeholder="Search songs" autocomplete="off" />
-            </label>
-            <div id="musicLibraryList" class="musicLibraryList">
-              <div class="musicLibraryStatus">Open background music to load songs.</div>
-            </div>
-            <p id="musicLibraryStatus" class="musicLibraryMessage" aria-live="polite"></p>
-          </section>
-
-          <div class="musicLibraryOr"><span>or use a direct link</span></div>
-          <label>Music link
-            <input id="memoryMusicUrl" type="url" placeholder="Direct MP3/M4A/OGG or JukeHost audio link" />
-            <small class="fieldHint">Use this only when the song is not yet saved in the Music Library.</small>
-          </label>
           <label>Displayed music title
             <input id="memoryMusicTitle" type="text" maxlength="80" placeholder="Optional. Example: SFK Theme Song" />
-            <small class="fieldHint">This is the title shown on the music marquee. Leave blank to use the file/source name.</small>
+            <small class="fieldHint">This title appears on the music pill. A selected YouTube song fills it automatically.</small>
           </label>
-          <div class="musicTestRow">
-            <button id="testMusicLinkButton" class="secondaryButton" type="button">Test Music Link</button>
-            <small id="musicTestMessage" class="musicTestMessage">Paste a direct audio link, then test before posting.</small>
+
+          <button id="toggleAdditionalMusicSources" class="additionalMusicToggle" type="button" aria-expanded="false" aria-controls="additionalMusicSources">
+            Show Music Library &amp; Direct Link
+          </button>
+
+          <div id="additionalMusicSources" hidden>
+            <div class="musicLibraryOr"><span>or choose saved audio</span></div>
+            <section class="memoryMusicLibrary" aria-labelledby="memoryMusicLibraryTitle">
+              <div class="memoryMusicLibraryHeader">
+                <div>
+                  <strong id="memoryMusicLibraryTitle">Music Library</strong>
+                  <small>Select a saved song or preview it first.</small>
+                </div>
+                <button id="manageMusicLibraryButton" type="button">Manage</button>
+              </div>
+              <label class="musicLibrarySearchLabel" for="musicLibrarySearch">
+                <span aria-hidden="true">&#128269;</span>
+                <input id="musicLibrarySearch" type="search" placeholder="Search songs" autocomplete="off" />
+              </label>
+              <div id="musicLibraryList" class="musicLibraryList">
+                <div class="musicLibraryStatus">Open background music to load songs.</div>
+              </div>
+              <p id="musicLibraryStatus" class="musicLibraryMessage" aria-live="polite"></p>
+            </section>
+
+            <div class="musicLibraryOr"><span>or use a direct link</span></div>
+            <label>Music link
+              <input id="memoryMusicUrl" type="url" placeholder="Direct MP3/M4A/OGG or JukeHost audio link" />
+              <small class="fieldHint">Use this only when the song is not yet saved in the Music Library.</small>
+            </label>
+            <div class="musicTestRow">
+              <button id="testMusicLinkButton" class="secondaryButton" type="button">Test Music Link</button>
+              <small id="musicTestMessage" class="musicTestMessage">Paste a direct audio link, then test before posting.</small>
+            </div>
           </div>
         </div>
 
@@ -298,6 +308,6 @@
   <script src="firebase-config.js?v=1"></script>
   <script src="firebase-adapter.js?v=13-youtube-song-picker"></script>
   <script src="pwa.js?v=15"></script>
-  <script src="memories.js?v=48-youtube-pill-overlay"></script>
+  <script src="memories.js?v=51-compact-compose-header"></script>
 </body>
 </html>
