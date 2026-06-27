@@ -1,4 +1,4 @@
-const CACHE_NAME = "sfk-classboard-v92-route-recovery";
+const CACHE_NAME = "sfk-classboard-v93-phone-device-lock";
 const APP_SHELL = [
   "./",
   "./index.html",

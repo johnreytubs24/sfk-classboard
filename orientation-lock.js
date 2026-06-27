@@ -3,14 +3,18 @@
   const isStandalone = () =>
     window.matchMedia("(display-mode: standalone)").matches ||
     window.navigator.standalone === true;
-  const isPhone = () =>
-    window.matchMedia("(pointer: coarse)").matches &&
-    Math.min(window.screen?.width || innerWidth, window.screen?.height || innerHeight) <= 520;
+  const isPhone = () => {
+    const userAgentDataMobile = window.navigator.userAgentData?.mobile;
+    const phoneUserAgent = /iPhone|iPod|Android.+Mobile|Windows Phone|webOS|BlackBerry/i
+      .test(window.navigator.userAgent || "");
+    return userAgentDataMobile === true || phoneUserAgent;
+  };
 
   let locking = false;
+  let portraitLocked = false;
 
   async function lockPortrait(allowFullscreen) {
-    if (locking || !isPhone() || !orientation?.lock) return;
+    if (locking || portraitLocked || !isPhone() || !orientation?.lock) return;
     locking = true;
 
     try {
@@ -29,6 +33,7 @@
       } catch (error) {
         await orientation.lock("portrait");
       }
+      portraitLocked = true;
     } catch (error) {
       // Some browsers only honor the manifest lock in an installed PWA.
     } finally {
@@ -45,13 +50,21 @@
   }
 
   window.addEventListener("pageshow", retryLock);
-  window.addEventListener("orientationchange", retryLock);
-  orientation?.addEventListener?.("change", retryLock);
+  window.addEventListener("orientationchange", () => {
+    portraitLocked = false;
+    retryLock();
+  });
+  orientation?.addEventListener?.("change", () => {
+    if (!String(orientation.type || "").startsWith("portrait")) portraitLocked = false;
+    retryLock();
+  });
+  document.addEventListener("fullscreenchange", () => {
+    if (!document.fullscreenElement) portraitLocked = false;
+  });
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden) retryLock();
   });
   document.addEventListener("pointerup", () => lockPortrait(true), {
-    once: true,
     capture: true,
     passive: true
   });
