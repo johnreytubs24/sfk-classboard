@@ -364,6 +364,35 @@
   font: inherit;
 }
 
+.classChatPollOptionsEditor {
+  display: grid;
+  gap: 8px;
+}
+
+.classChatPollOptionRow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.classChatPollOptionRow input {
+  min-width: 0;
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.classChatPollOptionRow button {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  border: 0;
+  border-radius: 50%;
+  background: #eeeae1;
+  color: #111;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
 .classChatControlsPanel > button,
 .classChatPollPanel > button {
   width: 100%;
@@ -376,6 +405,26 @@
   font-weight: 950;
   box-shadow: 3px 3px 0 #111;
   cursor: pointer;
+}
+
+.classChatPollPanel > .classChatAddPollOption {
+  width: auto;
+  margin-top: 10px;
+  border: 1.5px solid #bdb5a7;
+  padding: 8px 12px;
+  background: #fff;
+  color: #111;
+  font-size: .78rem;
+  box-shadow: none;
+}
+
+.classChatPollPanel > .classChatAddPollOption:hover {
+  background: #f3f0e8;
+}
+
+.classChatPollPanel > .classChatAddPollOption:disabled {
+  opacity: .6;
+  cursor: default;
 }
 
 .classChatControlRow {
@@ -1282,6 +1331,13 @@ body.classChatIsOpen {
   background: #202020;
   color: #fff;
   color-scheme: dark;
+}
+
+.classChatPanel.is-dark .classChatPollOptionRow button,
+.classChatPanel.is-dark .classChatPollPanel > .classChatAddPollOption {
+  border-color: #494949;
+  background: #2c2c2c;
+  color: #fff;
 }
 
 .classChatPanel.is-dark .classChatUtilityHint,

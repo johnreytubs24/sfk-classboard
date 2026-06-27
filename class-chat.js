@@ -3,6 +3,7 @@
 
   const REACTIONS = ["🫶", "👍", "❤️", "😂", "😮", "😢", "🙏", "✅"];
   const MESSAGE_LIMIT_STEP = 30;
+  const MAX_POLL_OPTIONS = 12;
   const OWN_DELETE_WINDOW_MS = 5 * 60 * 1000;
   const CHAT_THEME_KEY = "sfkClassChatTheme";
   const CHAT_LAST_COUNT_KEY = "sfkClassChatLastReadCount";
@@ -66,6 +67,8 @@
     elements.searchInput.addEventListener("input", renderSearchResults);
     elements.controlsForm.addEventListener("submit", saveChatControls);
     elements.pollForm.addEventListener("submit", createQuickPoll);
+    elements.addPollOption.addEventListener("click", addPollOption);
+    elements.pollOptionsEditor.addEventListener("click", handlePollOptionEditorClick);
     elements.pinned.addEventListener("click", focusPinnedMessage);
     elements.roleTabs.forEach((button) => {
       button.addEventListener("click", () => selectRole(button.dataset.chatRole));
@@ -114,7 +117,8 @@
     elements.controlsMessage = document.getElementById("classChatControlsMessage");
     elements.pollForm = document.getElementById("classChatPollPanel");
     elements.pollQuestion = document.getElementById("classChatPollQuestion");
-    elements.pollOptions = Array.from(document.querySelectorAll(".classChatPollOptionInput"));
+    elements.pollOptionsEditor = document.getElementById("classChatPollOptionsEditor");
+    elements.addPollOption = document.getElementById("classChatAddPollOption");
     elements.pollMessage = document.getElementById("classChatPollMessage");
     elements.login = document.getElementById("classChatLogin");
     elements.room = document.getElementById("classChatRoom");
@@ -359,7 +363,8 @@
     closeChatMenu();
     elements.login.hidden = false;
     elements.room.hidden = true;
-    elements.logout.hidden = true;
+    elements.logout.hidden = false;
+    elements.searchOpen.hidden = true;
     elements.pollOpen.hidden = true;
     elements.controlsOpen.hidden = true;
     elements.status.textContent = "Sign in to join the conversation";
@@ -377,9 +382,10 @@
     elements.login.hidden = true;
     elements.room.hidden = false;
     elements.logout.hidden = false;
+    elements.searchOpen.hidden = false;
     elements.status.textContent = `${currentProfile.name} · Class member`;
     elements.controlsOpen.hidden = currentProfile.role !== "admin";
-    elements.pollOpen.hidden = !["admin", "officer"].includes(currentProfile.role);
+    elements.pollOpen.hidden = false;
     unreadDividerAfter = getStoredNumber(CHAT_LAST_TIME_KEY);
     elements.loginMessage.textContent = "";
     startRealtimeListeners();
@@ -1287,14 +1293,16 @@
 
   async function createQuickPoll(event) {
     event.preventDefault();
-    if (!["admin", "officer"].includes(currentProfile.role)) return;
+    if (!currentProfile) return;
     if (currentConfig.Locked && currentProfile.role !== "admin") {
       elements.pollMessage.textContent = "The Adviser has locked the conversation.";
       return;
     }
 
     const question = elements.pollQuestion.value.trim();
-    const options = elements.pollOptions.map((input) => input.value.trim()).filter(Boolean);
+    const options = Array.from(elements.pollOptionsEditor.querySelectorAll(".classChatPollOptionInput"))
+      .map((input) => input.value.trim())
+      .filter(Boolean);
     if (!question || options.length < 2) {
       elements.pollMessage.textContent = "Enter a question and at least two choices.";
       return;
@@ -1315,6 +1323,7 @@
         CreatedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
       elements.pollForm.reset();
+      resetPollOptionsEditor();
       closeUtility();
       lastSentAt = Date.now();
       scrollToBottom();
@@ -1323,6 +1332,58 @@
     } finally {
       button.disabled = false;
     }
+  }
+
+  function addPollOption() {
+    const currentCount = elements.pollOptionsEditor.querySelectorAll(".classChatPollOptionRow").length;
+    if (currentCount >= MAX_POLL_OPTIONS) return;
+    const row = document.createElement("div");
+    row.className = "classChatPollOptionRow";
+    row.innerHTML = `
+      <input class="classChatPollOptionInput" type="text" maxlength="80" placeholder="Choice ${currentCount + 1} (optional)" />
+      <button type="button" data-remove-poll-option aria-label="Remove choice">&times;</button>`;
+    elements.pollOptionsEditor.appendChild(row);
+    refreshPollOptionRows();
+    row.querySelector("input").focus();
+  }
+
+  function handlePollOptionEditorClick(event) {
+    const button = event.target.closest("[data-remove-poll-option]");
+    if (!button) return;
+    button.closest(".classChatPollOptionRow")?.remove();
+    refreshPollOptionRows();
+  }
+
+  function refreshPollOptionRows() {
+    const rows = Array.from(elements.pollOptionsEditor.querySelectorAll(".classChatPollOptionRow"));
+    rows.forEach((row, index) => {
+      const input = row.querySelector("input");
+      input.required = index < 2;
+      input.placeholder = `Choice ${index + 1}${index < 2 ? "" : " (optional)"}`;
+    });
+    elements.addPollOption.disabled = rows.length >= MAX_POLL_OPTIONS;
+    elements.addPollOption.textContent = rows.length >= MAX_POLL_OPTIONS
+      ? "Maximum 12 choices"
+      : "+ Add choice";
+  }
+
+  function resetPollOptionsEditor() {
+    elements.pollOptionsEditor.innerHTML = `
+      <div class="classChatPollOptionRow">
+        <input class="classChatPollOptionInput" type="text" maxlength="80" placeholder="Choice 1" required />
+      </div>
+      <div class="classChatPollOptionRow">
+        <input class="classChatPollOptionInput" type="text" maxlength="80" placeholder="Choice 2" required />
+      </div>
+      <div class="classChatPollOptionRow">
+        <input class="classChatPollOptionInput" type="text" maxlength="80" placeholder="Choice 3 (optional)" />
+        <button type="button" data-remove-poll-option aria-label="Remove choice">&times;</button>
+      </div>
+      <div class="classChatPollOptionRow">
+        <input class="classChatPollOptionInput" type="text" maxlength="80" placeholder="Choice 4 (optional)" />
+        <button type="button" data-remove-poll-option aria-label="Remove choice">&times;</button>
+      </div>`;
+    refreshPollOptionRows();
   }
 
   async function voteInPoll(messageId, optionIndex) {

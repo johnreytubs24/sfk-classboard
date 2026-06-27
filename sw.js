@@ -1,4 +1,4 @@
-const CACHE_NAME = "sfk-classboard-v124-role-menu-visibility";
+const CACHE_NAME = "sfk-classboard-v126-logged-out-chat-menu";
 const APP_SHELL = [
   "./",
   "./index.html",

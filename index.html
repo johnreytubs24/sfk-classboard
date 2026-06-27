@@ -14,7 +14,7 @@
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=3" />
   <link rel="apple-touch-icon" href="icons/icon-192.png?v=3" />
   <link rel="stylesheet" href="style.css?v=74-clock-access-menu" />
-  <link rel="stylesheet" href="class-chat.css?v=10-role-menu-visibility" />
+  <link rel="stylesheet" href="class-chat.css?v=12-logged-out-menu" />
   <script src="orientation-lock.js?v=3-phone-device-lock" defer></script>
 
   <style id="sfkStartIntroStyle">
@@ -809,10 +809,23 @@
           <label for="classChatPollQuestion">Question</label>
           <input id="classChatPollQuestion" type="text" maxlength="160" placeholder="Ask the class..." required />
           <label>Choices</label>
-          <input class="classChatPollOptionInput" type="text" maxlength="80" placeholder="Choice 1" required />
-          <input class="classChatPollOptionInput" type="text" maxlength="80" placeholder="Choice 2" required />
-          <input class="classChatPollOptionInput" type="text" maxlength="80" placeholder="Choice 3 (optional)" />
-          <input class="classChatPollOptionInput" type="text" maxlength="80" placeholder="Choice 4 (optional)" />
+          <div id="classChatPollOptionsEditor" class="classChatPollOptionsEditor">
+            <div class="classChatPollOptionRow">
+              <input class="classChatPollOptionInput" type="text" maxlength="80" placeholder="Choice 1" required />
+            </div>
+            <div class="classChatPollOptionRow">
+              <input class="classChatPollOptionInput" type="text" maxlength="80" placeholder="Choice 2" required />
+            </div>
+            <div class="classChatPollOptionRow">
+              <input class="classChatPollOptionInput" type="text" maxlength="80" placeholder="Choice 3 (optional)" />
+              <button type="button" data-remove-poll-option aria-label="Remove choice">&times;</button>
+            </div>
+            <div class="classChatPollOptionRow">
+              <input class="classChatPollOptionInput" type="text" maxlength="80" placeholder="Choice 4 (optional)" />
+              <button type="button" data-remove-poll-option aria-label="Remove choice">&times;</button>
+            </div>
+          </div>
+          <button id="classChatAddPollOption" class="classChatAddPollOption" type="button">+ Add choice</button>
           <button type="submit">Post poll</button>
           <p id="classChatPollMessage" class="classChatUtilityHint" role="status"></p>
         </form>
@@ -931,7 +944,7 @@
   <script src="firebase-config.js?v=2-secure-auth"></script>
   <script src="firebase-adapter.js?v=15-secure-auth"></script>
   <script src="script.js?v=73-clock-access-menu"></script>
-  <script src="class-chat.js?v=10-role-menu-visibility"></script>
+  <script src="class-chat.js?v=12-logged-out-menu"></script>
   <script src="pwa.js?v=3"></script>
 </body>
 </html>
