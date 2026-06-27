@@ -1,4 +1,4 @@
-const CACHE_NAME = "sfk-classboard-v69-memory-share-sizes";
+const CACHE_NAME = "sfk-classboard-v80-youtube-referrer-fix";
 const APP_SHELL = [
   "./",
   "./index.html",

@@ -14,6 +14,69 @@ const MEMORY_SHARE_IMAGE_HEIGHT = 1350;
 const MEMORY_SHARE_STORY_WIDTH = 1080;
 const MEMORY_SHARE_STORY_HEIGHT = 1920;
 const MEMORY_SHARE_PREVIEW_LIMIT = 4;
+const MEMORY_MUSIC_LIBRARY_DOC_ID = "memoryMusicLibrary";
+const DEFAULT_MEMORY_MUSIC_LIBRARY = [
+  {
+    id: "019f0409-13d2-7275-b51f-0e58da8105fe",
+    title: "Halcali - Otsukare Summer (Lyrics)",
+    category: "Pang song",
+    url: "https://audio.jukehost.co.uk/019f0409-13d2-7275-b51f-0e58da8105fe"
+  },
+  {
+    id: "019efe86-fd8f-72dd-9b85-e599fae9da2c",
+    title: "Impostor Syndrome",
+    category: "Pang song",
+    url: "https://audio.jukehost.co.uk/019efe86-fd8f-72dd-9b85-e599fae9da2c"
+  },
+  {
+    id: "019ef9f2-8a06-71ba-85f0-5ef3b12c2270",
+    title: "Michael Buble - It's Beginning to Look a Lot Like Christmas (ARAN Cover)",
+    category: "Pang song",
+    url: "https://audio.jukehost.co.uk/019ef9f2-8a06-71ba-85f0-5ef3b12c2270"
+  },
+  {
+    id: "019ef9f2-12d0-70dc-90e8-600513eef96b",
+    title: "Michael Jackson - Man in the Mirror (Lyrics)",
+    category: "Pang song",
+    url: "https://audio.jukehost.co.uk/019ef9f2-12d0-70dc-90e8-600513eef96b"
+  },
+  {
+    id: "019ef9f2-89dd-72d0-81d3-ac7f8691ce7c",
+    title: "My Mood Playlist - 10 Songs, One Guitar (ARAN Acoustic Mashup)",
+    category: "Pang song",
+    url: "https://audio.jukehost.co.uk/019ef9f2-89dd-72d0-81d3-ac7f8691ce7c"
+  },
+  {
+    id: "019f0348-6fe4-7385-8e80-1bdce1382d95",
+    title: "Patience and Prudence - A Smile and a Ribbon (Sped Up)",
+    category: "Pang song",
+    url: "https://audio.jukehost.co.uk/019f0348-6fe4-7385-8e80-1bdce1382d95"
+  },
+  {
+    id: "019ef9f2-89dd-70c3-8032-bdbf97f57001",
+    title: "Ryan Gosling and Emma Stone - City of Stars (ARAN Cover)",
+    category: "Pang song",
+    url: "https://audio.jukehost.co.uk/019ef9f2-89dd-70c3-8032-bdbf97f57001"
+  },
+  {
+    id: "019f06bb-f55a-7322-b938-1c91ba58f0fe",
+    title: "Sasane - Mosi Mosi (Lyrics)",
+    category: "Pang song",
+    url: "https://audio.jukehost.co.uk/019f06bb-f55a-7322-b938-1c91ba58f0fe"
+  },
+  {
+    id: "019f06bc-735a-715c-a8b1-a5cadcf8d42a",
+    title: "Sasane - Mosi Mosi (Lyrics)",
+    category: "Pang song",
+    url: "https://audio.jukehost.co.uk/019f06bc-735a-715c-a8b1-a5cadcf8d42a"
+  },
+  {
+    id: "019ef9f2-89dd-70e8-a633-a2066b5540d3",
+    title: "Bill Withers - Just the Two of Us (ARAN Cover)",
+    category: "Pang song",
+    url: "https://audio.jukehost.co.uk/019ef9f2-89dd-70e8-a633-a2066b5540d3"
+  }
+];
 
 const memoryState = {
   posts: [],
@@ -26,7 +89,16 @@ const memoryState = {
   viewerIndex: 0,
   viewerAnimating: false,
   requestedPostHandled: false,
-  suppressClickUntil: 0
+  suppressClickUntil: 0,
+  musicLibrary: [],
+  musicLibraryLoaded: false,
+  musicLibraryLoading: false,
+  musicPreviewAudio: null,
+  musicPreviewId: "",
+  youtubeApiKey: "",
+  youtubeSearchResults: [],
+  youtubePreviewId: "",
+  selectedMusicLibraryIds: new Set()
 };
 
 let touchGesture = null;
@@ -62,10 +134,33 @@ function bindMemoryEvents() {
   document.getElementById("mediaPreview")?.addEventListener("click", handleMediaPreviewAction);
   document.getElementById("toggleMusicFieldsButton")?.addEventListener("click", () => toggleMusicFields());
   document.getElementById("testMusicLinkButton")?.addEventListener("click", testMusicLink);
+  document.getElementById("musicLibrarySearch")?.addEventListener("input", renderMemoryMusicLibrary);
+  document.getElementById("musicLibraryList")?.addEventListener("click", handleMusicLibraryListClick);
+  document.getElementById("manageMusicLibraryButton")?.addEventListener("click", openMusicLibraryManager);
+  document.getElementById("musicLibraryForm")?.addEventListener("submit", saveMusicLibrarySong);
+  document.getElementById("importMusicLibrarySongs")?.addEventListener("click", importMusicLibrarySongs);
+  document.getElementById("searchYoutubeSongsButton")?.addEventListener("click", searchYoutubeSongs);
+  document.getElementById("youtubeSongSearch")?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      searchYoutubeSongs();
+    }
+  });
+  document.getElementById("youtubeSongResults")?.addEventListener("click", handleYoutubeSongResultClick);
+  document.getElementById("saveYoutubeApiKey")?.addEventListener("click", saveYoutubeApiKey);
+  document.getElementById("cancelMusicLibraryEdit")?.addEventListener("click", resetMusicLibraryEditor);
+  document.getElementById("musicLibraryManageList")?.addEventListener("click", handleMusicLibraryManageClick);
+  document.getElementById("musicLibraryManageList")?.addEventListener("change", handleMusicLibrarySelectionChange);
+  document.getElementById("selectAllMusicLibrarySongs")?.addEventListener("change", toggleAllMusicLibrarySongs);
+  document.getElementById("deleteSelectedMusicLibrarySongs")?.addEventListener("click", deleteSelectedMusicLibrarySongs);
+  document.querySelectorAll("[data-close-music-library]").forEach((element) => {
+    element.addEventListener("click", closeMusicLibraryManager);
+  });
   document.getElementById("memoryForm")?.addEventListener("submit", submitMemoryPost);
   ["memoryTitle", "memoryDate", "memoryPostedBy", "memoryCaption", "memoryVideoUrl", "memoryMusicUrl", "memoryMusicTitle"].forEach((id) => {
     document.getElementById(id)?.addEventListener("input", renderComposePreview);
   });
+  document.getElementById("memoryMusicUrl")?.addEventListener("input", renderMemoryMusicLibrary);
   const feed = document.getElementById("memoryFeed");
   feed?.addEventListener("click", handleFeedClick);
   feed?.addEventListener("touchstart", startFeedSwipe, { passive: true });
@@ -300,7 +395,20 @@ function normalizePostMusic(raw) {
   ).trim();
 
   if (raw.music && typeof raw.music === "object") {
-    if (raw.music.kind === "youtube-audio") return null;
+    if (raw.music.kind === "youtube-audio") {
+      const videoId = String(raw.music.videoId || getYouTubeId(raw.music.url) || "").trim();
+      if (!videoId) return null;
+      return {
+        ...raw.music,
+        kind: "youtube-audio",
+        videoId,
+        url: `https://www.youtube.com/watch?v=${videoId}`,
+        name: customMusicTitle || raw.music.name || "YouTube music",
+        customTitle: customMusicTitle,
+        muted: true,
+        started: false
+      };
+    }
     const fileId = String(raw.music.fileId || getDriveFileId(raw.music.url) || getDriveFileId(raw.music.previewUrl) || "").trim();
     const isDriveAudio = raw.music.kind === "drive-audio" || Boolean(fileId);
     return {
@@ -344,7 +452,18 @@ function normalizePostMusic(raw) {
 
   const url = safeHttpUrl(raw.MusicURL || raw.musicUrl || "");
   if (!url) return null;
-  if (getYouTubeId(url)) return null;
+  const youtubeId = getYouTubeId(url);
+  if (youtubeId) {
+    return {
+      kind: "youtube-audio",
+      videoId: youtubeId,
+      url,
+      name: customMusicTitle || "YouTube music",
+      customTitle: customMusicTitle,
+      muted: true,
+      started: false
+    };
+  }
 
   const driveId = getDriveFileId(url);
   if (driveId) {
@@ -799,7 +918,9 @@ function renderPostMusic(post) {
   const musicName = getMusicDisplayName(music);
   let player = "";
 
-  player = music.kind === "drive-audio"
+  player = music.kind === "youtube-audio"
+    ? `<iframe class="postMusicFrame" src="${escapeAttr(getYouTubeMusicEmbedUrl(music.videoId))}" title="${escapeAttr(musicName)}" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen data-music-youtube="true" data-post-id="${escapeAttr(post.id)}"></iframe>`
+    : music.kind === "drive-audio"
     ? `<audio class="postMusicPlayer" ${audible ? "" : "muted"} loop preload="metadata" data-drive-audio="true"></audio>`
     : `
       <audio class="postMusicPlayer" ${audible ? "" : "muted"} loop preload="metadata">
@@ -809,13 +930,28 @@ function renderPostMusic(post) {
     `;
 
   return `
-    <div class="postMusic" data-music-post="${escapeAttr(post.id)}">
+    <div class="postMusic ${music.kind === "youtube-audio" ? "youtubeMusic" : ""} ${audible ? "isPlaying" : ""}" data-music-post="${escapeAttr(post.id)}">
       ${player}
       <button class="musicToggleButton ${audible ? "audible" : ""}" type="button" data-action="music" data-id="${escapeAttr(post.id)}" title="${escapeAttr(musicName)}" aria-label="${audible ? `Mute ${musicName}` : `Play ${musicName}`}">
         <span class="musicNote">&#9835;</span><span class="musicLabelViewport"><span class="musicLabel">${escapeHtml(musicName)}</span></span><span class="musicSound">${audible ? "&#128266;" : "&#128263;"}</span>
       </button>
     </div>
   `;
+}
+
+function getYouTubeMusicEmbedUrl(videoId) {
+  const params = new URLSearchParams({
+    autoplay: "0",
+    mute: "1",
+    loop: "1",
+    playlist: videoId,
+    playsinline: "1",
+    controls: "1",
+    rel: "0",
+    enablejsapi: "1",
+    origin: window.location.origin
+  });
+  return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
 }
 
 function renderMediaSlide(media, postId, index) {
@@ -928,13 +1064,20 @@ async function togglePostMusic(postId, button) {
   if (!music || !article) return;
 
   const audio = article.querySelector(".postMusicPlayer");
-  if (!audio) return;
+  const youtubeFrame = article.querySelector('[data-music-youtube="true"]');
+  if (!audio && !youtubeFrame) return;
 
   const willPlay = music.muted !== false;
   if (!willPlay) {
     music.muted = true;
-    audio.muted = true;
-    audio.pause();
+    if (audio) {
+      audio.muted = true;
+      audio.pause();
+    }
+    if (youtubeFrame) {
+      sendYouTubeCommand(youtubeFrame, "mute");
+      sendYouTubeCommand(youtubeFrame, "pauseVideo");
+    }
     updateMusicButton(button, false);
     return;
   }
@@ -946,6 +1089,15 @@ async function togglePostMusic(postId, button) {
   if (label) label.textContent = "Loading...";
 
   try {
+    if (youtubeFrame) {
+      music.muted = false;
+      music.started = true;
+      sendYouTubeCommand(youtubeFrame, "unMute");
+      sendYouTubeCommand(youtubeFrame, "playVideo");
+      updateMusicButton(button, true);
+      return;
+    }
+
     await preparePostMusic(post, article);
     music.muted = false;
     music.started = true;
@@ -983,6 +1135,7 @@ async function togglePostMusic(postId, button) {
 function updateMusicButton(button, audible) {
   if (!button) return;
   button.classList.toggle("audible", audible);
+  button.closest(".postMusic")?.classList.toggle("isPlaying", audible);
   const sound = button.querySelector(".musicSound");
   if (sound) sound.innerHTML = audible ? "&#128266;" : "&#128263;";
   const post = memoryState.posts.find((item) => item.id === button.dataset.id);
@@ -2962,6 +3115,10 @@ function openComposeModal() {
 function closeModal(id) {
   const modal = document.getElementById(id);
   if (!modal || modal.hidden) return;
+  if (id === "composeModal") {
+    stopMusicLibraryPreview();
+    closeMusicLibraryManager();
+  }
   modal.hidden = true;
   document.body.style.overflow = "";
 }
@@ -2978,6 +3135,7 @@ function showMemoryForm() {
   document.getElementById("memoryForm").hidden = false;
   document.getElementById("postingRole").textContent = memoryState.auth?.role || "Officer";
   restoreRememberedPostedBy();
+  loadMemoryMusicLibrary();
   renderComposePreview();
   window.setTimeout(() => document.getElementById("memoryTitle")?.focus(), 80);
 }
@@ -2999,8 +3157,8 @@ async function testMusicLink() {
   }
 
   if (getYouTubeId(rawUrl)) {
-    message.classList.add("bad");
-    message.textContent = "YouTube is not a direct audio link. Use MP3/M4A or a release asset.";
+    message.classList.add("ok");
+    message.textContent = "YouTube song selected. It will use the embedded player.";
     return;
   }
 
@@ -3058,6 +3216,1142 @@ async function testMusicLink() {
   button.textContent = "Test Music Link";
 }
 
+function normalizeMusicLibrarySong(raw, index = 0) {
+  const url = safeHttpUrl(raw?.url || raw?.URL || raw?.MusicURL || "");
+  const title = String(raw?.title || raw?.Title || "").trim();
+  if (!url || !title) return null;
+
+  return {
+    id: String(raw?.id || raw?.ID || `song-${index + 1}`).trim(),
+    title,
+    category: String(raw?.category || raw?.Category || "Pang song").trim() || "Pang song",
+    url
+  };
+}
+
+function sortMemoryMusicLibrary(songs) {
+  return songs.slice().sort((a, b) => a.title.localeCompare(b.title, undefined, {
+    sensitivity: "base",
+    numeric: true
+  }));
+}
+
+async function loadMemoryMusicLibrary(force = false) {
+  if (memoryState.musicLibraryLoading) return;
+  if (memoryState.musicLibraryLoaded && !force) {
+    renderMemoryMusicLibrary();
+    renderMusicLibraryManager();
+    return;
+  }
+
+  memoryState.musicLibraryLoading = true;
+  const list = document.getElementById("musicLibraryList");
+  if (list) list.innerHTML = `<div class="musicLibraryStatus">Loading music library...</div>`;
+
+  try {
+    const db = getClassBoardFirestore();
+    if (!db) throw new Error("Firebase is not ready.");
+
+    const ref = db.collection("settings").doc(MEMORY_MUSIC_LIBRARY_DOC_ID);
+    const snapshot = await ref.get();
+    const data = snapshot.exists ? (snapshot.data() || {}) : {};
+    memoryState.youtubeApiKey = String(data.YouTubeApiKey || "").trim();
+
+    if (snapshot.exists && data.Initialized === true && Array.isArray(data.Songs)) {
+      memoryState.musicLibrary = sortMemoryMusicLibrary(
+        data.Songs.map(normalizeMusicLibrarySong).filter(Boolean)
+      );
+    } else {
+      memoryState.musicLibrary = sortMemoryMusicLibrary(
+        DEFAULT_MEMORY_MUSIC_LIBRARY.map(normalizeMusicLibrarySong).filter(Boolean)
+      );
+      const payload = {
+        Initialized: true,
+        Songs: memoryState.musicLibrary,
+        UpdatedBy: memoryState.auth?.role || "Admin"
+      };
+      if (window.firebase?.firestore?.FieldValue) {
+        payload.UpdatedAt = firebase.firestore.FieldValue.serverTimestamp();
+      }
+      await ref.set(payload, { merge: true });
+    }
+
+    memoryState.musicLibraryLoaded = true;
+    syncYoutubeApiKeyField();
+  } catch (error) {
+    console.warn("Music library load failed:", error);
+    if (!memoryState.musicLibrary.length) {
+      memoryState.musicLibrary = sortMemoryMusicLibrary(
+        DEFAULT_MEMORY_MUSIC_LIBRARY.map(normalizeMusicLibrarySong).filter(Boolean)
+      );
+    }
+    const status = document.getElementById("musicLibraryStatus");
+    if (status) status.textContent = "Using the built-in song list. Firebase sync is unavailable.";
+  } finally {
+    memoryState.musicLibraryLoading = false;
+    renderMemoryMusicLibrary();
+    renderMusicLibraryManager();
+  }
+}
+
+function renderMemoryMusicLibrary() {
+  const list = document.getElementById("musicLibraryList");
+  if (!list) return;
+
+  const query = String(document.getElementById("musicLibrarySearch")?.value || "").trim().toLowerCase();
+  const currentUrl = String(document.getElementById("memoryMusicUrl")?.value || "").trim();
+  const songs = memoryState.musicLibrary.filter((song) => {
+    if (!query) return true;
+    return `${song.title} ${song.category}`.toLowerCase().includes(query);
+  });
+
+  if (!songs.length) {
+    list.innerHTML = `<div class="musicLibraryStatus">No matching songs.</div>`;
+    return;
+  }
+
+  list.innerHTML = songs.map((song) => {
+    const isSelected = currentUrl === song.url;
+    const isPlaying = memoryState.musicPreviewId === song.id && memoryState.musicPreviewAudio && !memoryState.musicPreviewAudio.paused;
+    return `
+      <div class="musicLibraryItem ${isSelected ? "isSelected" : ""}">
+        <button
+          class="musicLibraryPlay"
+          type="button"
+          data-music-action="preview"
+          data-music-id="${escapeAttr(song.id)}"
+          aria-label="${isPlaying ? "Stop" : "Preview"} ${escapeAttr(song.title)}">
+          ${isPlaying ? "&#9632;" : "&#9654;"}
+        </button>
+        <button
+          class="musicLibrarySelect"
+          type="button"
+          data-music-action="select"
+          data-music-id="${escapeAttr(song.id)}">
+          <strong>${escapeHtml(song.title)}</strong>
+          <small>${escapeHtml(song.category)}</small>
+        </button>
+        <span class="musicLibrarySelectedMark" aria-hidden="true">${isSelected ? "&#10003;" : ""}</span>
+      </div>
+    `;
+  }).join("");
+}
+
+function handleMusicLibraryListClick(event) {
+  const button = event.target.closest("[data-music-action]");
+  if (!button) return;
+
+  const song = memoryState.musicLibrary.find((item) => item.id === button.dataset.musicId);
+  if (!song) return;
+
+  if (button.dataset.musicAction === "preview") {
+    previewMusicLibrarySong(song);
+    return;
+  }
+
+  if (button.dataset.musicAction === "select") {
+    selectMusicLibrarySong(song);
+  }
+}
+
+function stopMusicLibraryPreview() {
+  const audio = memoryState.musicPreviewAudio;
+  memoryState.musicPreviewAudio = null;
+  memoryState.musicPreviewId = "";
+  if (audio) {
+    audio.pause();
+    audio.removeAttribute("src");
+  }
+  renderMemoryMusicLibrary();
+}
+
+async function previewMusicLibrarySong(song) {
+  if (memoryState.musicPreviewId === song.id && memoryState.musicPreviewAudio && !memoryState.musicPreviewAudio.paused) {
+    stopMusicLibraryPreview();
+    return;
+  }
+
+  stopMusicLibraryPreview();
+  const audio = new Audio(song.url);
+  audio.preload = "none";
+  memoryState.musicPreviewAudio = audio;
+  memoryState.musicPreviewId = song.id;
+  audio.addEventListener("ended", () => {
+    if (memoryState.musicPreviewAudio === audio) stopMusicLibraryPreview();
+  }, { once: true });
+  audio.addEventListener("error", () => {
+    if (memoryState.musicPreviewAudio !== audio) return;
+    stopMusicLibraryPreview();
+    showMemoryToast("This song could not be previewed.");
+  }, { once: true });
+
+  try {
+    await audio.play();
+    renderMemoryMusicLibrary();
+  } catch (error) {
+    stopMusicLibraryPreview();
+    showMemoryToast("Tap preview again or check the music link.");
+  }
+}
+
+function selectMusicLibrarySong(song) {
+  const urlInput = document.getElementById("memoryMusicUrl");
+  const titleInput = document.getElementById("memoryMusicTitle");
+  if (!urlInput || !titleInput) return;
+
+  urlInput.value = song.url;
+  titleInput.value = song.title;
+  closeYoutubeSongPreview();
+  const message = document.getElementById("musicLibraryStatus");
+  if (message) message.textContent = `Selected: ${song.title}`;
+  renderMemoryMusicLibrary();
+  renderComposePreview();
+}
+
+function syncYoutubeApiKeyField() {
+  const input = document.getElementById("youtubeApiKey");
+  if (input && document.activeElement !== input) input.value = memoryState.youtubeApiKey;
+}
+
+async function saveYoutubeApiKey() {
+  if (!memoryState.auth) return;
+  const input = document.getElementById("youtubeApiKey");
+  const message = document.getElementById("youtubeApiKeyMessage");
+  const button = document.getElementById("saveYoutubeApiKey");
+  const apiKey = String(input?.value || "").trim();
+
+  if (!apiKey) {
+    if (message) message.textContent = "Paste a restricted YouTube Data API v3 key.";
+    return;
+  }
+
+  if (button) button.disabled = true;
+  if (message) message.textContent = "Saving API key...";
+
+  try {
+    const db = getClassBoardFirestore();
+    if (!db) throw new Error("Firebase is not ready.");
+    const payload = {
+      YouTubeApiKey: apiKey,
+      UpdatedBy: memoryState.auth.role
+    };
+    if (window.firebase?.firestore?.FieldValue) {
+      payload.UpdatedAt = firebase.firestore.FieldValue.serverTimestamp();
+    }
+    await db.collection("settings").doc(MEMORY_MUSIC_LIBRARY_DOC_ID).set(payload, { merge: true });
+    memoryState.youtubeApiKey = apiKey;
+    if (message) message.textContent = "YouTube search is ready.";
+    showMemoryToast("YouTube search API key saved.");
+  } catch (error) {
+    if (message) message.textContent = error.message || "Could not save the API key.";
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
+async function searchYoutubeSongs() {
+  const input = document.getElementById("youtubeSongSearch");
+  const button = document.getElementById("searchYoutubeSongsButton");
+  const message = document.getElementById("youtubeSongSearchMessage");
+  const results = document.getElementById("youtubeSongResults");
+  const query = String(input?.value || "").trim();
+
+  if (!query) {
+    if (message) message.textContent = "Enter a song title or artist.";
+    return;
+  }
+  if (!memoryState.youtubeApiKey) {
+    if (message) message.textContent = "Open Manage and save a YouTube Data API key first.";
+    return;
+  }
+
+  if (button) button.disabled = true;
+  if (message) message.textContent = "Searching YouTube...";
+  if (results) results.innerHTML = "";
+  closeYoutubeSongPreview();
+
+  try {
+    const params = new URLSearchParams({
+      part: "snippet",
+      type: "video",
+      videoEmbeddable: "true",
+      safeSearch: "strict",
+      maxResults: "8",
+      q: `${query} music`,
+      key: memoryState.youtubeApiKey
+    });
+    const response = await fetch(`https://www.googleapis.com/youtube/v3/search?${params.toString()}`, {
+      referrer: window.location.href,
+      referrerPolicy: "origin"
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data?.error?.message || "YouTube search failed.");
+    }
+
+    memoryState.youtubeSearchResults = (data.items || []).map((item) => ({
+      id: String(item?.id?.videoId || ""),
+      title: decodeHtmlText(item?.snippet?.title || ""),
+      channel: decodeHtmlText(item?.snippet?.channelTitle || ""),
+      thumbnail: item?.snippet?.thumbnails?.medium?.url || item?.snippet?.thumbnails?.default?.url || ""
+    })).filter((song) => song.id && song.title);
+    renderYoutubeSongResults();
+    if (message) {
+      message.textContent = memoryState.youtubeSearchResults.length
+        ? `${memoryState.youtubeSearchResults.length} results found.`
+        : "No embeddable songs found.";
+    }
+  } catch (error) {
+    memoryState.youtubeSearchResults = [];
+    if (results) results.innerHTML = "";
+    if (message) message.textContent = error.message || "Could not search YouTube.";
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
+function decodeHtmlText(value) {
+  const textarea = document.createElement("textarea");
+  textarea.innerHTML = String(value || "");
+  return textarea.value;
+}
+
+function renderYoutubeSongResults() {
+  const container = document.getElementById("youtubeSongResults");
+  if (!container) return;
+  const currentId = getYouTubeId(document.getElementById("memoryMusicUrl")?.value || "");
+
+  container.innerHTML = memoryState.youtubeSearchResults.map((song) => `
+    <article class="youtubeSongResult ${currentId === song.id ? "isSelected" : ""}">
+      <img src="${escapeAttr(song.thumbnail)}" alt="" loading="lazy" />
+      <div>
+        <strong>${escapeHtml(song.title)}</strong>
+        <small>${escapeHtml(song.channel)}</small>
+      </div>
+      <div class="youtubeSongActions">
+        <button type="button" data-youtube-action="preview" data-youtube-id="${escapeAttr(song.id)}">Preview</button>
+        <button type="button" data-youtube-action="select" data-youtube-id="${escapeAttr(song.id)}">${currentId === song.id ? "Selected" : "Use Song"}</button>
+      </div>
+    </article>
+  `).join("");
+}
+
+function handleYoutubeSongResultClick(event) {
+  const button = event.target.closest("[data-youtube-action]");
+  if (!button) return;
+  const song = memoryState.youtubeSearchResults.find((item) => item.id === button.dataset.youtubeId);
+  if (!song) return;
+
+  if (button.dataset.youtubeAction === "preview") {
+    previewYoutubeSong(song);
+  } else if (button.dataset.youtubeAction === "select") {
+    selectYoutubeSong(song);
+  }
+}
+
+function previewYoutubeSong(song) {
+  const container = document.getElementById("youtubeSongPreview");
+  if (!container) return;
+  memoryState.youtubePreviewId = song.id;
+  container.hidden = false;
+  container.innerHTML = `
+    <iframe
+      src="https://www.youtube.com/embed/${escapeAttr(song.id)}?autoplay=1&playsinline=1&controls=1&rel=0"
+      title="${escapeAttr(`Preview ${song.title}`)}"
+      allow="autoplay; encrypted-media; picture-in-picture"
+      allowfullscreen></iframe>
+    <button type="button" data-youtube-action="close-preview" aria-label="Close preview">&times;</button>
+  `;
+  container.querySelector("[data-youtube-action='close-preview']")?.addEventListener("click", closeYoutubeSongPreview);
+}
+
+function closeYoutubeSongPreview() {
+  const container = document.getElementById("youtubeSongPreview");
+  memoryState.youtubePreviewId = "";
+  if (!container) return;
+  container.innerHTML = "";
+  container.hidden = true;
+}
+
+function selectYoutubeSong(song) {
+  stopMusicLibraryPreview();
+  const urlInput = document.getElementById("memoryMusicUrl");
+  const titleInput = document.getElementById("memoryMusicTitle");
+  if (!urlInput || !titleInput) return;
+
+  urlInput.value = `https://www.youtube.com/watch?v=${song.id}`;
+  titleInput.value = `${song.title} - ${song.channel}`;
+  const message = document.getElementById("youtubeSongSearchMessage");
+  if (message) message.textContent = `Selected: ${song.title}`;
+  renderYoutubeSongResults();
+  renderMemoryMusicLibrary();
+  renderComposePreview();
+}
+
+async function openMusicLibraryManager() {
+  if (!memoryState.auth) return;
+  await loadMemoryMusicLibrary();
+
+  const modal = document.getElementById("musicLibraryModal");
+  if (!modal) return;
+  modal.hidden = false;
+  syncYoutubeApiKeyField();
+  resetMusicLibraryEditor();
+  renderMusicLibraryManager();
+
+  const currentUrl = document.getElementById("memoryMusicUrl")?.value.trim() || "";
+  const currentTitle = document.getElementById("memoryMusicTitle")?.value.trim() || "";
+  if (currentUrl && !memoryState.musicLibrary.some((song) => song.url === currentUrl)) {
+    document.getElementById("musicLibrarySongTitle").value = currentTitle;
+    document.getElementById("musicLibrarySongUrl").value = currentUrl;
+  }
+  window.setTimeout(() => document.getElementById("musicLibrarySongTitle")?.focus(), 80);
+}
+
+function closeMusicLibraryManager() {
+  const modal = document.getElementById("musicLibraryModal");
+  if (modal) modal.hidden = true;
+  memoryState.selectedMusicLibraryIds.clear();
+  resetMusicLibraryEditor();
+  updateMusicLibrarySelectionBar();
+}
+
+function resetMusicLibraryEditor() {
+  const form = document.getElementById("musicLibraryForm");
+  form?.reset();
+  const idInput = document.getElementById("musicLibrarySongId");
+  if (idInput) idInput.value = "";
+  const category = document.getElementById("musicLibrarySongCategory");
+  if (category) category.value = "Pang song";
+  const cancel = document.getElementById("cancelMusicLibraryEdit");
+  if (cancel) cancel.hidden = true;
+  const submit = document.getElementById("saveMusicLibrarySong");
+  if (submit) submit.textContent = "Add Song";
+  const message = document.getElementById("musicLibraryManagerMessage");
+  if (message) message.textContent = "";
+}
+
+function renderMusicLibraryManager() {
+  const list = document.getElementById("musicLibraryManageList");
+  if (!list) return;
+
+  const validIds = new Set(memoryState.musicLibrary.map((song) => song.id));
+  Array.from(memoryState.selectedMusicLibraryIds).forEach((id) => {
+    if (!validIds.has(id)) memoryState.selectedMusicLibraryIds.delete(id);
+  });
+
+  if (!memoryState.musicLibrary.length) {
+    list.innerHTML = `<div class="musicLibraryStatus">No songs in the library yet.</div>`;
+    memoryState.selectedMusicLibraryIds.clear();
+    updateMusicLibrarySelectionBar();
+    return;
+  }
+
+  list.innerHTML = memoryState.musicLibrary.map((song) => `
+    <div class="musicLibraryManageItem">
+      <label class="musicLibrarySelectCheck" aria-label="Select ${escapeAttr(song.title)}">
+        <input
+          type="checkbox"
+          data-library-select
+          data-music-id="${escapeAttr(song.id)}"
+          ${memoryState.selectedMusicLibraryIds.has(song.id) ? "checked" : ""} />
+      </label>
+      <div>
+        <strong>${escapeHtml(song.title)}</strong>
+        <small>${escapeHtml(song.category)}</small>
+      </div>
+      <button type="button" data-library-action="edit" data-music-id="${escapeAttr(song.id)}">Edit</button>
+      <button class="danger" type="button" data-library-action="delete" data-music-id="${escapeAttr(song.id)}">Delete</button>
+    </div>
+  `).join("");
+  updateMusicLibrarySelectionBar();
+}
+
+function handleMusicLibrarySelectionChange(event) {
+  const checkbox = event.target.closest("[data-library-select]");
+  if (!checkbox) return;
+
+  if (checkbox.checked) memoryState.selectedMusicLibraryIds.add(checkbox.dataset.musicId);
+  else memoryState.selectedMusicLibraryIds.delete(checkbox.dataset.musicId);
+  updateMusicLibrarySelectionBar();
+}
+
+function toggleAllMusicLibrarySongs(event) {
+  if (event.target.checked) {
+    memoryState.musicLibrary.forEach((song) => memoryState.selectedMusicLibraryIds.add(song.id));
+  } else {
+    memoryState.selectedMusicLibraryIds.clear();
+  }
+  renderMusicLibraryManager();
+}
+
+function updateMusicLibrarySelectionBar() {
+  const selectAll = document.getElementById("selectAllMusicLibrarySongs");
+  const deleteButton = document.getElementById("deleteSelectedMusicLibrarySongs");
+  const countLabel = document.getElementById("selectedMusicLibraryCount");
+  const selectedCount = memoryState.selectedMusicLibraryIds.size;
+  const totalCount = memoryState.musicLibrary.length;
+
+  if (selectAll) {
+    selectAll.checked = totalCount > 0 && selectedCount === totalCount;
+    selectAll.indeterminate = selectedCount > 0 && selectedCount < totalCount;
+    selectAll.disabled = totalCount === 0;
+  }
+  if (deleteButton) deleteButton.disabled = selectedCount === 0;
+  if (countLabel) countLabel.textContent = selectedCount ? `${selectedCount} selected` : `${totalCount} songs`;
+}
+
+async function saveMusicLibrarySong(event) {
+  event.preventDefault();
+  if (!memoryState.auth) return;
+
+  const idInput = document.getElementById("musicLibrarySongId");
+  const titleInput = document.getElementById("musicLibrarySongTitle");
+  const urlInput = document.getElementById("musicLibrarySongUrl");
+  const categoryInput = document.getElementById("musicLibrarySongCategory");
+  const message = document.getElementById("musicLibraryManagerMessage");
+  const submit = document.getElementById("saveMusicLibrarySong");
+  const title = titleInput?.value.trim() || "";
+  const url = safeHttpUrl(urlInput?.value.trim() || "");
+  const category = categoryInput?.value.trim() || "Pang song";
+
+  if (!title || !url) {
+    if (message) message.textContent = "Song title and direct audio link are required.";
+    return;
+  }
+
+  const existingId = idInput?.value.trim() || "";
+  const duplicate = memoryState.musicLibrary.find((song) => song.url === url && song.id !== existingId);
+  if (duplicate) {
+    if (message) message.textContent = "This music link is already in the library.";
+    return;
+  }
+
+  const id = existingId || (
+    window.crypto?.randomUUID
+      ? window.crypto.randomUUID()
+      : `music-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  );
+  const nextSong = { id, title, category, url };
+  const nextSongs = memoryState.musicLibrary.filter((song) => song.id !== id);
+  nextSongs.push(nextSong);
+
+  if (submit) submit.disabled = true;
+  if (message) message.textContent = existingId ? "Saving changes..." : "Adding song...";
+
+  try {
+    await writeMemoryMusicLibrary(nextSongs);
+    memoryState.musicLibrary = sortMemoryMusicLibrary(nextSongs);
+    memoryState.musicLibraryLoaded = true;
+    resetMusicLibraryEditor();
+    renderMusicLibraryManager();
+    renderMemoryMusicLibrary();
+    showMemoryToast(existingId ? "Song updated." : "Song added to the library.");
+  } catch (error) {
+    if (message) message.textContent = error.message || "Could not save this song.";
+  } finally {
+    if (submit) submit.disabled = false;
+  }
+}
+
+function parseBulkMusicEntries(rawValue, category) {
+  const lines = String(rawValue || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const songs = [];
+  let pendingTitle = "";
+  let invalidLines = 0;
+
+  lines.forEach((line) => {
+    const urlMatch = line.match(/https?:\/\/[^\s|]+/i);
+    if (!urlMatch) {
+      if (pendingTitle) invalidLines += 1;
+      pendingTitle = line.replace(/^[\s|,;:\-]+|[\s|,;:\-]+$/g, "").trim();
+      return;
+    }
+
+    const rawUrl = urlMatch[0].replace(/[),.;]+$/g, "");
+    const url = safeHttpUrl(rawUrl);
+    let title = line
+      .replace(urlMatch[0], "")
+      .replace(/^[\s|,;:\-]+|[\s|,;:\-]+$/g, "")
+      .trim();
+
+    if (!title) title = pendingTitle;
+    pendingTitle = "";
+
+    if (!url) {
+      invalidLines += 1;
+      return;
+    }
+
+    songs.push({
+      id: createMusicLibraryIdFromUrl(url),
+      title,
+      category,
+      url
+    });
+  });
+
+  if (pendingTitle) invalidLines += 1;
+  return { songs, invalidLines };
+}
+
+function extractJukeHostTitlesFromPaste(rawValue, category = "") {
+  const lines = String(rawValue || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const titles = [];
+  const normalizedCategory = String(category || "").trim().toLowerCase();
+
+  lines.forEach((line) => {
+    const cells = line.split(/\t+/).map((cell) => cell.trim()).filter(Boolean);
+    if (cells.length >= 2 && cells.some((cell) => /^\d{1,2}:\d{2}$/.test(cell))) {
+      const title = cleanPastedJukeHostTitle(cells[0], normalizedCategory);
+      if (title) titles.push(title);
+      return;
+    }
+
+    const inlineRow = line.match(/^(.*?)\s+(\d{1,2}:\d{2})\s+(.+)$/);
+    if (inlineRow) {
+      const title = cleanPastedJukeHostTitle(inlineRow[1], normalizedCategory);
+      if (title) titles.push(title);
+    }
+  });
+
+  if (titles.length) return titles;
+
+  lines.forEach((line, index) => {
+    if (!/^\d{1,2}:\d{2}$/.test(line)) return;
+    for (let previous = index - 1; previous >= 0; previous -= 1) {
+      const title = cleanPastedJukeHostTitle(lines[previous], normalizedCategory);
+      if (!title) continue;
+      titles.push(title);
+      break;
+    }
+  });
+
+  if (titles.length) return titles;
+
+  return lines
+    .map((line) => cleanPastedJukeHostTitle(line, normalizedCategory))
+    .filter(Boolean);
+}
+
+function cleanPastedJukeHostTitle(value, normalizedCategory = "") {
+  const title = String(value || "")
+    .replace(/^\s*\d+[.)-]\s*/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const normalized = title.toLowerCase();
+
+  if (!title || /^\d{1,2}:\d{2}$/.test(title)) return "";
+  if (normalizedCategory && normalized === normalizedCategory) return "";
+  if (/^(title|category|duration|library|upload|uploads|sort by|search)$/i.test(title.replace(/[↑↓↕]/g, "").trim())) return "";
+  if (/^(profile|security|appearance|logout|login|home|settings)$/i.test(title)) return "";
+  return title;
+}
+
+async function autoFillSingleMusicTitle() {
+  const titleInput = document.getElementById("musicLibrarySongTitle");
+  const urlInput = document.getElementById("musicLibrarySongUrl");
+  const message = document.getElementById("musicLibraryManagerMessage");
+  const url = safeHttpUrl(urlInput?.value.trim() || "");
+  if (!titleInput || titleInput.value.trim() || !url) return;
+
+  if (message) message.textContent = "Detecting song title...";
+  try {
+    const titles = await requestMusicMetadataBatch([url]);
+    const detected = titles.get(url) || "";
+    if (detected) {
+      titleInput.value = detected;
+      if (message) message.textContent = "Song title detected.";
+    } else if (message) {
+      message.textContent = "Title could not be detected. Please enter it manually.";
+    }
+  } catch (error) {
+    if (message) message.textContent = error.message || "Title detection is unavailable.";
+  }
+}
+
+async function requestMusicMetadataBatch(urls) {
+  const uniqueUrls = Array.from(new Set((urls || []).map(safeHttpUrl).filter(Boolean))).slice(0, 100);
+  if (!uniqueUrls.length) return new Map();
+
+  const result = await postMemoryApi("musicMetadataBatch", {
+    Role: memoryState.auth?.role || "",
+    Pin: memoryState.auth?.pin || "",
+    Urls: uniqueUrls
+  });
+  if (!result?.success || !Array.isArray(result.items)) {
+    throw new Error(result?.message || "Music title service is not available.");
+  }
+
+  return new Map(result.items.map((item) => [
+    safeHttpUrl(item.url),
+    cleanDetectedMusicTitle(item.title)
+  ]));
+}
+
+async function requestMusicMetadataInChunks(urls) {
+  const uniqueUrls = Array.from(new Set((urls || []).map(safeHttpUrl).filter(Boolean)));
+  const titles = new Map();
+
+  for (let start = 0; start < uniqueUrls.length; start += 100) {
+    const batch = await requestMusicMetadataBatch(uniqueUrls.slice(start, start + 100));
+    batch.forEach((title, url) => titles.set(url, title));
+  }
+  return titles;
+}
+
+async function detectMusicTitleFromAudio(url) {
+  const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+  const timeout = window.setTimeout(() => controller?.abort(), 12000);
+
+  try {
+    const response = await fetch(url, {
+      cache: "no-store",
+      headers: { Range: "bytes=0-262143" },
+      signal: controller?.signal
+    });
+    if (!response.ok) return "";
+
+    const dispositionTitle = getTitleFromContentDisposition(response.headers.get("content-disposition"));
+    const buffer = await readResponsePrefix(response, 262144);
+    const tags = readId3MusicTags(buffer);
+    const taggedTitle = String(tags.title || "").trim();
+    const taggedArtist = String(tags.artist || "").trim();
+
+    if (taggedTitle) {
+      if (taggedArtist && !taggedTitle.toLowerCase().includes(taggedArtist.toLowerCase())) {
+        return cleanDetectedMusicTitle(`${taggedArtist} - ${taggedTitle}`);
+      }
+      return cleanDetectedMusicTitle(taggedTitle);
+    }
+    return cleanDetectedMusicTitle(dispositionTitle);
+  } catch (error) {
+    return "";
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
+
+async function readResponsePrefix(response, maxBytes) {
+  if (!response.body?.getReader) {
+    const buffer = await response.arrayBuffer();
+    return buffer.slice(0, maxBytes);
+  }
+
+  const reader = response.body.getReader();
+  const chunks = [];
+  let total = 0;
+
+  try {
+    while (total < maxBytes) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const remaining = maxBytes - total;
+      const chunk = value.length > remaining ? value.slice(0, remaining) : value;
+      chunks.push(chunk);
+      total += chunk.length;
+      if (total >= maxBytes) break;
+    }
+  } finally {
+    reader.cancel().catch(() => {});
+  }
+
+  const joined = new Uint8Array(total);
+  let offset = 0;
+  chunks.forEach((chunk) => {
+    joined.set(chunk, offset);
+    offset += chunk.length;
+  });
+  return joined.buffer;
+}
+
+function getTitleFromContentDisposition(value) {
+  const header = String(value || "");
+  if (!header) return "";
+
+  const encoded = header.match(/filename\*\s*=\s*UTF-8''([^;]+)/i);
+  const plain = header.match(/filename\s*=\s*"?([^";]+)"?/i);
+  const raw = encoded?.[1] || plain?.[1] || "";
+  try {
+    return decodeURIComponent(raw.trim());
+  } catch (error) {
+    return raw.trim();
+  }
+}
+
+function readId3MusicTags(buffer) {
+  const bytes = new Uint8Array(buffer || 0);
+  if (bytes.length < 10 || String.fromCharCode(...bytes.slice(0, 3)) !== "ID3") {
+    return {};
+  }
+
+  const version = bytes[3];
+  const tagSize = readSynchsafeInt(bytes, 6);
+  const end = Math.min(bytes.length, 10 + tagSize);
+  const tags = {};
+  let offset = 10;
+
+  while (offset < end) {
+    const isV22 = version === 2;
+    const headerSize = isV22 ? 6 : 10;
+    if (offset + headerSize > end) break;
+
+    const frameId = String.fromCharCode(...bytes.slice(offset, offset + (isV22 ? 3 : 4)));
+    if (!frameId.replace(/\0/g, "").trim()) break;
+    const frameSize = isV22
+      ? ((bytes[offset + 3] << 16) | (bytes[offset + 4] << 8) | bytes[offset + 5])
+      : (version === 4 ? readSynchsafeInt(bytes, offset + 4) : readUint32(bytes, offset + 4));
+    if (!frameSize || offset + headerSize + frameSize > end) break;
+
+    const frameData = bytes.slice(offset + headerSize, offset + headerSize + frameSize);
+    if (frameId === "TIT2" || frameId === "TT2") tags.title = decodeId3TextFrame(frameData);
+    if (frameId === "TPE1" || frameId === "TP1") tags.artist = decodeId3TextFrame(frameData);
+    if (tags.title && tags.artist) break;
+    offset += headerSize + frameSize;
+  }
+
+  return tags;
+}
+
+function readSynchsafeInt(bytes, offset) {
+  return ((bytes[offset] & 0x7f) << 21) |
+    ((bytes[offset + 1] & 0x7f) << 14) |
+    ((bytes[offset + 2] & 0x7f) << 7) |
+    (bytes[offset + 3] & 0x7f);
+}
+
+function readUint32(bytes, offset) {
+  return ((bytes[offset] << 24) >>> 0) +
+    (bytes[offset + 1] << 16) +
+    (bytes[offset + 2] << 8) +
+    bytes[offset + 3];
+}
+
+function decodeId3TextFrame(frameData) {
+  if (!frameData?.length) return "";
+  const encoding = frameData[0];
+  const content = frameData.slice(1);
+
+  try {
+    if (encoding === 3) return new TextDecoder("utf-8").decode(content).replace(/\0/g, "").trim();
+    if (encoding === 1) {
+      const littleEndian = content[0] === 0xff && content[1] === 0xfe;
+      const data = (content[0] === 0xff || content[0] === 0xfe) ? content.slice(2) : content;
+      return new TextDecoder(littleEndian ? "utf-16le" : "utf-16be").decode(data).replace(/\0/g, "").trim();
+    }
+    if (encoding === 2) return new TextDecoder("utf-16be").decode(content).replace(/\0/g, "").trim();
+    return Array.from(content, (byte) => String.fromCharCode(byte)).join("").replace(/\0/g, "").trim();
+  } catch (error) {
+    return "";
+  }
+}
+
+function cleanDetectedMusicTitle(value) {
+  return String(value || "")
+    .replace(/\.(mp3|m4a|aac|ogg|wav|webm)$/i, "")
+    .replace(/[_]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+async function mapWithConcurrency(items, limit, worker) {
+  const results = new Array(items.length);
+  let nextIndex = 0;
+
+  async function run() {
+    while (nextIndex < items.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+      results[index] = await worker(items[index], index);
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, () => run())
+  );
+  return results;
+}
+
+function createMusicLibraryIdFromUrl(url) {
+  try {
+    const parsed = new URL(url);
+    const lastPart = parsed.pathname.split("/").filter(Boolean).pop() || "";
+    if (/^[a-z0-9-]{12,}$/i.test(lastPart)) return lastPart;
+  } catch (error) {
+    // Use a generated ID below.
+  }
+
+  return window.crypto?.randomUUID
+    ? window.crypto.randomUUID()
+    : `music-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function createJukeHostFallbackTitle(url) {
+  try {
+    const trackId = new URL(url).pathname.split("/").filter(Boolean).pop() || "";
+    const shortId = trackId.replace(/[^a-z0-9]/gi, "").slice(-6).toUpperCase();
+    if (shortId) return `JukeHost Audio ${shortId}`;
+  } catch (error) {
+    // Use the generic fallback below.
+  }
+
+  return "JukeHost Audio";
+}
+
+async function importMusicLibrarySongs() {
+  if (!memoryState.auth) return;
+
+  const entriesInput = document.getElementById("bulkMusicLibraryEntries");
+  const categoryInput = document.getElementById("bulkMusicLibraryCategory");
+  const message = document.getElementById("bulkMusicLibraryMessage");
+  const button = document.getElementById("importMusicLibrarySongs");
+  const category = categoryInput?.value.trim() || "Pang song";
+  const parsed = parseBulkMusicEntries(entriesInput?.value || "", category);
+
+  if (!parsed.songs.length) {
+    if (message) {
+      message.textContent = "Paste at least one direct JukeHost audio link.";
+    }
+    return;
+  }
+
+  const existingUrls = new Set(memoryState.musicLibrary.map((song) => song.url));
+  const existingIds = new Set(memoryState.musicLibrary.map((song) => song.id));
+  const batchUrls = new Set();
+  const imported = [];
+  let duplicates = 0;
+
+  parsed.songs.forEach((song) => {
+    if (existingUrls.has(song.url) || batchUrls.has(song.url)) {
+      duplicates += 1;
+      return;
+    }
+
+    if (existingIds.has(song.id)) {
+      song.id = window.crypto?.randomUUID
+        ? window.crypto.randomUUID()
+        : `${song.id}-${Math.random().toString(36).slice(2, 7)}`;
+    }
+    existingIds.add(song.id);
+    batchUrls.add(song.url);
+    imported.push(song);
+  });
+
+  if (!imported.length) {
+    if (message) message.textContent = `No new songs imported. ${duplicates} duplicate link${duplicates === 1 ? " was" : "s were"} skipped.`;
+    return;
+  }
+
+  if (button) button.disabled = true;
+  if (message) message.textContent = `Saving ${imported.length} song${imported.length === 1 ? "" : "s"}...`;
+
+  try {
+    const readySongs = imported.map((song) => ({
+      ...song,
+      title: song.title || createJukeHostFallbackTitle(song.url)
+    }));
+    const nextSongs = sortMemoryMusicLibrary([...memoryState.musicLibrary, ...readySongs]);
+    await writeMemoryMusicLibrary(nextSongs);
+    memoryState.musicLibrary = nextSongs;
+    memoryState.musicLibraryLoaded = true;
+    if (entriesInput) entriesInput.value = "";
+    renderMusicLibraryManager();
+    renderMemoryMusicLibrary();
+
+    const notes = [`Imported ${readySongs.length} song${readySongs.length === 1 ? "" : "s"}.`];
+    if (duplicates) notes.push(`Skipped ${duplicates} duplicate${duplicates === 1 ? "" : "s"}.`);
+    if (parsed.invalidLines) notes.push(`${parsed.invalidLines} incomplete line${parsed.invalidLines === 1 ? "" : "s"} ignored.`);
+    if (message) message.textContent = notes.join(" ");
+    showMemoryToast(`${readySongs.length} song${readySongs.length === 1 ? "" : "s"} added to ${category}.`);
+  } catch (error) {
+    if (message) message.textContent = error.message || "Could not import these songs.";
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
+async function repairMissingMusicTitles() {
+  if (!memoryState.auth) return;
+
+  const button = document.getElementById("detectMissingMusicTitles");
+  const message = document.getElementById("bulkMusicLibraryMessage");
+  const missingSongs = memoryState.musicLibrary.filter((song) =>
+    /^JukeHost Song \d+$/i.test(song.title) ||
+    /^[a-f0-9-]{24,}$/i.test(song.title)
+  );
+
+  if (!missingSongs.length) {
+    if (message) message.textContent = "No missing song titles found.";
+    return;
+  }
+
+  if (button) button.disabled = true;
+  if (message) message.textContent = `Checking ${missingSongs.length} missing title${missingSongs.length === 1 ? "" : "s"} in one batch...`;
+
+  try {
+    const detectedTitles = await requestMusicMetadataInChunks(missingSongs.map((song) => song.url));
+    let fixed = 0;
+    const nextSongs = memoryState.musicLibrary.map((song) => {
+      const detected = detectedTitles.get(song.url);
+      if (!detected) return song;
+      fixed += 1;
+      return { ...song, title: detected };
+    });
+
+    if (fixed) {
+      await writeMemoryMusicLibrary(nextSongs);
+      memoryState.musicLibrary = sortMemoryMusicLibrary(nextSongs);
+      renderMusicLibraryManager();
+      renderMemoryMusicLibrary();
+    }
+
+    const unresolved = missingSongs.length - fixed;
+    if (message) {
+      message.textContent = fixed
+        ? `Fixed ${fixed} title${fixed === 1 ? "" : "s"}.${unresolved ? ` ${unresolved} still need manual editing.` : ""}`
+        : "No titles could be detected. Check that the Apps Script update is deployed.";
+    }
+    if (fixed) showMemoryToast(`${fixed} music title${fixed === 1 ? "" : "s"} fixed.`);
+  } catch (error) {
+    if (message) message.textContent = error.message || "Could not detect the missing titles.";
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
+async function removeGenericMusicTitles() {
+  if (!memoryState.auth) return;
+
+  const genericSongs = memoryState.musicLibrary.filter((song) =>
+    /^JukeHost Song \d+$/i.test(song.title) ||
+    /^[a-f0-9-]{24,}$/i.test(song.title)
+  );
+  const message = document.getElementById("bulkMusicLibraryMessage");
+  const button = document.getElementById("removeGenericMusicTitles");
+
+  if (!genericSongs.length) {
+    if (message) message.textContent = "No generic JukeHost song names found.";
+    return;
+  }
+
+  if (!window.confirm(`Remove all ${genericSongs.length} generic JukeHost songs from the library?`)) return;
+
+  const genericIds = new Set(genericSongs.map((song) => song.id));
+  const nextSongs = memoryState.musicLibrary.filter((song) => !genericIds.has(song.id));
+  if (button) button.disabled = true;
+  if (message) message.textContent = `Removing ${genericSongs.length} generic song${genericSongs.length === 1 ? "" : "s"}...`;
+
+  try {
+    await writeMemoryMusicLibrary(nextSongs);
+    if (genericIds.has(memoryState.musicPreviewId)) stopMusicLibraryPreview();
+    genericIds.forEach((id) => memoryState.selectedMusicLibraryIds.delete(id));
+    memoryState.musicLibrary = nextSongs;
+    renderMusicLibraryManager();
+    renderMemoryMusicLibrary();
+    if (message) message.textContent = `Removed ${genericSongs.length} generic song${genericSongs.length === 1 ? "" : "s"}.`;
+    showMemoryToast("Generic JukeHost songs removed.");
+  } catch (error) {
+    if (message) message.textContent = error.message || "Could not remove the generic songs.";
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
+async function writeMemoryMusicLibrary(songs) {
+  const db = getClassBoardFirestore();
+  if (!db) throw new Error("Firebase is not ready.");
+
+  const payload = {
+    Initialized: true,
+    Songs: sortMemoryMusicLibrary(songs).map(({ id, title, category, url }) => ({ id, title, category, url })),
+    UpdatedBy: memoryState.auth?.role || "Officer"
+  };
+  if (window.firebase?.firestore?.FieldValue) {
+    payload.UpdatedAt = firebase.firestore.FieldValue.serverTimestamp();
+  }
+  await db.collection("settings").doc(MEMORY_MUSIC_LIBRARY_DOC_ID).set(payload, { merge: true });
+}
+
+function handleMusicLibraryManageClick(event) {
+  const button = event.target.closest("[data-library-action]");
+  if (!button) return;
+  const song = memoryState.musicLibrary.find((item) => item.id === button.dataset.musicId);
+  if (!song) return;
+
+  if (button.dataset.libraryAction === "edit") {
+    document.getElementById("musicLibrarySongId").value = song.id;
+    document.getElementById("musicLibrarySongTitle").value = song.title;
+    document.getElementById("musicLibrarySongUrl").value = song.url;
+    document.getElementById("musicLibrarySongCategory").value = song.category;
+    document.getElementById("cancelMusicLibraryEdit").hidden = false;
+    document.getElementById("saveMusicLibrarySong").textContent = "Save Changes";
+    document.getElementById("musicLibraryManagerMessage").textContent = "";
+    document.getElementById("musicLibrarySongTitle").focus();
+    return;
+  }
+
+  if (button.dataset.libraryAction === "delete") {
+    deleteMusicLibrarySong(song);
+  }
+}
+
+async function deleteMusicLibrarySong(song) {
+  if (!memoryState.auth) return;
+  if (!window.confirm(`Delete "${song.title}" from the music library?`)) return;
+
+  const nextSongs = memoryState.musicLibrary.filter((item) => item.id !== song.id);
+  try {
+    await writeMemoryMusicLibrary(nextSongs);
+    if (memoryState.musicPreviewId === song.id) stopMusicLibraryPreview();
+    memoryState.selectedMusicLibraryIds.delete(song.id);
+    memoryState.musicLibrary = nextSongs;
+    renderMusicLibraryManager();
+    renderMemoryMusicLibrary();
+    showMemoryToast("Song deleted from the library.");
+  } catch (error) {
+    const message = document.getElementById("musicLibraryManagerMessage");
+    if (message) message.textContent = error.message || "Could not delete this song.";
+  }
+}
+
+async function deleteSelectedMusicLibrarySongs() {
+  if (!memoryState.auth || !memoryState.selectedMusicLibraryIds.size) return;
+
+  const selectedIds = new Set(memoryState.selectedMusicLibraryIds);
+  const selectedCount = selectedIds.size;
+  const deletingAll = selectedCount === memoryState.musicLibrary.length;
+  const prompt = deletingAll
+    ? `Delete all ${selectedCount} songs from the Music Library?`
+    : `Delete ${selectedCount} selected song${selectedCount === 1 ? "" : "s"} from the Music Library?`;
+  if (!window.confirm(prompt)) return;
+
+  const button = document.getElementById("deleteSelectedMusicLibrarySongs");
+  const message = document.getElementById("musicLibraryManagerMessage");
+  const nextSongs = memoryState.musicLibrary.filter((song) => !selectedIds.has(song.id));
+  if (button) button.disabled = true;
+  if (message) message.textContent = `Deleting ${selectedCount} song${selectedCount === 1 ? "" : "s"}...`;
+
+  try {
+    await writeMemoryMusicLibrary(nextSongs);
+    if (selectedIds.has(memoryState.musicPreviewId)) stopMusicLibraryPreview();
+    memoryState.musicLibrary = nextSongs;
+    memoryState.selectedMusicLibraryIds.clear();
+    renderMusicLibraryManager();
+    renderMemoryMusicLibrary();
+    if (message) message.textContent = "";
+    showMemoryToast(`${selectedCount} song${selectedCount === 1 ? "" : "s"} deleted.`);
+  } catch (error) {
+    if (message) message.textContent = error.message || "Could not delete the selected songs.";
+    updateMusicLibrarySelectionBar();
+  }
+}
+
 async function unlockMemoryPosting() {
   const role = document.getElementById("memoryRole").value;
   const pin = document.getElementById("memoryPin").value.trim();
@@ -3092,6 +4386,8 @@ async function unlockMemoryPosting() {
 }
 
 function resetMemoryAuth() {
+  stopMusicLibraryPreview();
+  closeMusicLibraryManager();
   memoryState.auth = null;
   sessionStorage.removeItem(MEMORY_AUTH_SESSION_KEY);
   showMemoryAuthStep();
@@ -3328,10 +4624,6 @@ async function submitMemoryPost(event) {
   message.textContent = "Optimizing and preparing your media...";
 
   try {
-    if (musicUrl && getYouTubeId(musicUrl)) {
-      throw new Error("YouTube cannot be used as hidden background music. Use a direct/public Drive audio file link or Internet Archive direct file link.");
-    }
-
     const mediaFiles = [];
     let uploadBytes = 0;
 
@@ -3453,6 +4745,13 @@ function loadImage(src) {
 
 function resetMemoryForm() {
   document.getElementById("memoryForm")?.reset();
+  stopMusicLibraryPreview();
+  closeYoutubeSongPreview();
+  memoryState.youtubeSearchResults = [];
+  const youtubeResults = document.getElementById("youtubeSongResults");
+  if (youtubeResults) youtubeResults.innerHTML = "";
+  const youtubeMessage = document.getElementById("youtubeSongSearchMessage");
+  if (youtubeMessage) youtubeMessage.textContent = "";
   memoryState.selectedFiles = [];
   memoryState.coverIndex = 0;
   document.getElementById("mediaPreview").innerHTML = "";
@@ -3462,6 +4761,11 @@ function resetMemoryForm() {
     musicTestMessage.textContent = "Paste a direct audio link, then test before posting.";
     musicTestMessage.className = "musicTestMessage";
   }
+  const musicLibrarySearch = document.getElementById("musicLibrarySearch");
+  if (musicLibrarySearch) musicLibrarySearch.value = "";
+  const musicLibraryStatus = document.getElementById("musicLibraryStatus");
+  if (musicLibraryStatus) musicLibraryStatus.textContent = "";
+  renderMemoryMusicLibrary();
   setMusicFieldsOpen(false);
   setDefaultMemoryDate();
   restoreRememberedPostedBy();

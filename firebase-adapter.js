@@ -94,6 +94,9 @@
 
       if (options && String(options.method || "GET").toUpperCase() === "POST") {
         const body = JSON.parse(options.body || "{}");
+        if (body.type === "musicMetadataBatch") {
+          return originalFetch(input, options);
+        }
         return jsonResponse(await handlePost(body, url));
       }
 
@@ -675,6 +678,19 @@
     const url = String(payload.MusicURL || "").trim();
     if (!url) return null;
 
+    const youtubeId = getYouTubeId(url);
+    if (youtubeId) {
+      return {
+        kind: "youtube-audio",
+        videoId: youtubeId,
+        name: musicTitle || "YouTube music",
+        customTitle: musicTitle,
+        url: `https://www.youtube.com/watch?v=${youtubeId}`,
+        muted: true,
+        started: false
+      };
+    }
+
     const driveId = getDriveFileId(url);
     if (driveId) {
       return {
@@ -711,6 +727,11 @@
     } catch (error) {
       return "";
     }
+  }
+
+  function getYouTubeId(value) {
+    const match = String(value || "").match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|shorts\/|embed\/))([A-Za-z0-9_-]{6,})/i);
+    return match ? match[1] : "";
   }
 
   function getDriveFileId(url) {

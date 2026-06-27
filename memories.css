@@ -663,10 +663,19 @@ select:focus-visible {
 
 .postMusicFrame {
   position: absolute;
-  width: 2px;
-  height: 2px;
-  opacity: .01;
-  pointer-events: none;
+  left: 0;
+  bottom: 46px;
+  width: 200px;
+  height: 200px;
+  display: none;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  background: #000;
+  box-shadow: 0 7px 22px rgba(0,0,0,.35);
+}
+
+.postMusic.youtubeMusic.isPlaying .postMusicFrame {
+  display: block;
 }
 
 .postMusicPlayer {
@@ -1414,6 +1423,625 @@ textarea {
 
 .musicTestMessage.bad {
   color: #b00020;
+}
+
+.memoryMusicLibrary {
+  margin-bottom: 14px;
+  padding: 12px;
+  border: 1px solid #d8c777;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, .72);
+}
+
+.youtubeSongPicker {
+  margin-bottom: 14px;
+  padding: 12px;
+  border: 1px solid #d8c777;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, .78);
+}
+
+.youtubeSearchRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 7px;
+}
+
+.youtubeSearchRow input {
+  min-width: 0;
+}
+
+.youtubeSearchRow button,
+.youtubeSongActions button {
+  border: 1px solid var(--ink);
+  border-radius: 6px;
+  background: var(--ink);
+  color: var(--gold);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.youtubeSearchRow button {
+  min-width: 74px;
+  padding: 8px 12px;
+}
+
+.youtubeSearchRow button:disabled {
+  opacity: .55;
+  cursor: wait;
+}
+
+.youtubeSongResults {
+  max-height: 330px;
+  display: grid;
+  gap: 7px;
+  overflow-y: auto;
+}
+
+.youtubeSongResult {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 9px;
+  padding: 7px;
+  border: 1px solid #ddd5bd;
+  border-radius: 7px;
+  background: #fff;
+}
+
+.youtubeSongResult.isSelected {
+  border-color: #a98500;
+  background: #fff5bc;
+}
+
+.youtubeSongResult > img {
+  width: 72px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 5px;
+  background: #111;
+}
+
+.youtubeSongResult > div:nth-child(2) {
+  min-width: 0;
+  display: grid;
+  align-content: center;
+  gap: 3px;
+}
+
+.youtubeSongResult strong,
+.youtubeSongResult small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.youtubeSongResult strong {
+  font-size: .76rem;
+}
+
+.youtubeSongResult small {
+  color: var(--muted);
+  font-size: .65rem;
+}
+
+.youtubeSongActions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.youtubeSongActions button {
+  padding: 6px 9px;
+  font-size: .67rem;
+}
+
+.youtubeSongActions button:first-child {
+  background: #fff;
+  color: var(--ink);
+}
+
+.youtubeSongPreview {
+  position: relative;
+  width: 200px;
+  margin: 8px auto 10px;
+}
+
+.youtubeSongPreview[hidden] {
+  display: none;
+}
+
+.youtubeSongPreview iframe {
+  width: 200px;
+  height: 200px;
+  display: block;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  background: #000;
+}
+
+.youtubeSongPreview > button {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #fff;
+  border-radius: 50%;
+  background: rgba(0,0,0,.78);
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.memoryMusicLibraryHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.memoryMusicLibraryHeader > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.memoryMusicLibraryHeader strong {
+  font-size: .9rem;
+  font-weight: 1000;
+}
+
+.memoryMusicLibraryHeader small {
+  color: var(--muted);
+  font-size: .7rem;
+  font-weight: 700;
+}
+
+.memoryMusicLibraryHeader button {
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  border: 1px solid var(--ink);
+  border-radius: 6px;
+  background: var(--ink);
+  color: var(--gold);
+  font-size: .72rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.musicLibrarySearchLabel {
+  min-height: 40px;
+  display: grid !important;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 7px !important;
+  padding: 0 10px;
+  margin-bottom: 8px !important;
+  border: 1px solid #cfc6aa;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.musicLibrarySearchLabel > span {
+  font-size: .84rem;
+}
+
+.musicLibrarySearchLabel input {
+  min-width: 0;
+  min-height: 38px;
+  padding: 0 !important;
+  border: 0 !important;
+  outline: 0;
+  background: transparent !important;
+  box-shadow: none !important;
+  font-size: .82rem;
+}
+
+.musicLibraryList {
+  max-height: 230px;
+  display: grid;
+  gap: 5px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.musicLibraryItem {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 22px;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 7px;
+  border: 1px solid #ddd5bd;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.musicLibraryItem.isSelected {
+  border-color: #a98500;
+  background: #fff5bc;
+}
+
+.musicLibraryPlay {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--gold);
+  font-size: .7rem;
+  cursor: pointer;
+}
+
+.musicLibrarySelect {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.musicLibrarySelect strong {
+  overflow: hidden;
+  font-size: .78rem;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.musicLibrarySelect small {
+  color: var(--muted);
+  font-size: .66rem;
+  font-weight: 700;
+}
+
+.musicLibrarySelectedMark {
+  color: #715b00;
+  font-size: 1rem;
+  font-weight: 1000;
+  text-align: center;
+}
+
+.musicLibraryStatus,
+.musicLibraryMessage {
+  color: var(--muted);
+  font-size: .72rem;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.musicLibraryStatus {
+  padding: 12px 8px;
+  text-align: center;
+}
+
+.musicLibraryMessage {
+  min-height: 1em;
+  margin: 7px 2px 0;
+}
+
+.musicLibraryOr {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0;
+  color: #8b805d;
+  font-size: .67rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.musicLibraryOr::before,
+.musicLibraryOr::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: #d9cc9a;
+}
+
+.musicLibraryModal {
+  z-index: 1500;
+}
+
+.youtubeApiSetup {
+  margin: 14px 18px 0;
+  border: 1px solid #d8c777;
+  border-radius: 7px;
+  background: #fff9db;
+}
+
+.youtubeApiSetup summary {
+  padding: 11px 13px;
+  font-size: .82rem;
+  font-weight: 1000;
+  cursor: pointer;
+}
+
+.youtubeApiSetup > div {
+  display: grid;
+  gap: 9px;
+  padding: 0 13px 13px;
+}
+
+.youtubeApiSetup small {
+  color: var(--muted);
+  font-size: .68rem;
+  font-weight: 700;
+}
+
+.youtubeApiSetup .primaryButton {
+  justify-self: end;
+}
+
+.musicLibraryManager {
+  position: relative;
+  z-index: 1;
+  width: min(700px, 100%);
+  max-height: min(860px, calc(100dvh - 36px));
+  overflow-y: auto;
+  border: 3px solid var(--ink);
+  border-radius: 8px;
+  background: var(--paper);
+  box-shadow: 9px 9px 0 rgba(247, 198, 0, .78);
+}
+
+.musicLibraryForm {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.musicLibraryForm > label:nth-of-type(1),
+.musicLibraryForm > label:nth-of-type(2),
+.musicLibraryForm .formMessage,
+.musicLibraryFormActions {
+  grid-column: 1 / -1;
+}
+
+.musicLibraryFormActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.musicLibraryBulk {
+  margin: 14px 18px 4px;
+  border: 1px solid #d8c777;
+  border-radius: 7px;
+  background: #fff9db;
+}
+
+.musicLibraryBulk summary {
+  padding: 11px 13px;
+  color: var(--ink);
+  font-size: .82rem;
+  font-weight: 1000;
+  cursor: pointer;
+}
+
+.musicLibraryBulk[open] summary {
+  border-bottom: 1px solid #dfd3a5;
+}
+
+.musicLibraryBulkBody {
+  display: grid;
+  gap: 11px;
+  padding: 12px 13px 14px;
+}
+
+.musicLibraryBulkBody textarea {
+  min-height: 150px;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.4;
+}
+
+.musicLibraryBulkActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.musicLibraryManageHeading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 15px 18px 8px;
+}
+
+.musicLibraryManageHeading strong {
+  font-size: .95rem;
+}
+
+.musicLibraryManageHeading small {
+  color: var(--muted);
+  font-size: .7rem;
+  font-weight: 700;
+}
+
+.musicLibrarySelectionBar {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 18px 8px;
+  padding: 7px 9px;
+  border: 1px solid #d9d0b7;
+  border-radius: 7px;
+  background: #fffdf4;
+}
+
+.musicLibrarySelectionBar label {
+  display: inline-flex;
+  flex: 0 0 auto;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: .72rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.musicLibrarySelectionBar input,
+.musicLibrarySelectCheck input {
+  width: 17px;
+  height: 17px;
+  accent-color: #111;
+  cursor: pointer;
+}
+
+.musicLibrarySelectionBar > span {
+  min-width: 0;
+  flex: 1;
+  color: var(--muted);
+  font-size: .7rem;
+  font-weight: 800;
+}
+
+.musicLibrarySelectionBar button {
+  flex: 0 0 auto;
+  padding: 7px 9px;
+  border: 1px solid #b62323;
+  border-radius: 5px;
+  background: #fff;
+  color: #a40000;
+  font-size: .68rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.musicLibrarySelectionBar button:disabled {
+  border-color: #d8d3c6;
+  color: #9b978c;
+  cursor: default;
+}
+
+.musicLibraryManageList {
+  display: grid;
+  gap: 6px;
+  padding: 0 18px 18px;
+}
+
+.musicLibraryManageItem {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fff;
+}
+
+.musicLibrarySelectCheck {
+  min-width: 22px;
+  min-height: 30px;
+  display: grid !important;
+  place-items: center;
+  margin: 0 !important;
+  cursor: pointer;
+}
+
+.musicLibraryManageItem > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.musicLibraryManageItem strong {
+  overflow: hidden;
+  font-size: .78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.musicLibraryManageItem small {
+  color: var(--muted);
+  font-size: .66rem;
+  font-weight: 700;
+}
+
+.musicLibraryManageItem button {
+  padding: 6px 8px;
+  border: 1px solid var(--ink);
+  border-radius: 5px;
+  background: #fff;
+  color: var(--ink);
+  font-size: .68rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.musicLibraryManageItem button.danger {
+  border-color: #c53a3a;
+  color: #a40000;
+}
+
+@media (max-width: 620px) {
+  .memoryMusicLibrary {
+    padding: 10px;
+  }
+
+  .musicLibraryList {
+    max-height: 210px;
+  }
+
+  .musicLibraryManager {
+    max-height: calc(100dvh - 18px);
+  }
+
+  .musicLibraryForm {
+    grid-template-columns: 1fr;
+    padding: 14px;
+  }
+
+  .musicLibraryForm > * {
+    grid-column: 1 !important;
+  }
+
+  .musicLibraryManageHeading {
+    align-items: start;
+    flex-direction: column;
+    padding-inline: 14px;
+  }
+
+  .musicLibraryBulk {
+    margin-inline: 14px;
+  }
+
+  .musicLibraryManageList {
+    padding-inline: 14px;
+  }
+
+  .musicLibrarySelectionBar {
+    gap: 7px;
+    margin-inline: 14px;
+    padding-inline: 8px;
+  }
+
+  .musicLibrarySelectionBar label span {
+    display: none;
+  }
+
+  .musicLibraryManageItem {
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    gap: 6px;
+    padding-inline: 8px;
+  }
 }
 
 .smallUploadButton {
