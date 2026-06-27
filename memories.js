@@ -3138,6 +3138,8 @@ function closeModal(id) {
 function showMemoryAuthStep() {
   document.getElementById("memoryAuthStep").hidden = false;
   document.getElementById("memoryForm").hidden = true;
+  const postingIdentity = document.getElementById("postingIdentity");
+  if (postingIdentity) postingIdentity.hidden = true;
   document.getElementById("authMessage").textContent = "";
   window.setTimeout(() => document.getElementById("memoryPin")?.focus(), 80);
 }
@@ -3145,6 +3147,8 @@ function showMemoryAuthStep() {
 function showMemoryForm() {
   document.getElementById("memoryAuthStep").hidden = true;
   document.getElementById("memoryForm").hidden = false;
+  const postingIdentity = document.getElementById("postingIdentity");
+  if (postingIdentity) postingIdentity.hidden = false;
   document.getElementById("postingRole").textContent = memoryState.auth?.role || "Officer";
   restoreRememberedPostedBy();
   loadMemoryMusicLibrary();

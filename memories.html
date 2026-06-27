@@ -11,7 +11,7 @@
   <link rel="manifest" href="manifest.webmanifest?v=14" />
   <link rel="icon" href="icons/icon-192.png?v=14" />
   <link rel="apple-touch-icon" href="icons/icon-192.png?v=14" />
-  <link rel="stylesheet" href="memories.css?v=51-compact-compose-header" />
+  <link rel="stylesheet" href="memories.css?v=52-role-in-compose-header" />
 </head>
 <body>
   <header class="memoryTopbar">
@@ -82,7 +82,14 @@
     <section class="composeModal" role="dialog" aria-modal="true" aria-labelledby="composeTitle">
       <header class="modalHeader">
         <div><p class="eyebrow">ADMIN AND OFFICERS</p><h2 id="composeTitle">Create Memory</h2></div>
-        <button class="iconButton" type="button" data-close-modal="composeModal" aria-label="Close">&#215;</button>
+        <div class="composeHeaderActions">
+          <div id="postingIdentity" class="headerRoleIdentity" hidden>
+            <span class="miniBrandMark">SFK</span>
+            <strong id="postingRole">Officer</strong>
+            <button id="changeRoleButton" type="button">Change</button>
+          </div>
+          <button class="iconButton" type="button" data-close-modal="composeModal" aria-label="Close">&#215;</button>
+        </div>
       </header>
 
       <div id="memoryAuthStep" class="authStep">
@@ -103,12 +110,6 @@
       </div>
 
       <form id="memoryForm" class="memoryForm" hidden>
-        <div class="postingIdentity">
-          <span class="miniBrandMark">SFK</span>
-          <strong id="postingRole">Officer</strong>
-          <button id="changeRoleButton" type="button">Change role</button>
-        </div>
-
         <div class="formGrid">
           <label>Memory title
             <input id="memoryTitle" type="text" maxlength="80" placeholder="e.g. First Week Together" />
@@ -308,6 +309,6 @@
   <script src="firebase-config.js?v=1"></script>
   <script src="firebase-adapter.js?v=13-youtube-song-picker"></script>
   <script src="pwa.js?v=15"></script>
-  <script src="memories.js?v=51-compact-compose-header"></script>
+  <script src="memories.js?v=52-role-in-compose-header"></script>
 </body>
 </html>

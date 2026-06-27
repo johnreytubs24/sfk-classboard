@@ -1,4 +1,4 @@
-const CACHE_NAME = "sfk-classboard-v86-compact-compose-header";
+const CACHE_NAME = "sfk-classboard-v87-role-in-compose-header";
 const APP_SHELL = [
   "./",
   "./index.html",
