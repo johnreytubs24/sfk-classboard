@@ -11,6 +11,8 @@ const TARGET_IMAGE_BYTES = 420 * 1024;
 const MUSIC_LINK_TEST_TIMEOUT_MS = 8000;
 const MEMORY_SHARE_IMAGE_WIDTH = 1080;
 const MEMORY_SHARE_IMAGE_HEIGHT = 1350;
+const MEMORY_SHARE_STORY_WIDTH = 1080;
+const MEMORY_SHARE_STORY_HEIGHT = 1920;
 const MEMORY_SHARE_PREVIEW_LIMIT = 4;
 
 const memoryState = {
@@ -2003,6 +2005,9 @@ async function shareMemory(id) {
   const post = memoryState.posts.find((item) => item.id === id);
   if (!post) return;
 
+  const format = await chooseMemoryShareFormat();
+  if (!format) return;
+
   const shareUrl = new URL("memories.html", window.location.href);
   shareUrl.searchParams.set("memory", id);
   const shareData = {
@@ -2014,9 +2019,9 @@ async function shareMemory(id) {
 
   try {
     setShareButtonBusy(button, true);
-    showMemoryToast("Creating clean share image...");
+    showMemoryToast(format === "story" ? "Creating Story share image..." : "Creating original share image...");
 
-    const image = await createMemoryShareImage(post);
+    const image = await createMemoryShareImage(post, format);
     if (image?.file && navigator.share && navigator.canShare && navigator.canShare({ files: [image.file] })) {
       await navigator.share({
         title: shareData.title,
@@ -2053,6 +2058,62 @@ async function shareMemory(id) {
   }
 }
 
+function chooseMemoryShareFormat() {
+  return new Promise((resolve) => {
+    document.querySelector(".shareFormatLayer")?.remove();
+
+    const layer = document.createElement("div");
+    layer.className = "shareFormatLayer";
+    layer.innerHTML = `
+      <button class="shareFormatBackdrop" type="button" data-share-format="" aria-label="Cancel"></button>
+      <section class="shareFormatSheet" role="dialog" aria-modal="true" aria-labelledby="shareFormatTitle">
+        <div class="shareFormatHandle" aria-hidden="true"></div>
+        <div class="shareFormatHeading">
+          <div>
+            <span class="shareFormatEyebrow">SHARE IMAGE</span>
+            <h2 id="shareFormatTitle">Choose a size</h2>
+          </div>
+          <button class="shareFormatClose" type="button" data-share-format="" aria-label="Close">&times;</button>
+        </div>
+        <div class="shareFormatChoices">
+          <button class="shareFormatChoice" type="button" data-share-format="original">
+            <span class="shareFormatPreview shareFormatPreviewOriginal" aria-hidden="true"></span>
+            <span><strong>Original Post</strong><small>1080 &times; 1350</small></span>
+            <span class="shareFormatArrow" aria-hidden="true">&rsaquo;</span>
+          </button>
+          <button class="shareFormatChoice shareFormatChoiceStory" type="button" data-share-format="story">
+            <span class="shareFormatPreview shareFormatPreviewStory" aria-hidden="true"></span>
+            <span><strong>FB / IG Story</strong><small>1080 &times; 1920</small></span>
+            <span class="shareFormatArrow" aria-hidden="true">&rsaquo;</span>
+          </button>
+        </div>
+      </section>
+    `;
+
+    const finish = (format) => {
+      document.removeEventListener("keydown", handleKeydown);
+      document.body.classList.remove("shareFormatOpen");
+      layer.classList.remove("isOpen");
+      window.setTimeout(() => layer.remove(), 160);
+      resolve(format || "");
+    };
+    const handleKeydown = (event) => {
+      if (event.key === "Escape") finish("");
+    };
+
+    layer.addEventListener("click", (event) => {
+      const target = event.target.closest("[data-share-format]");
+      if (!target) return;
+      finish(target.dataset.shareFormat);
+    });
+    document.addEventListener("keydown", handleKeydown);
+    document.body.appendChild(layer);
+    document.body.classList.add("shareFormatOpen");
+    requestAnimationFrame(() => layer.classList.add("isOpen"));
+    layer.querySelector('[data-share-format="original"]')?.focus();
+  });
+}
+
 async function shareMemoryLinkFallback(shareData) {
   const mobileLike = window.matchMedia("(pointer: coarse)").matches || /Android|iPhone|iPad/i.test(navigator.userAgent);
   if (navigator.share && mobileLike) {
@@ -2076,10 +2137,11 @@ function setShareButtonBusy(button, busy) {
   button.innerHTML = `<span class="shareButtonIcon" aria-hidden="true">${busy ? "&#8635;" : "&#8599;"}</span>`;
 }
 
-async function createMemoryShareImage(post) {
+async function createMemoryShareImage(post, format = "original") {
+  const isStory = format === "story";
   const canvas = document.createElement("canvas");
-  canvas.width = MEMORY_SHARE_IMAGE_WIDTH;
-  canvas.height = MEMORY_SHARE_IMAGE_HEIGHT;
+  canvas.width = isStory ? MEMORY_SHARE_STORY_WIDTH : MEMORY_SHARE_IMAGE_WIDTH;
+  canvas.height = isStory ? MEMORY_SHARE_STORY_HEIGHT : MEMORY_SHARE_IMAGE_HEIGHT;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas is not available.");
 
@@ -2087,9 +2149,9 @@ async function createMemoryShareImage(post) {
 
   const margin = 64;
   const cardX = 42;
-  const cardY = 42;
+  const cardY = isStory ? 84 : 42;
   const cardW = canvas.width - 84;
-  const cardH = canvas.height - 84;
+  const cardH = canvas.height - (cardY * 2);
 
   ctx.save();
   ctx.shadowColor = "rgba(17,17,17,.16)";
@@ -2112,21 +2174,25 @@ async function createMemoryShareImage(post) {
   ctx.fill();
   ctx.restore();
 
-  drawShareHeader(ctx, post, margin, 78, canvas.width - (margin * 2));
+  drawShareHeader(ctx, post, margin, isStory ? 130 : 78, canvas.width - (margin * 2));
 
   const mediaX = margin;
-  const mediaY = 190;
+  const mediaY = isStory ? 260 : 190;
   const mediaW = canvas.width - (margin * 2);
   const imageCount = (post.media || []).filter((item) => item.kind === "image").length;
-  const mediaH = imageCount ? 640 : 575;
+  const mediaH = isStory
+    ? (imageCount ? 1000 : 880)
+    : (imageCount ? 640 : 575);
   await drawShareMedia(ctx, post, mediaX, mediaY, mediaW, mediaH);
 
-  const detailsY = mediaY + mediaH + 54;
-  drawShareDetails(ctx, post, margin, detailsY, canvas.width - (margin * 2), imageCount > 0);
-  drawShareFooter(ctx, canvas.width, canvas.height);
+  const detailsY = mediaY + mediaH + (isStory ? 60 : 54);
+  const footerOffset = isStory ? 170 : 118;
+  drawShareDetails(ctx, post, margin, detailsY, canvas.width - (margin * 2), imageCount > 0, canvas.height, footerOffset);
+  drawShareFooter(ctx, canvas.width, canvas.height, footerOffset);
 
   const blob = await canvasToBlob(canvas);
-  const fileName = `${safeShareFileName(post.title || "sfk-memory")}.png`;
+  const fileSuffix = isStory ? "-story" : "";
+  const fileName = `${safeShareFileName(post.title || "sfk-memory")}${fileSuffix}.png`;
   const file = typeof File !== "undefined"
     ? new File([blob], fileName, { type: "image/png", lastModified: Date.now() })
     : null;
@@ -2440,9 +2506,9 @@ function drawHeartPath(ctx, cx, cy, size) {
   ctx.closePath();
 }
 
-function drawShareDetails(ctx, post, x, y, width, hasPhoto = false) {
-  const titleMaxY = MEMORY_SHARE_IMAGE_HEIGHT - 275;
-  const captionMaxY = MEMORY_SHARE_IMAGE_HEIGHT - 210;
+function drawShareDetails(ctx, post, x, y, width, hasPhoto = false, canvasHeight = MEMORY_SHARE_IMAGE_HEIGHT, footerOffset = 118) {
+  const titleMaxY = canvasHeight - footerOffset - 157;
+  const captionMaxY = canvasHeight - footerOffset - 92;
 
   ctx.fillStyle = "#111111";
   ctx.font = hasPhoto ? "900 39px Arial, Helvetica, sans-serif" : "900 48px Arial, Helvetica, sans-serif";
@@ -2461,7 +2527,7 @@ function drawShareDetails(ctx, post, x, y, width, hasPhoto = false) {
     cursorY += 20;
   }
 
-  const metaY = Math.min(cursorY, MEMORY_SHARE_IMAGE_HEIGHT - 214);
+  const metaY = Math.min(cursorY, canvasHeight - footerOffset - 96);
   const avatarSize = 60;
 
   ctx.save();
@@ -2503,8 +2569,8 @@ function drawShareDetails(ctx, post, x, y, width, hasPhoto = false) {
   }
 }
 
-function drawShareFooter(ctx, width, height) {
-  const footerY = height - 118;
+function drawShareFooter(ctx, width, height, footerOffset = 118) {
+  const footerY = height - footerOffset;
   ctx.strokeStyle = "#eadfa9";
   ctx.lineWidth = 3;
   ctx.beginPath();
