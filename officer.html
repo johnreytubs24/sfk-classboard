@@ -10,16 +10,11 @@
 
   <title>SFK Officers Panel</title>
 
-  <script>
-    if (window.top === window.self && !new URLSearchParams(window.location.search).has("embedded")) {
-      window.location.replace("officers/");
-    }
-  </script>
-
   <link rel="manifest" href="officer.webmanifest?v=1" />
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=3" />
   <link rel="apple-touch-icon" href="icons/icon-192.png?v=3" />
-  <link rel="stylesheet" href="officer.css?v=fresh-heart-v2" />
+  <link rel="stylesheet" href="officer.css?v=phone-orientation-lock" />
+  <script src="orientation-lock.js?v=2-phone-only" defer></script>
 </head>
 
 <body>

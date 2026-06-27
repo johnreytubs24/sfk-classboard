@@ -1,13 +1,20 @@
-const CACHE_NAME = "sfk-classboard-v87-role-in-compose-header";
+const CACHE_NAME = "sfk-classboard-v92-route-recovery";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./style.css",
   "./script.js",
   "./pwa.js",
+  "./orientation-lock.js",
   "./memories.html",
   "./memories.css",
   "./memories.js",
+  "./admin.html",
+  "./admin.css",
+  "./admin.js",
+  "./officer.html",
+  "./officer.css",
+  "./officer.js",
   "./manifest.webmanifest",
   "./class-photo.jpg",
   "./icons/icon-192.png",

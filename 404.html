@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#f7c600" />
+  <title>SFK ClassBoard</title>
+  <style>
+    body {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      margin: 0;
+      background: #f7c600;
+      color: #111;
+      font-family: Arial, Helvetica, sans-serif;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <strong>Opening SFK ClassBoard...</strong>
+  <script>
+    const path = window.location.pathname.replace(/\/+$/, "");
+    const base = path.replace(/\/(?:admin|officers)$/, "");
+    if (path.endsWith("/admin")) {
+      window.location.replace(`${base}/admin.html${window.location.search}${window.location.hash}`);
+    } else if (path.endsWith("/officers")) {
+      window.location.replace(`${base}/officer.html${window.location.search}${window.location.hash}`);
+    } else {
+      const firstPath = path.split("/").filter(Boolean)[0] || "";
+      window.location.replace(firstPath ? `/${firstPath}/` : "/");
+    }
+  </script>
+</body>
+</html>
