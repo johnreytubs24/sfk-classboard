@@ -6,6 +6,7 @@
   const MAX_POLL_OPTIONS = 12;
   const OWN_DELETE_WINDOW_MS = 5 * 60 * 1000;
   const CHAT_THEME_KEY = "sfkClassChatTheme";
+  const CHAT_FONT_SIZE_KEY = "sfkClassChatFontSize";
   const CHAT_LAST_COUNT_KEY = "sfkClassChatLastReadCount";
   const CHAT_LAST_TIME_KEY = "sfkClassChatLastReadTime";
   const CHAT_DRAFT_PREFIX = "sfkClassChatDraft:";
@@ -56,6 +57,9 @@
   let lastTouchTap = { messageId: "", time: 0 };
   let lastTouchDoubleAt = 0;
   let chatToastTimer = null;
+  let recentSentTimes = [];
+  let lastSentText = "";
+  let lastSentTextAt = 0;
 
   const elements = {};
 
@@ -65,6 +69,7 @@
     cacheElements();
     if (!elements.open || !elements.layer) return;
     applySavedTheme();
+    applySavedFontSize();
     startUnreadBadgeListener();
 
     elements.open.addEventListener("click", openChat);
@@ -73,6 +78,7 @@
     });
     elements.logout.addEventListener("click", toggleChatMenu);
     elements.themeToggle.addEventListener("click", toggleChatTheme);
+    elements.fontSizeToggle.addEventListener("click", cycleChatFontSize);
     elements.searchOpen.addEventListener("click", () => openUtility("search"));
     elements.savedOpen.addEventListener("click", () => openUtility("saved"));
     elements.pollOpen.addEventListener("click", () => openUtility("poll"));
@@ -121,6 +127,8 @@
     elements.menu = document.getElementById("classChatMenu");
     elements.themeToggle = document.getElementById("classChatThemeToggle");
     elements.themeLabel = elements.themeToggle?.querySelector(".classChatMenuLabel");
+    elements.fontSizeToggle = document.getElementById("classChatFontSizeToggle");
+    elements.fontSizeLabel = document.getElementById("classChatFontSizeLabel");
     elements.leave = document.getElementById("classChatLeave");
     elements.searchOpen = document.getElementById("classChatSearchOpen");
     elements.savedOpen = document.getElementById("classChatSavedOpen");
@@ -158,6 +166,9 @@
     elements.hoursToggle = document.getElementById("classChatHoursToggle");
     elements.hoursStart = document.getElementById("classChatHoursStart");
     elements.hoursEnd = document.getElementById("classChatHoursEnd");
+    elements.spamToggle = document.getElementById("classChatSpamToggle");
+    elements.keywordToggle = document.getElementById("classChatKeywordToggle");
+    elements.blockedKeywords = document.getElementById("classChatBlockedKeywords");
     elements.login = document.getElementById("classChatLogin");
     elements.room = document.getElementById("classChatRoom");
     elements.pinned = document.getElementById("classChatPinned");
@@ -296,6 +307,39 @@
     }
   }
 
+  function applySavedFontSize() {
+    let size = "default";
+    try {
+      const saved = localStorage.getItem(CHAT_FONT_SIZE_KEY);
+      if (["small", "default", "large"].includes(saved)) size = saved;
+    } catch (error) {
+      size = "default";
+    }
+    setChatFontSize(size, false);
+  }
+
+  function cycleChatFontSize() {
+    const current = elements.panel.classList.contains("font-large")
+      ? "large"
+      : elements.panel.classList.contains("font-small") ? "small" : "default";
+    const next = current === "small" ? "default" : current === "default" ? "large" : "small";
+    setChatFontSize(next, true);
+  }
+
+  function setChatFontSize(size, persist) {
+    elements.panel.classList.toggle("font-small", size === "small");
+    elements.panel.classList.toggle("font-large", size === "large");
+    const label = size.charAt(0).toUpperCase() + size.slice(1);
+    elements.fontSizeLabel.textContent = `Text size: ${label}`;
+    if (persist) {
+      try {
+        localStorage.setItem(CHAT_FONT_SIZE_KEY, size);
+      } catch (error) {
+        // Font-size persistence is optional when storage is blocked.
+      }
+    }
+  }
+
   function startUnreadBadgeListener() {
     try {
       ensureFirebase();
@@ -340,6 +384,11 @@
       elements.hoursToggle.checked = currentConfig.ChatHoursEnabled === true;
       elements.hoursStart.value = currentConfig.ChatHoursStart || "06:00";
       elements.hoursEnd.value = currentConfig.ChatHoursEnd || "21:00";
+      elements.spamToggle.checked = currentConfig.SpamProtection === true;
+      elements.keywordToggle.checked = currentConfig.KeywordFilterEnabled === true;
+      elements.blockedKeywords.value = Array.isArray(currentConfig.BlockedKeywords)
+        ? currentConfig.BlockedKeywords.join(", ")
+        : "";
       elements.controlsMessage.textContent = "";
     }
     if (type === "poll") {
@@ -696,7 +745,10 @@
         SlowModeSeconds: Number(snapshot.data()?.SlowModeSeconds || 0),
         ChatHoursEnabled: snapshot.data()?.ChatHoursEnabled === true,
         ChatHoursStart: snapshot.data()?.ChatHoursStart || "06:00",
-        ChatHoursEnd: snapshot.data()?.ChatHoursEnd || "21:00"
+        ChatHoursEnd: snapshot.data()?.ChatHoursEnd || "21:00",
+        SpamProtection: snapshot.data()?.SpamProtection === true,
+        KeywordFilterEnabled: snapshot.data()?.KeywordFilterEnabled === true,
+        BlockedKeywords: Array.isArray(snapshot.data()?.BlockedKeywords) ? snapshot.data().BlockedKeywords : []
       };
       applyChatConfig();
     }, () => {
@@ -898,7 +950,7 @@
         ? `<span class="classChatRemoved">Message removed by the Adviser.</span>`
         : message.Type === "poll"
           ? renderPollMarkup(message)
-          : `<span>${formatMessageText(message.Text || "")}${message.Edited ? `<small class="classChatEdited">edited</small>` : ""}</span>`;
+          : `<div class="classChatText">${formatMessageText(message.Text || "")}${message.Edited ? `<small class="classChatEdited">edited</small>` : ""}</div>${renderYoutubeEmbed(message.Text || "")}`;
 
       const replySource = message.ReplyToID ? findMessage(message.ReplyToID) : null;
       const replyIsUnavailable = removed
@@ -930,7 +982,7 @@
                  data-message-id="${message.id}">
           ${own ? "" : `<span class="classChatMessageAvatar">${escapeHtml(initials(message.SenderName))}</span>`}
           <div class="classChatBubbleWrap">
-            ${own ? "" : `<p class="classChatSender">${escapeHtml(message.SenderName || "Student")}</p>`}
+            ${own ? "" : `<p class="classChatSender">${escapeHtml(message.SenderName || "Student")}${roleBadgeMarkup(message.SenderRole)}</p>`}
             <div class="classChatBubble">
               ${priorityLabel}
               ${quoted}
@@ -980,7 +1032,42 @@
       </div>`;
   }
 
+  function roleBadgeMarkup(role) {
+    const cleanRole = String(role || "student").toLowerCase();
+    if (cleanRole === "admin") return `<span class="classChatRoleBadge is-admin">Admin</span>`;
+    if (cleanRole === "officer") return `<span class="classChatRoleBadge is-officer">Officer</span>`;
+    return `<span class="classChatRoleBadge">Student</span>`;
+  }
+
   function formatMessageText(text) {
+    const source = String(text || "");
+    const urlPattern = /https?:\/\/[^\s<>"']+/gi;
+    let output = "";
+    let cursor = 0;
+    source.replace(urlPattern, (rawUrl, offset) => {
+      output += formatMentions(source.slice(cursor, offset));
+      let url = rawUrl;
+      let trailing = "";
+      while (/[),.!?;:]$/.test(url)) {
+        trailing = url.slice(-1) + trailing;
+        url = url.slice(0, -1);
+      }
+      try {
+        const parsed = new URL(url);
+        if (!["http:", "https:"].includes(parsed.protocol)) throw new Error("Unsupported link");
+        const label = `${parsed.hostname.replace(/^www\./, "")}${parsed.pathname === "/" ? "" : parsed.pathname}`;
+        output += `<a class="classChatLink" href="${escapeHtml(parsed.href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>${escapeHtml(trailing)}`;
+      } catch (error) {
+        output += escapeHtml(rawUrl);
+      }
+      cursor = offset + rawUrl.length;
+      return rawUrl;
+    });
+    output += formatMentions(source.slice(cursor));
+    return output;
+  }
+
+  function formatMentions(text) {
     const names = [...new Set(
       chatDirectory.map((entry) => String(entry.Name || "").trim())
         .concat(currentProfile?.name || "")
@@ -998,6 +1085,42 @@
     });
     output += escapeHtml(String(text).slice(cursor));
     return output;
+  }
+
+  function renderYoutubeEmbed(text) {
+    const urlMatch = String(text || "").match(/https?:\/\/[^\s<>"']+/i);
+    if (!urlMatch) return "";
+    const videoId = youtubeVideoId(urlMatch[0]);
+    if (!videoId) return "";
+    return `
+      <div class="classChatYoutube">
+        <iframe
+          src="https://www.youtube-nocookie.com/embed/${videoId}"
+          title="YouTube video player"
+          loading="lazy"
+          referrerpolicy="strict-origin-when-cross-origin"
+          allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen></iframe>
+      </div>`;
+  }
+
+  function youtubeVideoId(value) {
+    try {
+      const parsed = new URL(String(value).replace(/[),.!?;:]+$/, ""));
+      const host = parsed.hostname.replace(/^www\./, "").toLowerCase();
+      let id = "";
+      if (host === "youtu.be") id = parsed.pathname.split("/").filter(Boolean)[0] || "";
+      if (host === "youtube.com" || host === "m.youtube.com" || host === "music.youtube.com") {
+        id = parsed.searchParams.get("v") || "";
+        if (!id) {
+          const parts = parsed.pathname.split("/").filter(Boolean);
+          if (["shorts", "embed", "live"].includes(parts[0])) id = parts[1] || "";
+        }
+      }
+      return /^[A-Za-z0-9_-]{6,20}$/.test(id) ? id : "";
+    } catch (error) {
+      return "";
+    }
   }
 
   function isCurrentUserMentioned(text) {
@@ -1079,6 +1202,11 @@
         : "Chat messaging is currently outside the allowed hours.");
       return;
     }
+    const blockedReason = validateOutboundText(text);
+    if (blockedReason) {
+      window.alert(blockedReason);
+      return;
+    }
     const slowModeMs = Number(currentConfig.SlowModeSeconds || 0) * 1000;
     const waitMs = slowModeMs - (Date.now() - lastSentAt);
     if (!editTarget && currentProfile.role !== "admin" && waitMs > 0) {
@@ -1117,6 +1245,7 @@
 
       await createChatMessage(payload);
       lastSentAt = Date.now();
+      recordSentText(text);
       elements.input.value = "";
       resizeComposer();
       clearReply();
@@ -1129,6 +1258,39 @@
       elements.send.disabled = false;
       elements.input.focus();
     }
+  }
+
+  function validateOutboundText(text) {
+    if (currentProfile?.role === "admin") return "";
+    const normalized = String(text || "").trim().toLowerCase();
+    if (currentConfig.KeywordFilterEnabled) {
+      const blocked = (currentConfig.BlockedKeywords || []).find((keyword) => (
+        keyword && keywordMatches(normalized, String(keyword).toLowerCase())
+      ));
+      if (blocked) return "This message contains a word blocked by the Adviser.";
+    }
+    if (currentConfig.SpamProtection) {
+      const now = Date.now();
+      recentSentTimes = recentSentTimes.filter((time) => now - time < 10000);
+      if (recentSentTimes.length >= 4) return "Spam protection is on. Please wait before sending again.";
+      if (normalized && normalized === lastSentText && now - lastSentTextAt < 30000) {
+        return "Duplicate message blocked. Please avoid sending the same message repeatedly.";
+      }
+    }
+    return "";
+  }
+
+  function keywordMatches(text, keyword) {
+    if (!keyword) return false;
+    if (keyword.includes(" ")) return text.includes(keyword);
+    return new RegExp(`(^|[^a-z0-9])${escapeRegExp(keyword)}($|[^a-z0-9])`, "i").test(text);
+  }
+
+  function recordSentText(text) {
+    const now = Date.now();
+    recentSentTimes.push(now);
+    lastSentText = String(text || "").trim().toLowerCase();
+    lastSentTextAt = now;
   }
 
   async function createChatMessage(payload) {
@@ -1299,14 +1461,14 @@
 
   function handleMessageDoubleClick(event) {
     const article = event.target.closest(".classChatMessage");
-    if (!article || event.target.closest("button")) return;
+    if (!article || event.target.closest("button, a, iframe")) return;
     if (Date.now() - lastTouchDoubleAt < 650) return;
     showQuickHeart(article);
     reactToMessage(article.dataset.messageId, "🫶");
   }
 
   function startLongPress(event) {
-    if (event.target.closest("button")) return;
+    if (event.target.closest("button, a, iframe")) return;
     const article = event.target.closest(".classChatMessage");
     if (!article) return;
     messageGesture = {
@@ -1762,6 +1924,13 @@
         ChatHoursEnabled: elements.hoursToggle.checked,
         ChatHoursStart: elements.hoursStart.value || "06:00",
         ChatHoursEnd: elements.hoursEnd.value || "21:00",
+        SpamProtection: elements.spamToggle.checked,
+        KeywordFilterEnabled: elements.keywordToggle.checked,
+        BlockedKeywords: String(elements.blockedKeywords.value || "")
+          .split(/[,\n]/)
+          .map((word) => word.trim().toLowerCase())
+          .filter(Boolean)
+          .slice(0, 100),
         UpdatedBy: currentProfile.uid,
         UpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
@@ -1789,6 +1958,11 @@
       .filter(Boolean);
     if (!question || options.length < 2) {
       elements.pollMessage.textContent = "Enter a question and at least two choices.";
+      return;
+    }
+    const blockedReason = validateOutboundText(`${question} ${options.join(" ")}`);
+    if (blockedReason) {
+      elements.pollMessage.textContent = blockedReason;
       return;
     }
     const deadlineDate = elements.pollDeadline.value ? new Date(elements.pollDeadline.value) : null;
@@ -1820,6 +1994,7 @@
       resetPollOptionsEditor();
       closeUtility();
       lastSentAt = Date.now();
+      recordSentText(question);
       scrollToBottom();
     } catch (error) {
       elements.pollMessage.textContent = readableError(error);
