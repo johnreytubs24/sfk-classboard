@@ -69,6 +69,8 @@
   let lastSentTextAt = 0;
   let chatHistoryActive = false;
   let suppressChatPopstate = false;
+  let profileCustomColorSelected = false;
+  let firstCustomColorSelected = false;
 
   const elements = {};
 
@@ -106,7 +108,28 @@
     elements.mediaOpen.addEventListener("click", () => openUtility("media"));
     elements.mediaForm.addEventListener("submit", sendMediaMessage);
     elements.colorForm.addEventListener("submit", saveProfileColor);
-    elements.profileColors.addEventListener("change", updateProfileColorPreview);
+    elements.profileColors.addEventListener("change", () => {
+      profileCustomColorSelected = false;
+      setCustomColorSelected(elements.profileCustomColor, false);
+      updateProfileColorPreview();
+    });
+    elements.profileCustomColor.addEventListener("input", () => {
+      profileCustomColorSelected = true;
+      setCustomColorSelected(elements.profileCustomColor, true);
+      clearRadioColors(elements.profileColors.querySelectorAll('input[name="classChatProfileColor"]'));
+      updateProfileColorPreview();
+    });
+    elements.firstColorChoices.forEach((input) => {
+      input.addEventListener("change", () => {
+        firstCustomColorSelected = false;
+        setCustomColorSelected(elements.firstCustomColor, false);
+      });
+    });
+    elements.firstCustomColor.addEventListener("input", () => {
+      firstCustomColorSelected = true;
+      setCustomColorSelected(elements.firstCustomColor, true);
+      clearRadioColors(elements.firstColorChoices);
+    });
     elements.addPollOption.addEventListener("click", addPollOption);
     elements.pollOptionsEditor.addEventListener("click", handlePollOptionEditorClick);
     elements.pinned.addEventListener("click", focusPinnedMessage);
@@ -182,6 +205,7 @@
     elements.colorPreview = document.getElementById("classChatColorPreview");
     elements.colorSave = document.getElementById("classChatColorSave");
     elements.colorMessage = document.getElementById("classChatColorMessage");
+    elements.profileCustomColor = document.getElementById("classChatProfileCustomColor");
     elements.scheduleForm = document.getElementById("classChatSchedulePanel");
     elements.scheduleText = document.getElementById("classChatScheduleText");
     elements.scheduleAt = document.getElementById("classChatScheduleAt");
@@ -218,6 +242,7 @@
     elements.newPin = document.getElementById("classChatNewPin");
     elements.confirmPin = document.getElementById("classChatConfirmPin");
     elements.firstColorChoices = Array.from(document.querySelectorAll('input[name="classChatFirstColor"]'));
+    elements.firstCustomColor = document.getElementById("classChatFirstCustomColor");
     elements.loginMessage = document.getElementById("classChatLoginMessage");
     elements.messages = document.getElementById("classChatMessages");
     elements.loadEarlier = document.getElementById("classChatLoadEarlier");
@@ -582,6 +607,9 @@
     elements.staffPin.value = "";
     elements.newPin.value = "";
     elements.confirmPin.value = "";
+    firstCustomColorSelected = false;
+    setCustomColorSelected(elements.firstCustomColor, false);
+    elements.firstCustomColor.value = DEFAULT_PROFILE_COLOR;
     selectRadioColor(elements.firstColorChoices, DEFAULT_PROFILE_COLOR);
     elements.changePinForm.hidden = true;
     elements.roleTabsWrap.hidden = false;
@@ -746,7 +774,11 @@
     elements.roleTabsWrap.hidden = true;
     elements.loginMessage.textContent = "";
     elements.status.textContent = "Create your personal Chat PIN";
-    selectRadioColor(elements.firstColorChoices, currentProfile.avatarColor);
+    const currentColor = normalizeProfileColor(currentProfile.avatarColor);
+    firstCustomColorSelected = !PROFILE_COLORS.includes(currentColor);
+    elements.firstCustomColor.value = currentColor;
+    setCustomColorSelected(elements.firstCustomColor, firstCustomColorSelected);
+    selectRadioColor(elements.firstColorChoices, firstCustomColorSelected ? "" : currentColor);
     window.setTimeout(() => elements.newPin.focus(), 80);
   }
 
@@ -754,7 +786,9 @@
     event.preventDefault();
     const newPin = elements.newPin.value.trim();
     const confirmPin = elements.confirmPin.value.trim();
-    const avatarColor = selectedRadioColor(elements.firstColorChoices);
+    const avatarColor = firstCustomColorSelected
+      ? normalizeProfileColor(elements.firstCustomColor.value)
+      : selectedRadioColor(elements.firstColorChoices);
 
     if (!/^\d{6}$/.test(newPin)) {
       elements.loginMessage.textContent = "Your new PIN must contain exactly 6 digits.";
@@ -810,7 +844,7 @@
 
   function normalizeProfileColor(value) {
     const color = String(value || "").trim().toUpperCase();
-    return PROFILE_COLORS.includes(color) ? color : DEFAULT_PROFILE_COLOR;
+    return /^#[0-9A-F]{6}$/.test(color) ? color : DEFAULT_PROFILE_COLOR;
   }
 
   function selectedRadioColor(nodes) {
@@ -818,10 +852,26 @@
   }
 
   function selectRadioColor(nodes, value) {
-    const color = normalizeProfileColor(value);
+    const color = String(value || "").trim().toUpperCase();
     nodes.forEach((input) => {
       input.checked = normalizeProfileColor(input.value) === color;
     });
+  }
+
+  function clearRadioColors(nodes) {
+    Array.from(nodes).forEach((input) => { input.checked = false; });
+  }
+
+  function setCustomColorSelected(input, selected) {
+    input?.closest(".classChatCustomColor")?.classList.toggle("is-selected", selected);
+  }
+
+  function profileInkColor(value) {
+    const color = normalizeProfileColor(value);
+    const red = parseInt(color.slice(1, 3), 16);
+    const green = parseInt(color.slice(3, 5), 16);
+    const blue = parseInt(color.slice(5, 7), 16);
+    return ((red * 299) + (green * 587) + (blue * 114)) / 1000 < 145 ? "#FFFFFF" : "#111111";
   }
 
   function profileColorForMessage(message) {
@@ -833,7 +883,11 @@
 
   function updateProfileColorPreview() {
     const choices = Array.from(elements.profileColors.querySelectorAll('input[name="classChatProfileColor"]'));
-    elements.colorPreview.style.setProperty("--profile-color", selectedRadioColor(choices));
+    const color = profileCustomColorSelected
+      ? normalizeProfileColor(elements.profileCustomColor.value)
+      : selectedRadioColor(choices);
+    elements.colorPreview.style.setProperty("--profile-color", color);
+    elements.colorPreview.style.setProperty("--profile-ink", profileInkColor(color));
   }
 
   function prepareProfileColorPanel() {
@@ -841,10 +895,15 @@
     const selectedColor = normalizeProfileColor(currentProfile?.avatarColor);
     const availableAt = Number(currentProfile?.colorChangedAt || 0) + PROFILE_COLOR_COOLDOWN_MS;
     const coolingDown = Number(currentProfile?.colorChangedAt || 0) > 0 && Date.now() < availableAt;
-    selectRadioColor(choices, selectedColor);
+    profileCustomColorSelected = !PROFILE_COLORS.includes(selectedColor);
+    elements.profileCustomColor.value = selectedColor;
+    setCustomColorSelected(elements.profileCustomColor, profileCustomColorSelected);
+    selectRadioColor(choices, profileCustomColorSelected ? "" : selectedColor);
     choices.forEach((input) => { input.disabled = coolingDown; });
+    elements.profileCustomColor.disabled = coolingDown;
     elements.colorPreview.textContent = initials(currentProfile?.name || "Student");
     elements.colorPreview.style.setProperty("--profile-color", selectedColor);
+    elements.colorPreview.style.setProperty("--profile-ink", profileInkColor(selectedColor));
     elements.colorSave.disabled = coolingDown;
     elements.colorMessage.textContent = coolingDown
       ? `You can change your color again on ${new Date(availableAt).toLocaleString()}.`
@@ -861,7 +920,9 @@
     }
 
     const choices = Array.from(elements.profileColors.querySelectorAll('input[name="classChatProfileColor"]'));
-    const avatarColor = selectedRadioColor(choices);
+    const avatarColor = profileCustomColorSelected
+      ? normalizeProfileColor(elements.profileCustomColor.value)
+      : selectedRadioColor(choices);
     if (avatarColor === normalizeProfileColor(currentProfile.avatarColor)) {
       elements.colorMessage.textContent = "Choose a different color before saving.";
       return;
@@ -1232,7 +1293,10 @@
         ${showNewDivider ? `<div class="classChatNewDivider">New messages</div>` : ""}
         <article class="classChatMessage ${own ? "is-own" : ""} ${grouped ? "is-grouped" : "is-first"} ${groupEnd ? "is-group-end" : ""} ${removed ? "has-removed" : ""} ${mentioned ? "is-mentioned" : ""} ${message.Priority ? "is-priority" : ""}"
                  data-message-id="${message.id}">
-          ${own ? "" : `<span class="classChatMessageAvatar" style="--profile-color:${profileColorForMessage(message)}">${escapeHtml(initials(message.SenderName))}</span>`}
+          ${own ? "" : (() => {
+            const avatarColor = profileColorForMessage(message);
+            return `<span class="classChatMessageAvatar" style="--profile-color:${avatarColor};--profile-ink:${profileInkColor(avatarColor)}">${escapeHtml(initials(message.SenderName))}</span>`;
+          })()}
           <div class="classChatBubbleWrap">
             ${own ? "" : `<p class="classChatSender">${escapeHtml(message.SenderName || "Student")}${roleBadgeMarkup(message.SenderRole)}</p>`}
             <div class="classChatBubble">

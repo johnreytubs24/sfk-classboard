@@ -1,4 +1,4 @@
-const CACHE_NAME = "sfk-classboard-v136-profile-colors";
+const CACHE_NAME = "sfk-classboard-v137-full-color-picker";
 const APP_SHELL = [
   "./",
   "./index.html",

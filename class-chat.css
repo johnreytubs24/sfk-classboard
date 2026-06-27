@@ -563,7 +563,7 @@
   border: 2px solid #111;
   border-radius: 50%;
   background: var(--profile-color, #f7c600);
-  color: #111;
+  color: var(--profile-ink, #111);
   font-size: .78rem;
   font-weight: 950;
   box-shadow: 2px 2px 0 rgba(17, 17, 17, .18);
@@ -865,6 +865,61 @@
   box-shadow: 3px 3px 0 #111;
 }
 
+.classChatCustomColor,
+.classChatAuthForm .classChatCustomColor {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 14px 0 0;
+  border: 1px solid #d8d1c4;
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.classChatCustomColor > span {
+  min-width: 0;
+}
+
+.classChatCustomColor strong,
+.classChatCustomColor small {
+  display: block;
+}
+
+.classChatCustomColor small {
+  margin-top: 3px;
+  color: #716c63;
+  font-size: .7rem;
+  font-weight: 650;
+}
+
+.classChatCustomColor input[type="color"],
+.classChatAuthForm .classChatCustomColor input[type="color"] {
+  width: 48px;
+  height: 40px;
+  min-height: 40px;
+  flex: 0 0 48px;
+  margin: 0;
+  border: 1.5px solid #111;
+  border-radius: 9px;
+  padding: 3px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.classChatCustomColor input[type="color"]:disabled {
+  opacity: .48;
+  cursor: not-allowed;
+}
+
+.classChatCustomColor.is-selected {
+  border-color: #111;
+  background: #fff7cf;
+  box-shadow: 0 0 0 2px rgba(247, 198, 0, .20);
+}
+
 .classChatLoginMessage {
   min-height: 20px;
   margin: 14px 0 0;
@@ -1079,6 +1134,7 @@
   border: 1px solid #111;
   border-radius: 50%;
   background: var(--profile-color, #f7c600);
+  color: var(--profile-ink, #111);
   font-size: .57rem;
   font-weight: 950;
   visibility: hidden;
@@ -1970,8 +2026,19 @@ body.classChatIsOpen {
 }
 
 .classChatPanel.is-dark .classChatColorPreview small,
-.classChatPanel.is-dark .classChatColorChoices label > small {
+.classChatPanel.is-dark .classChatColorChoices label > small,
+.classChatPanel.is-dark .classChatCustomColor small {
   color: #b9b4ac;
+}
+
+.classChatPanel.is-dark .classChatCustomColor {
+  border-color: #3d3d3d;
+  background: #1d1d1d;
+}
+
+.classChatPanel.is-dark .classChatCustomColor.is-selected {
+  border-color: #f7c600;
+  background: #29240e;
 }
 
 .classChatPanel.is-dark .classChatColorChoices label:has(input:checked) {
