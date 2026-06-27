@@ -498,6 +498,26 @@ width: 100%;
   opacity: .6;
 }
 
+html.phone-device .announcementHeading {
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+html.phone-device .announcementHeading > #announcementTitle {
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+}
+
+html.phone-device .announcementTimerToggle {
+  width: 30px !important;
+  height: 30px !important;
+  flex: 0 0 30px !important;
+  display: grid !important;
+  visibility: visible !important;
+}
+
 .scheduleCard {
   grid-row: span 2;
   overflow: hidden;

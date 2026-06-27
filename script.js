@@ -68,6 +68,7 @@ const subjectIcons = {
 };
 
 function initClassBoard() {
+  ensureAnnouncementTimerControl();
 
   const audioOverlay = document.getElementById("audioStartOverlay");
   if (audioOverlay) {
@@ -105,6 +106,43 @@ function initClassBoard() {
 
   syncTodayScheduleToggle();
   window.addEventListener("resize", syncTodayScheduleToggle);
+}
+
+function ensureAnnouncementTimerControl() {
+  const card = document.querySelector(".announcementsCard");
+  const title = document.getElementById("announcementTitle");
+  const list = document.getElementById("announcementList");
+  if (!card || !title || !list) return;
+
+  let heading = title.closest(".announcementHeading");
+  if (!heading) {
+    heading = document.createElement("div");
+    heading.className = "announcementHeading";
+    card.insertBefore(heading, title);
+    heading.appendChild(title);
+  }
+
+  let button = document.getElementById("announcementTimerToggle");
+  if (!button) {
+    button = document.createElement("button");
+    button.id = "announcementTimerToggle";
+    button.className = "announcementTimerToggle";
+    button.type = "button";
+    button.innerHTML = "&#10074;&#10074;";
+    button.addEventListener("click", toggleAnnouncementRotation);
+    heading.appendChild(button);
+  }
+
+  if (!document.getElementById("announcementProgress")) {
+    const progress = document.createElement("div");
+    progress.id = "announcementProgress";
+    progress.className = "announcementProgress";
+    progress.setAttribute("aria-hidden", "true");
+    progress.innerHTML = `<span id="announcementProgressFill"></span>`;
+    card.insertBefore(progress, list);
+  }
+
+  updateAnnouncementTimerButton();
 }
 
 async function loadClassBoard() {

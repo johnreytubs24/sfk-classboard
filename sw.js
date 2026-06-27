@@ -1,4 +1,4 @@
-const CACHE_NAME = "sfk-classboard-v98-announcement-publish-date";
+const CACHE_NAME = "sfk-classboard-v99-phone-timer-control";
 const APP_SHELL = [
   "./",
   "./index.html",
