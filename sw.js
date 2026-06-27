@@ -1,4 +1,4 @@
-const CACHE_NAME = "sfk-classboard-v126-logged-out-chat-menu";
+const CACHE_NAME = "sfk-classboard-v127-hidden-composer-scrollbar";
 const APP_SHELL = [
   "./",
   "./index.html",
