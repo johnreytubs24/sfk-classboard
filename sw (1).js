@@ -6,9 +6,9 @@
   <meta name="theme-color" content="#f7c600" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-title" content="SFK Officers" />
+  <meta name="apple-mobile-web-app-title" content="SFK Admin" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>SFK Officers</title>
+  <title>SFK Admin</title>
   <link rel="manifest" href="manifest.webmanifest?v=3" />
   <link rel="icon" type="image/png" sizes="192x192" href="../icons/icon-192.png?v=3" />
   <link rel="apple-touch-icon" href="../icons/icon-192.png?v=3" />
@@ -33,13 +33,13 @@
   </style>
 </head>
 <body>
-  <iframe src="../officer.html?embedded=1&v=phone-orientation-lock" title="SFK Officers Panel" allow="fullscreen" allowfullscreen></iframe>
+  <iframe src="../admin.html?embedded=1&v=phone-orientation-lock" title="SFK ClassBoard Admin" allow="fullscreen" allowfullscreen></iframe>
   <script src="../orientation-lock.js?v=1"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
         navigator.serviceWorker.register("./sw.js").catch((error) => {
-          console.warn("Officers service worker registration failed:", error);
+          console.warn("Admin service worker registration failed:", error);
         });
       });
     }

@@ -1,10 +1,11 @@
-const CACHE_NAME = "sfk-classboard-v88-phone-portrait-guard";
+const CACHE_NAME = "sfk-classboard-v89-phone-orientation-lock";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./style.css",
   "./script.js",
   "./pwa.js",
+  "./orientation-lock.js",
   "./memories.html",
   "./memories.css",
   "./memories.js",
