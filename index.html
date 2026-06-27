@@ -14,7 +14,7 @@
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=3" />
   <link rel="apple-touch-icon" href="icons/icon-192.png?v=3" />
   <link rel="stylesheet" href="style.css?v=74-clock-access-menu" />
-  <link rel="stylesheet" href="class-chat.css?v=14-complete-features" />
+  <link rel="stylesheet" href="class-chat.css?v=15-save-feedback" />
   <script src="orientation-lock.js?v=3-phone-device-lock" defer></script>
 
   <style id="sfkStartIntroStyle">
@@ -761,7 +761,7 @@
         </button>
         <button id="classChatSavedOpen" type="button" hidden>
           <span class="classChatMenuIcon" aria-hidden="true">&#9734;</span>
-          <span>Saved messages</span>
+          <span id="classChatSavedLabel">Saved messages</span>
         </button>
         <button id="classChatPollOpen" type="button" hidden>
           <span class="classChatMenuIcon" aria-hidden="true">&#9776;</span>
@@ -941,6 +941,7 @@
       </div>
 
       <div id="classChatReactionTray" class="classChatReactionTray" hidden></div>
+      <div id="classChatToast" class="classChatToast" hidden role="status"></div>
     </section>
   </div>
 
@@ -989,7 +990,7 @@
   <script src="firebase-config.js?v=2-secure-auth"></script>
   <script src="firebase-adapter.js?v=15-secure-auth"></script>
   <script src="script.js?v=73-clock-access-menu"></script>
-  <script src="class-chat.js?v=14-complete-features"></script>
+  <script src="class-chat.js?v=15-save-feedback"></script>
   <script src="pwa.js?v=3"></script>
 </body>
 </html>

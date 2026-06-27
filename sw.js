@@ -1,4 +1,4 @@
-const CACHE_NAME = "sfk-classboard-v128-complete-chat-features";
+const CACHE_NAME = "sfk-classboard-v129-save-feedback";
 const APP_SHELL = [
   "./",
   "./index.html",

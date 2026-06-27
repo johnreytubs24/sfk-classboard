@@ -55,6 +55,7 @@
   let messageGesture = null;
   let lastTouchTap = { messageId: "", time: 0 };
   let lastTouchDoubleAt = 0;
+  let chatToastTimer = null;
 
   const elements = {};
 
@@ -123,6 +124,7 @@
     elements.leave = document.getElementById("classChatLeave");
     elements.searchOpen = document.getElementById("classChatSearchOpen");
     elements.savedOpen = document.getElementById("classChatSavedOpen");
+    elements.savedLabel = document.getElementById("classChatSavedLabel");
     elements.pollOpen = document.getElementById("classChatPollOpen");
     elements.controlsOpen = document.getElementById("classChatControlsOpen");
     elements.scheduleOpen = document.getElementById("classChatScheduleOpen");
@@ -186,6 +188,7 @@
     elements.send = document.getElementById("classChatSend");
     elements.reactionTray = document.getElementById("classChatReactionTray");
     elements.jumpUnread = document.getElementById("classChatJumpUnread");
+    elements.toast = document.getElementById("classChatToast");
   }
 
   function ensureFirebase() {
@@ -227,6 +230,8 @@
     elements.layer.hidden = true;
     document.body.classList.remove("classChatIsOpen");
     hideReactionTray();
+    window.clearTimeout(chatToastTimer);
+    elements.toast.hidden = true;
     closeChatMenu();
     closeUtility();
     clearReply();
@@ -723,6 +728,9 @@
         savedMessageIds = new Set(snapshot.docs.map((doc) => doc.id));
         savedItems = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
           .sort((a, b) => timestampToMillis(b.SavedAt) - timestampToMillis(a.SavedAt));
+        elements.savedLabel.textContent = savedItems.length
+          ? `Saved messages (${savedItems.length})`
+          : "Saved messages";
         if (!elements.savedPanel.hidden) renderSavedMessages();
       });
 
@@ -1603,9 +1611,14 @@
   async function toggleSavedMessage(message) {
     if (!message || message.IsScheduled) return;
     const ref = db.collection("chatSaved").doc(currentProfile.uid).collection("items").doc(message.id);
+    const wasSaved = savedMessageIds.has(message.id);
+    if (wasSaved) savedMessageIds.delete(message.id);
+    else savedMessageIds.add(message.id);
+    updateSaveButtons(message.id, !wasSaved);
     try {
-      if (savedMessageIds.has(message.id)) {
+      if (wasSaved) {
         await ref.delete();
+        showChatToast("Removed from Saved messages");
       } else {
         await ref.set({
           MessageID: message.id,
@@ -1614,10 +1627,30 @@
           MessageCreatedAt: message.CreatedAt || firebase.firestore.Timestamp.now(),
           SavedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
+        showChatToast("Saved. Open ⋯ → Saved messages");
       }
     } catch (error) {
+      if (wasSaved) savedMessageIds.add(message.id);
+      else savedMessageIds.delete(message.id);
+      updateSaveButtons(message.id, wasSaved);
       window.alert(readableError(error));
     }
+  }
+
+  function updateSaveButtons(messageId, saved) {
+    const article = elements.messages.querySelector(`.classChatMessage[data-message-id="${cssEscape(messageId)}"]`);
+    article?.querySelectorAll("[data-chat-action='save']").forEach((button) => {
+      button.textContent = saved ? "Unsave" : "Save";
+    });
+  }
+
+  function showChatToast(message) {
+    window.clearTimeout(chatToastTimer);
+    elements.toast.textContent = message;
+    elements.toast.hidden = false;
+    chatToastTimer = window.setTimeout(() => {
+      elements.toast.hidden = true;
+    }, 2400);
   }
 
   function renderSavedMessages() {
