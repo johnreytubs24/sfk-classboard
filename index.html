@@ -14,7 +14,7 @@
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=3" />
   <link rel="apple-touch-icon" href="icons/icon-192.png?v=3" />
   <link rel="stylesheet" href="style.css?v=74-clock-access-menu" />
-  <link rel="stylesheet" href="class-chat.css?v=17-exit-confirmation" />
+  <link rel="stylesheet" href="class-chat.css?v=18-media-links" />
   <script src="orientation-lock.js?v=3-phone-device-lock" defer></script>
 
   <style id="sfkStartIntroStyle">
@@ -837,6 +837,10 @@
             <span><strong>Clickable links</strong><small>Also controls inline YouTube video previews.</small></span>
             <input id="classChatLinksToggle" type="checkbox" checked />
           </label>
+          <label class="classChatControlRow">
+            <span><strong>Allow media</strong><small>Lets members send image, GIF, video, audio, and YouTube links.</small></span>
+            <input id="classChatMediaToggle" type="checkbox" checked />
+          </label>
           <label for="classChatBlockedKeywords">Blocked keywords</label>
           <textarea id="classChatBlockedKeywords" rows="4" placeholder="Enter words separated by commas or new lines"></textarea>
           <button type="submit">Save chat controls</button>
@@ -890,6 +894,23 @@
           <p class="classChatUtilityHint">Private reports visible only to the Adviser/Admin.</p>
           <div id="classChatReportsResults" class="classChatSearchResults"></div>
         </div>
+
+        <form id="classChatMediaPanel" class="classChatUtilityBody classChatPollPanel" hidden>
+          <label for="classChatMediaUrl">Direct media or YouTube link</label>
+          <input id="classChatMediaUrl" type="url" maxlength="2000" placeholder="https://..." required />
+          <label for="classChatMediaType">Media type</label>
+          <select id="classChatMediaType">
+            <option value="auto">Detect automatically</option>
+            <option value="image">Image / GIF</option>
+            <option value="video">Video</option>
+            <option value="audio">Audio / MP3</option>
+            <option value="youtube">YouTube</option>
+          </select>
+          <label for="classChatMediaCaption">Caption (optional)</label>
+          <textarea id="classChatMediaCaption" maxlength="500" rows="3" placeholder="Add a caption..."></textarea>
+          <button type="submit">Send media</button>
+          <p id="classChatMediaMessage" class="classChatUtilityHint" role="status"></p>
+        </form>
       </section>
 
       <div id="classChatExitDialog" class="classChatExitDialog" hidden>
@@ -963,6 +984,7 @@
         </div>
         <div id="classChatMentionSuggestions" class="classChatMentionSuggestions" hidden></div>
         <form id="classChatComposer" class="classChatComposer">
+          <button id="classChatMediaOpen" class="classChatMediaOpen" type="button" aria-label="Send media" title="Send media">+</button>
           <textarea id="classChatInput" rows="1" maxlength="500" placeholder="Message..." aria-label="Message"></textarea>
           <button id="classChatSend" type="submit" aria-label="Send message">&#10148;</button>
         </form>
@@ -1019,7 +1041,7 @@
   <script src="firebase-config.js?v=2-secure-auth"></script>
   <script src="firebase-adapter.js?v=15-secure-auth"></script>
   <script src="script.js?v=73-clock-access-menu"></script>
-  <script src="class-chat.js?v=19-exit-confirmation"></script>
+  <script src="class-chat.js?v=21-media-links-final"></script>
   <script src="pwa.js?v=3"></script>
 </body>
 </html>

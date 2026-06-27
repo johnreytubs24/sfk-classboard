@@ -31,6 +31,23 @@ service cloud.firestore {
       return isStaff() || hasActiveChatProfile();
     }
 
+    function isChatUnlocked() {
+      return isAdmin()
+        || !exists(/databases/$(database)/documents/chatConfig/main)
+        || get(/databases/$(database)/documents/chatConfig/main).data.Locked != true;
+    }
+
+    function isMediaAllowed() {
+      return !exists(/databases/$(database)/documents/chatConfig/main)
+        || get(/databases/$(database)/documents/chatConfig/main).data.AllowMedia != false;
+    }
+
+    function isNotMuted() {
+      return isStaff()
+        || !("MutedUntil" in get(/databases/$(database)/documents/chatProfiles/$(request.auth.uid)).data)
+        || get(/databases/$(database)/documents/chatProfiles/$(request.auth.uid)).data.MutedUntil <= request.time;
+    }
+
     function isHeartLedgerDocument(docId) {
       return docId.matches("^heartV3_.*")
         && request.resource.data.Kind == "ClassBoardHeartLedgerV3"
@@ -127,38 +144,160 @@ service cloud.firestore {
     match /chatMessages/{messageId} {
       allow read: if isChatMember();
       allow create: if isChatMember()
+        && isChatUnlocked()
+        && isNotMuted()
         && request.resource.data.SenderUID == request.auth.uid
         && request.resource.data.SenderName is string
         && request.resource.data.Text is string
         && request.resource.data.Text.size() > 0
         && request.resource.data.Text.size() <= 500
         && request.resource.data.Removed == false
-        && request.resource.data.keys().hasOnly([
-          "Text", "SenderUID", "SenderName", "SenderRole", "Removed", "CreatedAt",
-          "ReplyToID", "ReplyToName", "ReplyToText"
-        ]);
+        && (("MediaURL" in request.resource.data) == ("MediaType" in request.resource.data))
+        && (
+          !("MediaURL" in request.resource.data)
+          || (
+            isMediaAllowed()
+            && request.resource.data.MediaURL is string
+            && request.resource.data.MediaURL.size() > 0
+            && request.resource.data.MediaURL.size() <= 2000
+            && request.resource.data.MediaURL.matches("^https?://.*")
+            && request.resource.data.MediaType in ["image", "video", "audio", "youtube"]
+          )
+        )
+        && (
+          (
+            !("Type" in request.resource.data)
+            && request.resource.data.keys().hasOnly([
+              "Text", "SenderUID", "SenderName", "SenderRole", "Removed", "CreatedAt",
+              "ReplyToID", "ReplyToName", "ReplyToText", "MediaURL", "MediaType"
+            ])
+          )
+          || (
+            request.resource.data.Type == "poll"
+            && request.resource.data.PollOptions is list
+            && request.resource.data.PollOptions.size() >= 2
+            && request.resource.data.PollOptions.size() <= 12
+            && request.resource.data.keys().hasOnly([
+              "Type", "Text", "PollOptions", "SenderUID", "SenderName",
+              "SenderRole", "Removed", "CreatedAt", "PollMultiple",
+              "PollAnonymous", "PollClosed", "PollEndsAt"
+            ])
+          )
+        );
       allow update: if isAdmin()
         || (
           isChatMember()
           && resource.data.SenderUID == request.auth.uid
           && request.time < resource.data.CreatedAt + duration.value(5, "m")
           && request.resource.data.SenderUID == resource.data.SenderUID
-          && request.resource.data.Removed == true
-          && request.resource.data.Text == ""
+          && (
+            (
+              request.resource.data.Removed == true
+              && request.resource.data.Text == ""
+              && request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(["Text", "Removed", "RemovedBy", "RemovedAt"])
+            )
+            || (
+              isChatUnlocked()
+              && !("Type" in resource.data)
+              && resource.data.Removed == false
+              && request.resource.data.Removed == false
+              && request.resource.data.Text is string
+              && request.resource.data.Text.size() > 0
+              && request.resource.data.Text.size() <= 500
+              && request.resource.data.Edited == true
+              && request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(["Text", "Edited", "EditedAt"])
+            )
+          )
+        )
+        || (
+          isChatMember()
+          && resource.data.Type == "poll"
+          && resource.data.SenderUID == request.auth.uid
+          && resource.data.PollClosed == false
+          && request.resource.data.PollClosed == true
           && request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(["Text", "Removed", "RemovedBy", "RemovedAt"])
+            .hasOnly(["PollClosed", "PollClosedAt"])
         );
-      allow delete: if false;
+      allow delete: if isAdmin();
 
       match /reactions/{userId} {
         allow read: if isChatMember();
         allow create, update: if isChatMember()
           && request.auth.uid == userId
+          && get(/databases/$(database)/documents/chatMessages/$(messageId)).data.Removed == false
           && request.resource.data.UID == request.auth.uid
           && request.resource.data.Emoji in ["🫶", "👍", "❤️", "😂", "😮", "😢", "🙏", "✅"]
           && request.resource.data.keys().hasOnly(["Emoji", "UID", "Name", "UpdatedAt"]);
         allow delete: if isAdmin() || (isChatMember() && request.auth.uid == userId);
       }
+
+      match /votes/{userId} {
+        allow read: if isChatMember();
+        allow create, update: if isChatMember()
+          && request.auth.uid == userId
+          && get(/databases/$(database)/documents/chatMessages/$(messageId)).data.Removed == false
+          && get(/databases/$(database)/documents/chatMessages/$(messageId)).data.Type == "poll"
+          && get(/databases/$(database)/documents/chatMessages/$(messageId)).data.PollClosed == false
+          && (
+            !("PollEndsAt" in get(/databases/$(database)/documents/chatMessages/$(messageId)).data)
+            || get(/databases/$(database)/documents/chatMessages/$(messageId)).data.PollEndsAt > request.time
+          )
+          && request.resource.data.UID == request.auth.uid
+          && request.resource.data.OptionIndexes is list
+          && request.resource.data.OptionIndexes.size() >= 1
+          && request.resource.data.OptionIndexes.size()
+            <= get(/databases/$(database)/documents/chatMessages/$(messageId)).data.PollOptions.size()
+          && request.resource.data.keys().hasOnly(["UID", "Name", "OptionIndexes", "UpdatedAt"]);
+        allow delete: if isAdmin() || (isChatMember() && request.auth.uid == userId);
+      }
+    }
+
+    match /chatMeta/{docId} {
+      allow read: if docId == "main";
+      allow create: if docId == "main"
+        && isChatMember()
+        && request.resource.data.TotalMessages == 1
+        && request.resource.data.keys().hasOnly(["TotalMessages", "LatestAt"]);
+      allow update: if docId == "main"
+        && (
+          isAdmin()
+          || (
+            isChatMember()
+            && request.resource.data.TotalMessages == resource.data.TotalMessages + 1
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(["TotalMessages", "LatestAt"])
+          )
+        );
+      allow delete: if isAdmin();
+    }
+
+    match /chatConfig/{docId} {
+      allow read: if isChatMember();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /chatDirectory/{userId} {
+      allow read: if isChatMember();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /chatSaved/{userId}/items/{messageId} {
+      allow read: if isAdmin() || (isChatMember() && request.auth.uid == userId);
+      allow create, update: if isChatMember() && request.auth.uid == userId;
+      allow delete: if isAdmin() || (isChatMember() && request.auth.uid == userId);
+    }
+
+    match /chatReports/{reportId} {
+      allow create: if isChatMember()
+        && request.resource.data.ReporterUID == request.auth.uid;
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /chatScheduled/{messageId} {
+      allow read: if isAdmin() || (isChatMember() && resource.data.PublishAt <= request.time);
+      allow create, update, delete: if isAdmin();
     }
 
     match /chatTyping/{userId} {

@@ -1,4 +1,4 @@
-const CACHE_NAME = "sfk-classboard-v133-chat-exit-confirmation";
+const CACHE_NAME = "sfk-classboard-v135-media-links-final";
 const APP_SHELL = [
   "./",
   "./index.html",

@@ -430,6 +430,7 @@
 .classChatControlsPanel select,
 .classChatControlsPanel textarea,
 .classChatPollPanel input,
+.classChatPollPanel select,
 .classChatPollPanel textarea {
   width: 100%;
   min-height: 47px;
@@ -1062,6 +1063,36 @@
   border: 0;
 }
 
+.classChatMediaAttachment {
+  width: min(310px, 72vw);
+  margin-top: 9px;
+}
+
+.classChatMediaAttachment img,
+.classChatMediaAttachment video {
+  width: 100%;
+  max-height: 340px;
+  display: block;
+  border: 1px solid rgba(17, 17, 17, .22);
+  border-radius: 12px;
+  background: #111;
+  object-fit: contain;
+}
+
+.classChatMediaAttachment audio {
+  width: min(290px, 68vw);
+  display: block;
+}
+
+.classChatMediaAttachment > a {
+  display: block;
+  margin-top: 5px;
+  color: inherit;
+  font-size: .65rem;
+  font-weight: 800;
+  text-decoration: underline;
+}
+
 .classChatMessage.is-mentioned .classChatBubble {
   box-shadow: 0 0 0 3px rgba(247, 198, 0, .30);
 }
@@ -1444,6 +1475,14 @@
   transition: transform .14s ease;
 }
 
+.classChatComposer .classChatMediaOpen {
+  padding: 0;
+  background: #f7c600;
+  color: #111;
+  font-size: 1.55rem;
+  line-height: 1;
+}
+
 .classChatComposer button:active {
   transform: scale(.9);
 }
@@ -1680,6 +1719,7 @@ body.classChatIsOpen {
 .classChatPanel.is-dark .classChatControlsPanel select,
 .classChatPanel.is-dark .classChatControlsPanel textarea,
 .classChatPanel.is-dark .classChatPollPanel input,
+.classChatPanel.is-dark .classChatPollPanel select,
 .classChatPanel.is-dark .classChatPollPanel textarea,
 .classChatPanel.is-dark .classChatHoursGrid input {
   border-color: #444;

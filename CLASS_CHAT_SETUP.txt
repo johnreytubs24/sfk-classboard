@@ -27,3 +27,36 @@ own 6-digit PIN before entering the class conversation.
 The no-billing version cannot reset another Firebase user's forgotten PIN from
 the Admin page. Firebase Admin SDK or a real recovery email is required for that.
 Adviser/Admin can remove any message inside the chat.
+
+The Admin "Class Chat Students" tool also has "Clear Entire Chat". It permanently
+deletes all messages, reactions, poll votes, typing indicators, and read state,
+but keeps the student accounts.
+
+CHAT FEATURES
+- Unread badge and New messages divider
+- One pinned message controlled by the Adviser/Admin
+- Student message editing within 5 minutes
+- Admin chat lock, slow mode, and 10-minute student mute
+- Search for the latest 200 messages
+- Quick polls created by any logged-in class member, with 4 default choices
+  and up to 12 choices using Add choice
+- Mentions, seen indicators, and personal saved messages
+- Poll deadlines, multiple answers, anonymous display, and poll closing
+- Admin scheduled messages, priority cards, private reports, and chat hours
+- Local draft saving and an unread jump button
+- Admin-controlled spam protection and keyword filtering
+- Clickable web links and inline YouTube playback
+- Media sharing by direct link: images/GIFs, video, audio/MP3, and YouTube
+- Admin Allow media switch under Chat controls
+- Small, Default, and Large chat text sizes for every user
+- Student, Officer, and Admin sender badges
+
+MEDIA NOTE
+This no-billing version sends media by direct http/https link. It does not
+upload files to Firebase Storage. Admin can turn media sharing on or off from
+Chat controls. When disabled, the media button is hidden and Firestore rejects
+new media messages.
+
+For existing student accounts, open Admin > Class Chat Students and click
+"Refresh Student List" once. This creates the safe name-only directory used by
+the @mention suggestions.

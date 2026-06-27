@@ -96,6 +96,8 @@
     elements.controlsForm.addEventListener("submit", saveChatControls);
     elements.pollForm.addEventListener("submit", createQuickPoll);
     elements.scheduleForm.addEventListener("submit", scheduleChatMessage);
+    elements.mediaOpen.addEventListener("click", () => openUtility("media"));
+    elements.mediaForm.addEventListener("submit", sendMediaMessage);
     elements.addPollOption.addEventListener("click", addPollOption);
     elements.pollOptionsEditor.addEventListener("click", handlePollOptionEditorClick);
     elements.pinned.addEventListener("click", focusPinnedMessage);
@@ -170,12 +172,18 @@
     elements.scheduleMessage = document.getElementById("classChatScheduleMessage");
     elements.reportsPanel = document.getElementById("classChatReportsPanel");
     elements.reportsResults = document.getElementById("classChatReportsResults");
+    elements.mediaForm = document.getElementById("classChatMediaPanel");
+    elements.mediaUrl = document.getElementById("classChatMediaUrl");
+    elements.mediaType = document.getElementById("classChatMediaType");
+    elements.mediaCaption = document.getElementById("classChatMediaCaption");
+    elements.mediaMessage = document.getElementById("classChatMediaMessage");
     elements.hoursToggle = document.getElementById("classChatHoursToggle");
     elements.hoursStart = document.getElementById("classChatHoursStart");
     elements.hoursEnd = document.getElementById("classChatHoursEnd");
     elements.spamToggle = document.getElementById("classChatSpamToggle");
     elements.keywordToggle = document.getElementById("classChatKeywordToggle");
     elements.linksToggle = document.getElementById("classChatLinksToggle");
+    elements.mediaToggle = document.getElementById("classChatMediaToggle");
     elements.blockedKeywords = document.getElementById("classChatBlockedKeywords");
     elements.login = document.getElementById("classChatLogin");
     elements.room = document.getElementById("classChatRoom");
@@ -205,6 +213,7 @@
     elements.composer = document.getElementById("classChatComposer");
     elements.input = document.getElementById("classChatInput");
     elements.send = document.getElementById("classChatSend");
+    elements.mediaOpen = document.getElementById("classChatMediaOpen");
     elements.reactionTray = document.getElementById("classChatReactionTray");
     elements.jumpUnread = document.getElementById("classChatJumpUnread");
     elements.toast = document.getElementById("classChatToast");
@@ -424,6 +433,7 @@
     elements.savedPanel.hidden = type !== "saved";
     elements.scheduleForm.hidden = type !== "schedule";
     elements.reportsPanel.hidden = type !== "reports";
+    elements.mediaForm.hidden = type !== "media";
 
     if (type === "search") {
       elements.utilityTitle.textContent = "Search messages";
@@ -440,6 +450,7 @@
       elements.spamToggle.checked = currentConfig.SpamProtection === true;
       elements.keywordToggle.checked = currentConfig.KeywordFilterEnabled === true;
       elements.linksToggle.checked = currentConfig.ClickableLinksEnabled !== false;
+      elements.mediaToggle.checked = currentConfig.AllowMedia !== false;
       elements.blockedKeywords.value = Array.isArray(currentConfig.BlockedKeywords)
         ? currentConfig.BlockedKeywords.join(", ")
         : "";
@@ -464,6 +475,11 @@
     if (type === "reports") {
       elements.utilityTitle.textContent = "Reported messages";
       loadReportedMessages();
+    }
+    if (type === "media") {
+      elements.utilityTitle.textContent = "Send media";
+      elements.mediaMessage.textContent = "";
+      window.setTimeout(() => elements.mediaUrl.focus(), 80);
     }
   }
 
@@ -804,7 +820,8 @@
         SpamProtection: snapshot.data()?.SpamProtection === true,
         KeywordFilterEnabled: snapshot.data()?.KeywordFilterEnabled === true,
         BlockedKeywords: Array.isArray(snapshot.data()?.BlockedKeywords) ? snapshot.data().BlockedKeywords : [],
-        ClickableLinksEnabled: snapshot.data()?.ClickableLinksEnabled !== false
+        ClickableLinksEnabled: snapshot.data()?.ClickableLinksEnabled !== false,
+        AllowMedia: snapshot.data()?.AllowMedia !== false
       };
       applyChatConfig();
       if (previousLinkSetting !== undefined
@@ -959,6 +976,9 @@
     const restricted = isChatRestrictedForUser();
     elements.input.disabled = restricted;
     elements.send.disabled = restricted;
+    elements.mediaOpen.hidden = currentConfig.AllowMedia === false;
+    elements.mediaOpen.disabled = restricted || currentConfig.AllowMedia === false;
+    if (currentConfig.AllowMedia === false && !elements.mediaForm.hidden) closeUtility();
     elements.input.placeholder = restricted
       ? currentConfig.Locked
         ? "Conversation locked by the Adviser"
@@ -1036,7 +1056,7 @@
         ? `<span class="classChatRemoved">Message removed by the Adviser.</span>`
         : message.Type === "poll"
           ? renderPollMarkup(message)
-          : `<div class="classChatText">${formatMessageText(message.Text || "")}${message.Edited ? `<small class="classChatEdited">edited</small>` : ""}</div>${renderYoutubeEmbed(message.Text || "")}`;
+          : `<div class="classChatText">${formatMessageText(message.Text || "")}${message.Edited ? `<small class="classChatEdited">edited</small>` : ""}</div>${renderYoutubeEmbed(message.Text || "")}${renderMediaAttachment(message)}`;
 
       const replySource = message.ReplyToID ? findMessage(message.ReplyToID) : null;
       const replyIsUnavailable = removed
@@ -1190,6 +1210,58 @@
           allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
           allowfullscreen></iframe>
       </div>`;
+  }
+
+  function renderMediaAttachment(message) {
+    if (!message.MediaURL || !message.MediaType) return "";
+    const url = safeHttpUrl(message.MediaURL);
+    if (!url) return "";
+    if (message.MediaType === "youtube") {
+      const videoId = youtubeVideoId(url);
+      if (!videoId) return "";
+      return `
+        <div class="classChatYoutube">
+          <iframe
+            src="https://www.youtube-nocookie.com/embed/${videoId}"
+            title="YouTube video player"
+            loading="lazy"
+            referrerpolicy="strict-origin-when-cross-origin"
+            allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen></iframe>
+        </div>`;
+    }
+    if (message.MediaType === "image") {
+      return `
+        <div class="classChatMediaAttachment">
+          <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">
+            <img src="${escapeHtml(url)}" alt="Shared image" loading="lazy" referrerpolicy="no-referrer" />
+          </a>
+        </div>`;
+    }
+    if (message.MediaType === "video") {
+      return `
+        <div class="classChatMediaAttachment">
+          <video src="${escapeHtml(url)}" controls playsinline preload="metadata"></video>
+          <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Open video</a>
+        </div>`;
+    }
+    if (message.MediaType === "audio") {
+      return `
+        <div class="classChatMediaAttachment">
+          <audio src="${escapeHtml(url)}" controls preload="metadata"></audio>
+          <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Open audio</a>
+        </div>`;
+    }
+    return "";
+  }
+
+  function safeHttpUrl(value) {
+    try {
+      const parsed = new URL(String(value || "").trim());
+      return ["http:", "https:"].includes(parsed.protocol) ? parsed.href : "";
+    } catch (error) {
+      return "";
+    }
   }
 
   function youtubeVideoId(value) {
@@ -1549,14 +1621,14 @@
 
   function handleMessageDoubleClick(event) {
     const article = event.target.closest(".classChatMessage");
-    if (!article || event.target.closest("button, a, iframe")) return;
+    if (!article || event.target.closest("button, a, iframe, video, audio")) return;
     if (Date.now() - lastTouchDoubleAt < 650) return;
     showQuickHeart(article);
     reactToMessage(article.dataset.messageId, "🫶");
   }
 
   function startLongPress(event) {
-    if (event.target.closest("button, a, iframe")) return;
+    if (event.target.closest("button, a, iframe, video, audio")) return;
     const article = event.target.closest(".classChatMessage");
     if (!article) return;
     messageGesture = {
@@ -2015,6 +2087,7 @@
         SpamProtection: elements.spamToggle.checked,
         KeywordFilterEnabled: elements.keywordToggle.checked,
         ClickableLinksEnabled: elements.linksToggle.checked,
+        AllowMedia: elements.mediaToggle.checked,
         BlockedKeywords: String(elements.blockedKeywords.value || "")
           .split(/[,\n]/)
           .map((word) => word.trim().toLowerCase())
@@ -2121,6 +2194,77 @@
     } finally {
       button.disabled = false;
     }
+  }
+
+  async function sendMediaMessage(event) {
+    event.preventDefault();
+    if (!currentProfile || currentConfig.AllowMedia === false) return;
+    if (isChatRestrictedForUser()) {
+      elements.mediaMessage.textContent = currentConfig.Locked
+        ? "The Adviser has locked the conversation."
+        : "Media posting is outside the allowed chat hours.";
+      return;
+    }
+
+    const url = safeHttpUrl(elements.mediaUrl.value);
+    const caption = elements.mediaCaption.value.trim();
+    let mediaType = elements.mediaType.value;
+    if (!url) {
+      elements.mediaMessage.textContent = "Enter a valid http or https media link.";
+      return;
+    }
+    if (mediaType === "auto") mediaType = detectMediaType(url);
+    if (!mediaType) {
+      elements.mediaMessage.textContent = "Media type could not be detected. Select Image, Video, Audio, or YouTube.";
+      return;
+    }
+    if (mediaType === "youtube" && !youtubeVideoId(url)) {
+      elements.mediaMessage.textContent = "Enter a valid YouTube video link.";
+      return;
+    }
+
+    const blockedReason = validateOutboundText(`${caption} ${url}`);
+    if (blockedReason) {
+      elements.mediaMessage.textContent = blockedReason;
+      return;
+    }
+
+    const button = elements.mediaForm.querySelector("button[type='submit']");
+    button.disabled = true;
+    elements.mediaMessage.textContent = "Sending media...";
+    try {
+      await createChatMessage({
+        Text: caption || `Shared ${mediaType === "youtube" ? "YouTube video" : mediaType}`,
+        MediaURL: url,
+        MediaType: mediaType,
+        SenderUID: currentProfile.uid,
+        SenderName: currentProfile.name,
+        SenderRole: currentProfile.role,
+        Removed: false,
+        CreatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      recordSentText(`${caption} ${url}`);
+      elements.mediaForm.reset();
+      closeUtility();
+      scrollToBottom();
+    } catch (error) {
+      elements.mediaMessage.textContent = readableError(error);
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  function detectMediaType(value) {
+    if (youtubeVideoId(value)) return "youtube";
+    try {
+      const pathname = new URL(value).pathname.toLowerCase();
+      if (/\.(jpg|jpeg|png|webp|gif|avif|svg)$/.test(pathname)) return "image";
+      if (/\.(mp4|webm|mov|m4v|ogv)$/.test(pathname)) return "video";
+      if (/\.(mp3|wav|m4a|aac|oga|ogg|opus)$/.test(pathname)) return "audio";
+    } catch (error) {
+      return "";
+    }
+    return "";
   }
 
   function addPollOption() {
