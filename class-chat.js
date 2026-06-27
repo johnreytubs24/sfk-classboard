@@ -61,6 +61,8 @@
   let recentSentTimes = [];
   let lastSentText = "";
   let lastSentTextAt = 0;
+  let chatHistoryActive = false;
+  let suppressChatPopstate = false;
 
   const elements = {};
 
@@ -75,7 +77,7 @@
 
     elements.open.addEventListener("click", openChat);
     elements.layer.querySelectorAll("[data-chat-close]").forEach((button) => {
-      button.addEventListener("click", closeChat);
+      button.addEventListener("click", requestCloseChat);
     });
     elements.logout.addEventListener("click", toggleChatMenu);
     elements.themeToggle.addEventListener("click", toggleChatTheme);
@@ -86,7 +88,9 @@
     elements.controlsOpen.addEventListener("click", () => openUtility("controls"));
     elements.scheduleOpen.addEventListener("click", () => openUtility("schedule"));
     elements.reportsOpen.addEventListener("click", () => openUtility("reports"));
-    elements.leave.addEventListener("click", leaveChat);
+    elements.leave.addEventListener("click", requestCloseChat);
+    elements.exitNo.addEventListener("click", hideExitDialog);
+    elements.exitYes.addEventListener("click", closeChat);
     elements.utilityBack.addEventListener("click", closeUtility);
     elements.searchInput.addEventListener("input", renderSearchResults);
     elements.controlsForm.addEventListener("submit", saveChatControls);
@@ -116,6 +120,8 @@
     document.addEventListener("click", handleOutsideReactionTray);
     document.addEventListener("click", handleOutsideChatMenu);
     document.addEventListener("keydown", handleChatKeydown);
+    window.addEventListener("popstate", handleChatPopstate);
+    window.addEventListener("beforeunload", handleChatBeforeUnload);
   }
 
   function cacheElements() {
@@ -169,6 +175,7 @@
     elements.hoursEnd = document.getElementById("classChatHoursEnd");
     elements.spamToggle = document.getElementById("classChatSpamToggle");
     elements.keywordToggle = document.getElementById("classChatKeywordToggle");
+    elements.linksToggle = document.getElementById("classChatLinksToggle");
     elements.blockedKeywords = document.getElementById("classChatBlockedKeywords");
     elements.login = document.getElementById("classChatLogin");
     elements.room = document.getElementById("classChatRoom");
@@ -201,6 +208,9 @@
     elements.reactionTray = document.getElementById("classChatReactionTray");
     elements.jumpUnread = document.getElementById("classChatJumpUnread");
     elements.toast = document.getElementById("classChatToast");
+    elements.exitDialog = document.getElementById("classChatExitDialog");
+    elements.exitNo = document.getElementById("classChatExitNo");
+    elements.exitYes = document.getElementById("classChatExitYes");
   }
 
   function ensureFirebase() {
@@ -222,6 +232,10 @@
     elements.layer.hidden = false;
     document.body.classList.add("classChatIsOpen");
     elements.loginMessage.textContent = "";
+    if (!chatHistoryActive) {
+      window.history.pushState({ sfkClassChat: true }, "");
+      chatHistoryActive = true;
+    }
 
     try {
       ensureFirebase();
@@ -239,6 +253,7 @@
   }
 
   async function closeChat() {
+    hideExitDialog();
     elements.layer.hidden = true;
     document.body.classList.remove("classChatIsOpen");
     hideReactionTray();
@@ -255,10 +270,47 @@
     }
     currentProfile = null;
     showLogin();
+    if (chatHistoryActive) {
+      chatHistoryActive = false;
+      suppressChatPopstate = true;
+      window.history.back();
+    }
   }
 
   async function leaveChat() {
     await closeChat();
+  }
+
+  function requestCloseChat() {
+    closeChatMenu();
+    hideReactionTray();
+    elements.exitDialog.hidden = false;
+    window.setTimeout(() => elements.exitNo.focus(), 40);
+  }
+
+  function hideExitDialog() {
+    elements.exitDialog.hidden = true;
+  }
+
+  function handleChatPopstate() {
+    if (suppressChatPopstate) {
+      suppressChatPopstate = false;
+      return;
+    }
+    if (elements.layer.hidden) {
+      chatHistoryActive = false;
+      return;
+    }
+    chatHistoryActive = false;
+    window.history.pushState({ sfkClassChat: true }, "");
+    chatHistoryActive = true;
+    requestCloseChat();
+  }
+
+  function handleChatBeforeUnload(event) {
+    if (elements.layer.hidden) return;
+    event.preventDefault();
+    event.returnValue = "";
   }
 
   function toggleChatMenu(event) {
@@ -387,6 +439,7 @@
       elements.hoursEnd.value = currentConfig.ChatHoursEnd || "21:00";
       elements.spamToggle.checked = currentConfig.SpamProtection === true;
       elements.keywordToggle.checked = currentConfig.KeywordFilterEnabled === true;
+      elements.linksToggle.checked = currentConfig.ClickableLinksEnabled !== false;
       elements.blockedKeywords.value = Array.isArray(currentConfig.BlockedKeywords)
         ? currentConfig.BlockedKeywords.join(", ")
         : "";
@@ -741,6 +794,7 @@
       });
 
     configUnsubscribe = db.collection("chatConfig").doc("main").onSnapshot((snapshot) => {
+      const previousLinkSetting = currentConfig.ClickableLinksEnabled;
       currentConfig = {
         Locked: snapshot.data()?.Locked === true,
         SlowModeSeconds: Number(snapshot.data()?.SlowModeSeconds || 0),
@@ -749,9 +803,15 @@
         ChatHoursEnd: snapshot.data()?.ChatHoursEnd || "21:00",
         SpamProtection: snapshot.data()?.SpamProtection === true,
         KeywordFilterEnabled: snapshot.data()?.KeywordFilterEnabled === true,
-        BlockedKeywords: Array.isArray(snapshot.data()?.BlockedKeywords) ? snapshot.data().BlockedKeywords : []
+        BlockedKeywords: Array.isArray(snapshot.data()?.BlockedKeywords) ? snapshot.data().BlockedKeywords : [],
+        ClickableLinksEnabled: snapshot.data()?.ClickableLinksEnabled !== false
       };
       applyChatConfig();
+      if (previousLinkSetting !== undefined
+          && previousLinkSetting !== currentConfig.ClickableLinksEnabled
+          && currentMessages.length) {
+        renderMessages();
+      }
     }, () => {
       currentConfig = { Locked: false, SlowModeSeconds: 0 };
       applyChatConfig();
@@ -1067,6 +1127,7 @@
 
   function formatMessageText(text) {
     const source = String(text || "");
+    if (currentConfig.ClickableLinksEnabled === false) return formatMentions(source);
     const urlPattern = /https?:\/\/[^\s<>"']+/gi;
     let output = "";
     let cursor = 0;
@@ -1114,6 +1175,7 @@
   }
 
   function renderYoutubeEmbed(text) {
+    if (currentConfig.ClickableLinksEnabled === false) return "";
     const urlMatch = String(text || "").match(/https?:\/\/[^\s<>"']+/i);
     if (!urlMatch) return "";
     const videoId = youtubeVideoId(urlMatch[0]);
@@ -1952,6 +2014,7 @@
         ChatHoursEnd: elements.hoursEnd.value || "21:00",
         SpamProtection: elements.spamToggle.checked,
         KeywordFilterEnabled: elements.keywordToggle.checked,
+        ClickableLinksEnabled: elements.linksToggle.checked,
         BlockedKeywords: String(elements.blockedKeywords.value || "")
           .split(/[,\n]/)
           .map((word) => word.trim().toLowerCase())
@@ -2300,6 +2363,10 @@
       return;
     }
     if (event.key !== "Escape" || elements.layer.hidden) return;
+    if (!elements.exitDialog.hidden) {
+      hideExitDialog();
+      return;
+    }
     if (!elements.utility.hidden) {
       closeUtility();
       return;
@@ -2309,7 +2376,7 @@
       elements.logout.focus();
       return;
     }
-    closeChat();
+    requestCloseChat();
   }
 
   function normalizeStudentId(value) {

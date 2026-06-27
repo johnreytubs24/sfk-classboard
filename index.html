@@ -14,7 +14,7 @@
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=3" />
   <link rel="apple-touch-icon" href="icons/icon-192.png?v=3" />
   <link rel="stylesheet" href="style.css?v=74-clock-access-menu" />
-  <link rel="stylesheet" href="class-chat.css?v=16-links-spam-badges" />
+  <link rel="stylesheet" href="class-chat.css?v=17-exit-confirmation" />
   <script src="orientation-lock.js?v=3-phone-device-lock" defer></script>
 
   <style id="sfkStartIntroStyle">
@@ -833,6 +833,10 @@
             <span><strong>Keyword filter</strong><small>Stops messages containing blocked words.</small></span>
             <input id="classChatKeywordToggle" type="checkbox" />
           </label>
+          <label class="classChatControlRow">
+            <span><strong>Clickable links</strong><small>Also controls inline YouTube video previews.</small></span>
+            <input id="classChatLinksToggle" type="checkbox" checked />
+          </label>
           <label for="classChatBlockedKeywords">Blocked keywords</label>
           <textarea id="classChatBlockedKeywords" rows="4" placeholder="Enter words separated by commas or new lines"></textarea>
           <button type="submit">Save chat controls</button>
@@ -887,6 +891,17 @@
           <div id="classChatReportsResults" class="classChatSearchResults"></div>
         </div>
       </section>
+
+      <div id="classChatExitDialog" class="classChatExitDialog" hidden>
+        <div class="classChatExitCard" role="alertdialog" aria-modal="true" aria-labelledby="classChatExitTitle">
+          <h3 id="classChatExitTitle">Exit SFK Chat?</h3>
+          <p>Do you really want to exit SFK Chat?</p>
+          <div>
+            <button id="classChatExitNo" type="button">No</button>
+            <button id="classChatExitYes" type="button">Yes</button>
+          </div>
+        </div>
+      </div>
 
       <div id="classChatLogin" class="classChatLogin">
         <div class="classChatWelcome">
@@ -1004,7 +1019,7 @@
   <script src="firebase-config.js?v=2-secure-auth"></script>
   <script src="firebase-adapter.js?v=15-secure-auth"></script>
   <script src="script.js?v=73-clock-access-menu"></script>
-  <script src="class-chat.js?v=17-stable-youtube-player"></script>
+  <script src="class-chat.js?v=19-exit-confirmation"></script>
   <script src="pwa.js?v=3"></script>
 </body>
 </html>
