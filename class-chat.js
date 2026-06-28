@@ -90,6 +90,7 @@
   let accentCustomColorSelected = false;
   let loadingEarlierMessages = false;
   let hasMoreMessages = true;
+  let timeCapsulePendingOpen = false;
   let currentWatchParty = null;
   let watchRequests = [];
   let ownWatchRequest = null;
@@ -125,7 +126,11 @@
     applySavedFontSize();
     startUnreadBadgeListener();
 
-    elements.open.addEventListener("click", openChat);
+    elements.open.addEventListener("click", () => {
+      timeCapsulePendingOpen = false;
+      openChat();
+    });
+    elements.timeCapsuleOpen?.addEventListener("click", openTimeCapsuleFromBoard);
     elements.layer.querySelectorAll("[data-chat-close]").forEach((button) => {
       button.addEventListener("click", requestCloseChat);
     });
@@ -235,9 +240,11 @@
 
   function cacheElements() {
     elements.open = document.getElementById("classChatOpen");
+    elements.timeCapsuleOpen = document.getElementById("timeCapsuleOpen");
     elements.unread = document.getElementById("classChatUnread");
     elements.layer = document.getElementById("classChatLayer");
     elements.panel = document.querySelector(".classChatPanel");
+    elements.title = document.getElementById("classChatTitle");
     elements.status = document.getElementById("classChatStatus");
     elements.logout = document.getElementById("classChatLogout");
     elements.watchOpen = document.getElementById("classChatWatchOpen");
@@ -323,6 +330,13 @@
     elements.watchFullscreenToggle = document.getElementById("classChatWatchFullscreenToggle");
     elements.blockedKeywords = document.getElementById("classChatBlockedKeywords");
     elements.login = document.getElementById("classChatLogin");
+    elements.loginTitle = document.getElementById("classChatLoginTitle");
+    elements.loginDescription = document.getElementById("classChatLoginDescription");
+    elements.studentPinLabel = document.getElementById("classChatStudentPinLabel");
+    elements.studentSubmit = document.getElementById("classChatStudentSubmit");
+    elements.staffSubmit = document.getElementById("classChatStaffSubmit");
+    elements.pinNoticeTitle = document.getElementById("classChatPinNoticeTitle");
+    elements.pinNoticeText = document.getElementById("classChatPinNoticeText");
     elements.room = document.getElementById("classChatRoom");
     elements.pinned = document.getElementById("classChatPinned");
     elements.pinnedName = document.getElementById("classChatPinnedName");
@@ -429,6 +443,27 @@
     }
   }
 
+  function openTimeCapsuleFromBoard() {
+    timeCapsulePendingOpen = true;
+    openChat();
+  }
+
+  function launchTimeCapsule() {
+    if (!timeCapsulePendingOpen || !currentProfile || !db || !window.SFKTimeCapsule) return;
+    timeCapsulePendingOpen = false;
+    closeChatMenu();
+    closeUtility();
+    if (!elements.watchRoom.hidden) closeWatchParty();
+    elements.room.hidden = true;
+    window.SFKTimeCapsule.open({
+      profile: { ...currentProfile },
+      db,
+      auth,
+      panel: elements.panel,
+      onClose: () => closeChat()
+    });
+  }
+
   async function closeChat() {
     hideExitDialog();
     elements.layer.hidden = true;
@@ -439,6 +474,8 @@
     elements.toast.hidden = true;
     closeChatMenu();
     closeUtility();
+    window.SFKTimeCapsule?.destroy();
+    timeCapsulePendingOpen = false;
     clearReply();
     stopRealtimeListeners();
     await clearTyping();
@@ -460,6 +497,10 @@
   }
 
   function requestCloseChat() {
+    if (!document.getElementById("timeCapsuleRoom")?.hidden) {
+      window.SFKTimeCapsule?.close();
+      return;
+    }
     if (!elements.watchRoom.hidden) {
       closeWatchParty();
       return;
@@ -766,7 +807,11 @@
     elements.scheduleOpen.hidden = true;
     elements.reportsOpen.hidden = true;
     elements.auditOpen.hidden = true;
-    elements.status.textContent = "Sign in to join the conversation";
+    applyLoginPurpose();
+    elements.title.textContent = timeCapsulePendingOpen ? "SFK Time Capsule" : "SFK Class GC";
+    elements.status.textContent = timeCapsulePendingOpen
+      ? "Sign in to open the capsule"
+      : "Sign in to join the conversation";
     clearAppliedChatAccent();
     elements.messages.innerHTML = "";
     elements.studentPin.value = "";
@@ -783,6 +828,7 @@
   }
 
   function showRoom() {
+    elements.panel.classList.remove("is-time-capsule-login");
     elements.login.hidden = true;
     elements.room.hidden = false;
     elements.logout.hidden = false;
@@ -793,6 +839,7 @@
     elements.accentOpen.hidden = false;
     elements.colorOpen.hidden = currentProfile.role !== "student";
     elements.colorMenuIcon?.style.setProperty("--profile-color", normalizeProfileColor(currentProfile.avatarColor));
+    elements.title.textContent = "SFK Class GC";
     elements.status.textContent = `${currentProfile.name} · Class member`;
     elements.controlsOpen.hidden = currentProfile.role !== "admin";
     elements.pollOpen.hidden = false;
@@ -804,7 +851,10 @@
     elements.loginMessage.textContent = "";
     startRealtimeListeners();
     restoreDraft();
-    window.setTimeout(() => elements.input.focus(), 80);
+    launchTimeCapsule();
+    if (document.getElementById("timeCapsuleRoom")?.hidden !== false) {
+      window.setTimeout(() => elements.input.focus(), 80);
+    }
   }
 
   function selectRole(role) {
@@ -816,6 +866,24 @@
     elements.staffForm.hidden = selectedRole !== "staff";
     elements.changePinForm.hidden = true;
     elements.loginMessage.textContent = "";
+  }
+
+  function applyLoginPurpose() {
+    const isCapsule = timeCapsulePendingOpen;
+    elements.panel.classList.toggle("is-time-capsule-login", isCapsule);
+    elements.loginTitle.textContent = isCapsule ? "Open the Time Capsule" : "Class conversation";
+    elements.loginDescription.textContent = isCapsule
+      ? "Use your assigned account to seal and view SFK memories."
+      : "Use your assigned chat account. Your name will appear automatically.";
+    elements.studentPinLabel.textContent = isCapsule ? "Personal PIN" : "Personal Chat PIN";
+    elements.studentSubmit.textContent = isCapsule ? "Open Time Capsule" : "Open class chat";
+    elements.staffSubmit.textContent = isCapsule ? "Open Time Capsule" : "Open class chat";
+    elements.pinNoticeTitle.textContent = isCapsule
+      ? "Create your personal PIN"
+      : "Create your personal Chat PIN";
+    elements.pinNoticeText.textContent = isCapsule
+      ? "Replace the default PIN before opening the Time Capsule."
+      : "Replace the default PIN before opening the class conversation.";
   }
 
   async function signInStudent(event) {
@@ -885,7 +953,9 @@
   }
 
   async function performLogin(loginAction) {
-    elements.loginMessage.textContent = "Opening class chat...";
+    elements.loginMessage.textContent = timeCapsulePendingOpen
+      ? "Opening Time Capsule..."
+      : "Opening class chat...";
     setLoginDisabled(true);
     try {
       await loginAction();
@@ -944,7 +1014,9 @@
     elements.changePinForm.hidden = false;
     elements.roleTabsWrap.hidden = true;
     elements.loginMessage.textContent = "";
-    elements.status.textContent = "Create your personal Chat PIN";
+    elements.status.textContent = timeCapsulePendingOpen
+      ? "Create your personal PIN"
+      : "Create your personal Chat PIN";
     const currentColor = normalizeProfileColor(currentProfile.avatarColor);
     firstCustomColorSelected = !PROFILE_COLORS.includes(currentColor);
     elements.firstCustomColor.value = currentColor;

@@ -1,0 +1,960 @@
+.adviserHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.timeCapsuleOpen {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: #f7c600;
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.timeCapsuleOpen > span {
+  -webkit-text-stroke: 1.5px #111;
+  filter: drop-shadow(1px 2px 0 rgba(0, 0, 0, .28));
+  transition: transform 150ms ease, filter 150ms ease;
+}
+
+.timeCapsuleOpen > i,
+.timeCapsuleHeart i,
+.timeCapsuleLockMark i {
+  position: absolute;
+  width: 9px;
+  height: 7px;
+  border: 2px solid #111;
+  border-radius: 2px;
+  background: #fffdf3;
+}
+
+.timeCapsuleOpen > i {
+  right: 0;
+  bottom: 3px;
+}
+
+.timeCapsuleOpen > i::before,
+.timeCapsuleHeart i::before,
+.timeCapsuleLockMark i::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  width: 5px;
+  height: 5px;
+  border: 2px solid #111;
+  border-bottom: 0;
+  border-radius: 5px 5px 0 0;
+  transform: translateX(-50%);
+}
+
+.timeCapsuleOpen:hover > span,
+.timeCapsuleOpen:focus-visible > span {
+  transform: scale(1.08);
+  filter: drop-shadow(1px 3px 0 rgba(0, 0, 0, .34));
+}
+
+.timeCapsuleOpen:active > span {
+  transform: scale(.9);
+}
+
+.timeCapsuleOpen:focus {
+  outline: none;
+}
+
+.classChatPanel.is-time-capsule-login .classChatAvatar,
+.classChatPanel.is-time-capsule-login .classChatWelcomeMark {
+  border: 0;
+  border-radius: 0;
+  outline: 0;
+  clip-path: polygon(
+    50% 100%,
+    10% 63%,
+    3% 52%,
+    0 38%,
+    2% 24%,
+    9% 12%,
+    20% 4%,
+    33% 2%,
+    43% 7%,
+    50% 16%,
+    57% 7%,
+    67% 2%,
+    80% 4%,
+    91% 12%,
+    98% 24%,
+    100% 38%,
+    97% 52%,
+    90% 63%
+  );
+  background: #f7c600;
+  filter: drop-shadow(2px 3px 0 rgba(17, 17, 17, .72));
+}
+
+.classChatPanel.is-time-capsule-login .classChatAvatar {
+  width: 46px;
+  height: 43px;
+  flex-basis: 46px;
+  padding-bottom: 4px;
+  font-size: .72rem;
+}
+
+.classChatPanel.is-time-capsule-login .classChatWelcomeMark {
+  width: 82px;
+  height: 76px;
+  padding-bottom: 7px;
+  box-shadow: none;
+}
+
+.classChatPanel.is-time-capsule-login .classChatWelcome h3 {
+  font-size: 1.55rem;
+}
+
+.classChatPanel.is-time-capsule-open > .classChatTopbar,
+.classChatPanel.is-time-capsule-open > .classChatMenu {
+  display: none !important;
+}
+
+.classChatPanel.is-time-capsule-open {
+  width: min(1000px, 100%);
+}
+
+.timeCapsuleRoom {
+  position: absolute;
+  inset: 0;
+  z-index: 35;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background:
+    linear-gradient(rgba(247, 198, 0, .065) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(247, 198, 0, .065) 1px, transparent 1px),
+    #fffdf7;
+  background-size: 28px 28px;
+  color: #111;
+}
+
+.timeCapsuleRoom[hidden] {
+  display: none !important;
+}
+
+.timeCapsuleHeader {
+  flex: 0 0 auto;
+  min-height: 70px;
+  display: grid;
+  grid-template-columns: 42px 48px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid #ded8ca;
+  padding: 9px 16px;
+  background: rgba(255, 253, 247, .96);
+  backdrop-filter: blur(14px);
+}
+
+.timeCapsuleHeader > button {
+  border: 0;
+  background: transparent;
+  color: #111;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+#timeCapsuleBack {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 1.35rem;
+}
+
+#timeCapsuleBack:hover,
+#timeCapsuleBack:focus-visible {
+  background: rgba(247, 198, 0, .18);
+}
+
+.timeCapsuleHeart {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  color: #f7c600;
+  font-size: 2.9rem;
+  line-height: 1;
+  -webkit-text-stroke: 1.5px #111;
+  filter: drop-shadow(2px 3px 0 rgba(0, 0, 0, .18));
+}
+
+.timeCapsuleHeart i {
+  right: -1px;
+  bottom: 2px;
+  -webkit-text-stroke: 0;
+}
+
+.timeCapsuleHeader h2,
+.timeCapsuleHeader p {
+  margin: 0;
+}
+
+.timeCapsuleHeader h2 {
+  overflow: hidden;
+  font-size: 1.05rem;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timeCapsuleHeader p {
+  margin-top: 3px;
+  overflow: hidden;
+  color: #716c63;
+  font-size: .7rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timeCapsuleAdminToggle {
+  min-height: 34px;
+  border: 1px solid #111 !important;
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: #111 !important;
+  color: #f7c600 !important;
+  font-size: .68rem !important;
+}
+
+.timeCapsuleBody {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
+  padding: 16px;
+}
+
+.timeCapsuleHero {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  max-width: 880px;
+  margin: 0 auto;
+  border: 2px solid #111;
+  border-radius: 14px;
+  padding: 18px;
+  background: linear-gradient(135deg, #fff7c7, #f7c600);
+  box-shadow: 5px 6px 0 rgba(0, 0, 0, .15);
+}
+
+.timeCapsuleLockMark {
+  position: relative;
+  width: 70px;
+  height: 70px;
+  display: grid;
+  place-items: center;
+}
+
+.timeCapsuleLockMark span {
+  color: #f7c600;
+  font-size: 5rem;
+  line-height: 1;
+  -webkit-text-stroke: 2px #111;
+  filter: drop-shadow(2px 4px 0 rgba(0, 0, 0, .2));
+}
+
+.timeCapsuleLockMark i {
+  right: 0;
+  bottom: 4px;
+  width: 15px;
+  height: 12px;
+}
+
+.timeCapsuleLockMark.is-unlocked i::before {
+  left: 28%;
+  transform: translateX(-50%) rotate(-28deg);
+  transform-origin: left bottom;
+}
+
+.timeCapsuleHero > div:nth-child(2) > span {
+  display: block;
+  margin-bottom: 4px;
+  font-size: .67rem;
+  font-weight: 950;
+  letter-spacing: .08em;
+}
+
+.timeCapsuleHero h3,
+.timeCapsuleHero p {
+  margin: 0;
+}
+
+.timeCapsuleHero h3 {
+  font-size: clamp(1.25rem, 3vw, 2rem);
+  line-height: 1.05;
+}
+
+.timeCapsuleHero p {
+  margin-top: 7px;
+  font-size: .82rem;
+  font-weight: 800;
+}
+
+.timeCapsuleHero > button,
+.timeCapsuleFormActions button,
+.timeCapsuleAdminPanel button {
+  min-height: 40px;
+  border: 2px solid #111;
+  border-radius: 10px;
+  padding: 8px 12px;
+  background: #111;
+  color: #f7c600;
+  font: inherit;
+  font-size: .75rem;
+  font-weight: 950;
+  cursor: pointer;
+  box-shadow: 2px 3px 0 rgba(0, 0, 0, .2);
+}
+
+.timeCapsuleStats {
+  max-width: 880px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+  margin: 14px auto;
+}
+
+.timeCapsuleStats span {
+  min-width: 0;
+  border: 1px solid #ded8ca;
+  border-radius: 10px;
+  padding: 10px;
+  background: rgba(255, 255, 255, .92);
+  text-align: center;
+}
+
+.timeCapsuleStats strong,
+.timeCapsuleStats small {
+  display: block;
+}
+
+.timeCapsuleStats strong {
+  font-size: 1.2rem;
+}
+
+.timeCapsuleStats small {
+  margin-top: 2px;
+  color: #716c63;
+  font-size: .66rem;
+  font-weight: 800;
+}
+
+.timeCapsuleComposeCard,
+.timeCapsuleEntriesSection,
+.timeCapsuleAdminPanel {
+  max-width: 880px;
+  margin: 12px auto;
+  border: 1px solid #ded8ca;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .94);
+}
+
+.timeCapsuleComposeCard > header,
+.timeCapsuleEntriesSection > header,
+.timeCapsuleAdminPanel > header {
+  min-height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 11px 13px;
+}
+
+.timeCapsuleComposeCard header strong,
+.timeCapsuleComposeCard header small,
+.timeCapsuleEntriesSection header strong,
+.timeCapsuleEntriesSection header small,
+.timeCapsuleAdminPanel header strong,
+.timeCapsuleAdminPanel header small {
+  display: block;
+}
+
+.timeCapsuleComposeCard header small,
+.timeCapsuleEntriesSection header small,
+.timeCapsuleAdminPanel header small {
+  margin-top: 3px;
+  color: #716c63;
+  font-size: .68rem;
+}
+
+#timeCapsuleComposeToggle {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: #f7c600;
+  color: #111;
+  font-size: 1.6rem;
+  line-height: 1;
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform 160ms ease;
+}
+
+#timeCapsuleComposeToggle[aria-expanded="true"] {
+  transform: rotate(45deg);
+}
+
+#timeCapsuleForm,
+#timeCapsuleSettingsForm {
+  display: grid;
+  gap: 10px;
+  border-top: 1px solid #e6e0d5;
+  padding: 13px;
+}
+
+#timeCapsuleForm[hidden] {
+  display: none;
+}
+
+#timeCapsuleForm label,
+#timeCapsuleSettingsForm label {
+  display: grid;
+  gap: 5px;
+  color: #302e29;
+  font-size: .72rem;
+  font-weight: 900;
+}
+
+#timeCapsuleForm label > small {
+  display: inline;
+  color: #777168;
+  font-weight: 700;
+}
+
+#timeCapsuleForm input,
+#timeCapsuleForm textarea,
+#timeCapsuleForm select,
+#timeCapsuleSettingsForm input,
+#timeCapsuleReviewFilter {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #cfc8ba;
+  border-radius: 9px;
+  padding: 9px 10px;
+  background: #fff;
+  color: #111;
+  font: inherit;
+}
+
+#timeCapsuleForm textarea {
+  min-height: 104px;
+  resize: vertical;
+  line-height: 1.4;
+}
+
+.timeCapsuleFormActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.timeCapsuleFormActions button:first-child {
+  background: #fff;
+  color: #111;
+}
+
+#timeCapsuleFormMessage,
+#timeCapsuleSettingsMessage {
+  min-height: 17px;
+  margin: 0;
+  color: #806800;
+  font-size: .7rem;
+  font-weight: 800;
+}
+
+.timeCapsuleEntriesSection > header {
+  border-bottom: 1px solid #e6e0d5;
+}
+
+.timeCapsuleEntries,
+.timeCapsuleReviewList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 10px;
+  padding: 12px;
+}
+
+.timeCapsuleEntry {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #d7d0c2;
+  border-radius: 10px;
+  background: #fffdf7;
+}
+
+.timeCapsuleEntry img {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  display: block;
+  object-fit: cover;
+  background: #111;
+}
+
+.timeCapsuleEntryBody {
+  padding: 11px;
+}
+
+.timeCapsuleEntryMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+
+.timeCapsuleEntryMeta span {
+  overflow: hidden;
+  color: #7a6500;
+  font-size: .62rem;
+  font-weight: 950;
+  text-transform: uppercase;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timeCapsuleEntryMeta b {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 3px 6px;
+  background: #eeeae1;
+  color: #555047;
+  font-size: .56rem;
+  text-transform: uppercase;
+}
+
+.timeCapsuleEntry[data-status="approved"] .timeCapsuleEntryMeta b {
+  background: #dff6e7;
+  color: #126b33;
+}
+
+.timeCapsuleEntry[data-status="rejected"] .timeCapsuleEntryMeta b {
+  background: #ffe2e2;
+  color: #a10f16;
+}
+
+.timeCapsuleEntry p {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: .8rem;
+  line-height: 1.42;
+  white-space: pre-wrap;
+}
+
+.timeCapsuleEntry footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+  margin-top: 10px;
+  color: #777168;
+  font-size: .61rem;
+}
+
+.timeCapsuleEntryActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 10px;
+}
+
+.timeCapsuleEntryActions button {
+  border: 1px solid #111;
+  border-radius: 7px;
+  padding: 5px 7px;
+  background: #fff;
+  color: #111;
+  font-size: .62rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.timeCapsuleEntryActions button[data-capsule-action="approve"] {
+  background: #f7c600;
+}
+
+.timeCapsuleEmpty {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 24px 12px;
+  color: #777168;
+  font-size: .75rem;
+  text-align: center;
+}
+
+.timeCapsuleAdminPanel {
+  border-color: #111;
+  box-shadow: 4px 5px 0 rgba(0, 0, 0, .13);
+}
+
+.timeCapsuleAdminPanel > header {
+  background: #111;
+  color: #fff;
+}
+
+.timeCapsuleAdminPanel > header small {
+  color: #f7c600;
+}
+
+#timeCapsuleSettingsForm {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.timeCapsuleSwitch {
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center;
+}
+
+.timeCapsuleSwitch span strong,
+.timeCapsuleSwitch span small {
+  display: block;
+}
+
+.timeCapsuleSwitch span small {
+  margin-top: 3px;
+  color: #716c63;
+  font-size: .65rem;
+}
+
+.timeCapsuleSwitch input {
+  width: 20px !important;
+  height: 20px;
+}
+
+#timeCapsuleSettingsForm .timeCapsuleFormActions,
+#timeCapsuleSettingsMessage {
+  grid-column: 1 / -1;
+}
+
+.timeCapsuleReviewHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-top: 1px solid #ded8ca;
+  padding: 10px 13px;
+}
+
+#timeCapsuleReviewFilter {
+  width: auto;
+  min-width: 130px;
+  padding: 7px 9px;
+  font-size: .7rem;
+}
+
+.timeCapsulePresentation {
+  position: absolute;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  background: #080808;
+  color: #fff;
+}
+
+.timeCapsulePresentation[hidden] {
+  display: none;
+}
+
+.timeCapsulePresentation > header,
+.timeCapsulePresentation > footer {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 70px;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(8, 8, 8, .95);
+}
+
+.timeCapsulePresentation > header button,
+.timeCapsulePresentation > footer button {
+  min-height: 40px;
+  border: 1px solid #4b4b4b;
+  border-radius: 999px;
+  background: #202020;
+  color: #fff;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.timeCapsulePresentation > header > div {
+  text-align: center;
+}
+
+.timeCapsulePresentation > header strong,
+.timeCapsulePresentation > header small {
+  display: block;
+}
+
+.timeCapsulePresentation > header small {
+  margin-top: 2px;
+  color: #aaa;
+  font-size: .65rem;
+}
+
+.timeCapsulePresentation > footer {
+  grid-template-columns: repeat(3, 48px);
+  justify-content: center;
+}
+
+#timeCapsulePlay {
+  background: #f7c600;
+  color: #111;
+}
+
+.timeCapsuleSlide {
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.timeCapsuleSlideCard {
+  width: min(720px, 100%);
+  overflow: hidden;
+  border: 1px solid #444;
+  border-radius: 14px;
+  background: #181818;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, .5);
+}
+
+.timeCapsuleSlideCard img {
+  width: 100%;
+  max-height: 58vh;
+  display: block;
+  object-fit: contain;
+  background: #000;
+}
+
+.timeCapsuleSlideCard > div {
+  padding: clamp(18px, 4vw, 34px);
+}
+
+.timeCapsuleSlideCard span {
+  color: #f7c600;
+  font-size: .72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.timeCapsuleSlideCard p {
+  margin: 12px 0 18px;
+  overflow-wrap: anywhere;
+  font-size: clamp(1.1rem, 3vw, 2rem);
+  line-height: 1.3;
+  white-space: pre-wrap;
+}
+
+.timeCapsuleSlideCard footer {
+  color: #aaa;
+  font-size: .78rem;
+  font-weight: 800;
+}
+
+.classChatPanel.is-dark .timeCapsuleRoom {
+  background:
+    linear-gradient(rgba(247, 198, 0, .055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(247, 198, 0, .055) 1px, transparent 1px),
+    #101010;
+  color: #fff;
+}
+
+.classChatPanel.is-dark .timeCapsuleHeader,
+.classChatPanel.is-dark .timeCapsuleComposeCard,
+.classChatPanel.is-dark .timeCapsuleEntriesSection,
+.classChatPanel.is-dark .timeCapsuleAdminPanel {
+  border-color: #3b3b3b;
+  background: rgba(27, 27, 27, .97);
+}
+
+.classChatPanel.is-dark .timeCapsuleHeader > button,
+.classChatPanel.is-dark .timeCapsuleHeader h2 {
+  color: #fff;
+}
+
+.classChatPanel.is-dark .timeCapsuleHeader p,
+.classChatPanel.is-dark .timeCapsuleStats small,
+.classChatPanel.is-dark .timeCapsuleComposeCard header small,
+.classChatPanel.is-dark .timeCapsuleEntriesSection header small,
+.classChatPanel.is-dark .timeCapsuleAdminPanel header small {
+  color: #aaa;
+}
+
+.classChatPanel.is-dark .timeCapsuleStats span,
+.classChatPanel.is-dark .timeCapsuleEntry {
+  border-color: #3b3b3b;
+  background: #202020;
+}
+
+.classChatPanel.is-dark #timeCapsuleForm,
+.classChatPanel.is-dark #timeCapsuleSettingsForm,
+.classChatPanel.is-dark .timeCapsuleEntriesSection > header,
+.classChatPanel.is-dark .timeCapsuleReviewHeader {
+  border-color: #3b3b3b;
+}
+
+.classChatPanel.is-dark #timeCapsuleForm label,
+.classChatPanel.is-dark #timeCapsuleSettingsForm label {
+  color: #eee;
+}
+
+.classChatPanel.is-dark #timeCapsuleForm input,
+.classChatPanel.is-dark #timeCapsuleForm textarea,
+.classChatPanel.is-dark #timeCapsuleForm select,
+.classChatPanel.is-dark #timeCapsuleSettingsForm input,
+.classChatPanel.is-dark #timeCapsuleReviewFilter {
+  border-color: #4b4b4b;
+  background: #282828;
+  color: #fff;
+}
+
+@media (max-width: 680px) {
+  .adviserHeaderActions {
+    gap: 4px;
+  }
+
+  .timeCapsuleOpen {
+    width: 31px;
+    height: 31px;
+    font-size: 1.75rem;
+  }
+
+  .timeCapsuleHeader {
+    min-height: 62px;
+    grid-template-columns: 36px 40px minmax(0, 1fr) auto;
+    gap: 7px;
+    padding: 7px 10px;
+  }
+
+  #timeCapsuleBack {
+    width: 34px;
+    height: 34px;
+  }
+
+  .timeCapsuleHeart {
+    width: 38px;
+    height: 38px;
+    font-size: 2.4rem;
+  }
+
+  .timeCapsuleHeader h2 {
+    font-size: .95rem;
+  }
+
+  .timeCapsuleBody {
+    padding: 11px;
+  }
+
+  .timeCapsuleHero {
+    grid-template-columns: 58px minmax(0, 1fr);
+    gap: 11px;
+    padding: 14px;
+  }
+
+  .timeCapsuleLockMark {
+    width: 56px;
+    height: 56px;
+  }
+
+  .timeCapsuleLockMark span {
+    font-size: 4rem;
+  }
+
+  .timeCapsuleHero > button {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .timeCapsuleStats {
+    gap: 6px;
+  }
+
+  .timeCapsuleStats span {
+    padding: 8px 5px;
+  }
+
+  .timeCapsuleEntries,
+  .timeCapsuleReviewList {
+    grid-template-columns: 1fr;
+  }
+
+  #timeCapsuleSettingsForm {
+    grid-template-columns: 1fr;
+  }
+
+  #timeCapsuleSettingsForm > * {
+    grid-column: 1 !important;
+  }
+
+  .timeCapsulePresentation > header {
+    grid-template-columns: 42px minmax(0, 1fr) 54px;
+    padding: 8px;
+  }
+
+  .timeCapsuleSlide {
+    padding: 12px;
+  }
+}
+
+@media print {
+  body.timeCapsulePrinting * {
+    visibility: hidden !important;
+  }
+
+  body.timeCapsulePrinting #timeCapsulePresentation,
+  body.timeCapsulePrinting #timeCapsulePresentation * {
+    visibility: visible !important;
+  }
+
+  body.timeCapsulePrinting #timeCapsulePresentation {
+    position: absolute;
+    inset: 0;
+    height: auto;
+    overflow: visible;
+    background: #fff;
+    color: #111;
+  }
+
+  body.timeCapsulePrinting #timeCapsulePresentation > header,
+  body.timeCapsulePrinting #timeCapsulePresentation > footer {
+    display: none !important;
+  }
+
+  body.timeCapsulePrinting .timeCapsuleSlideCard {
+    width: 100%;
+    margin: 0 0 18px;
+    border-color: #111;
+    background: #fff;
+    color: #111;
+    box-shadow: none;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  body.timeCapsulePrinting .timeCapsuleSlide {
+    display: block;
+    overflow: visible;
+  }
+}

@@ -1,4 +1,4 @@
-const CACHE_NAME = "sfk-classboard-v176-watch-viewer-presence-fix";
+const CACHE_NAME = "sfk-classboard-v178-capsule-login";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -6,6 +6,8 @@ const APP_SHELL = [
   "./script.js",
   "./class-chat.css",
   "./class-chat.js",
+  "./time-capsule.css",
+  "./time-capsule.js",
   "./class-chat-admin.js",
   "./pwa.js",
   "./firebase-config.js",
