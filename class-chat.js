@@ -93,6 +93,8 @@
   let watchPlayer = null;
   let watchHls = null;
   let watchHlsReady = false;
+  let watchDash = null;
+  let watchDashReady = false;
   let watchPlayerProvider = "";
   let watchPlayerTime = 0;
   let watchPlayerDuration = 0;
@@ -2051,6 +2053,17 @@
     }
   }
 
+  function dashVideoUrl(value) {
+    const url = safeHttpUrl(value);
+    if (!url) return "";
+    try {
+      const parsed = new URL(url);
+      return /\.mpd$/i.test(parsed.pathname) ? parsed.href : "";
+    } catch (error) {
+      return "";
+    }
+  }
+
   function startWatchPartyListeners() {
     watchPartyUnsubscribe = db.collection("chatWatchParty").doc("main").onSnapshot((snapshot) => {
       currentWatchParty = snapshot.exists ? snapshot.data() : null;
@@ -2126,7 +2139,7 @@
       && currentWatchParty.Provider === "drive"
       && !watchPlayerSyncSupported;
     const directVideoUnavailable = active
-      && ["direct", "hls"].includes(currentWatchParty.Provider)
+      && ["direct", "hls", "dash"].includes(currentWatchParty.Provider)
       && !watchPlayerSyncSupported;
     elements.watchEnd.hidden = !active || !canControlWatchParty();
     elements.watchNow.hidden = !active;
@@ -2177,7 +2190,9 @@
     elements.watchStatus.textContent = directVideoUnavailable
       ? currentWatchParty.Provider === "hls"
         ? "HLS stream is unavailable on this device"
-        : "Direct video is unavailable on this device"
+        : currentWatchParty.Provider === "dash"
+          ? "DASH stream is unavailable on this device"
+          : "Direct video is unavailable on this device"
       : drivePreviewFallback
       ? "Drive Preview fallback · sync unavailable"
       : currentWatchParty.PlaybackState === "playing"
@@ -2201,7 +2216,7 @@
     const provider = currentWatchParty.Provider;
     const videoId = currentWatchParty.VideoID || "";
     const instagramType = currentWatchParty.InstagramType || "reel";
-    const sourceKey = provider === "website" || provider === "direct" || provider === "hls"
+    const sourceKey = ["website", "direct", "hls", "dash"].includes(provider)
       ? String(currentWatchParty.OriginalURL || "")
       : videoId;
     const nextKey = `${provider}:${instagramType}:${sourceKey}`;
@@ -2235,6 +2250,10 @@
     }
     if (provider === "hls") {
       mountHlsWatchPlayer(currentWatchParty.OriginalURL);
+      return;
+    }
+    if (provider === "dash") {
+      mountDashWatchPlayer(currentWatchParty.OriginalURL);
       return;
     }
 
@@ -2451,6 +2470,62 @@
     renderWatchParty();
   }
 
+  function mountDashWatchPlayer(value) {
+    const url = dashVideoUrl(value);
+    if (!url) return;
+    const video = document.createElement("video");
+    video.className = "classChatWatchFrame classChatWatchDriveVideo";
+    video.controls = true;
+    video.playsInline = true;
+    video.preload = "metadata";
+    video.referrerPolicy = "strict-origin-when-cross-origin";
+    video.setAttribute("controlslist", "nodownload");
+    configureSyncedNativeWatchVideo(video);
+    watchDashReady = false;
+    let failureShown = false;
+
+    const showFailure = () => {
+      if (failureShown || watchPlayer !== video) return;
+      failureShown = true;
+      const failedDash = watchDash;
+      watchDash = null;
+      failedDash?.reset();
+      watchDashReady = false;
+      const notice = document.createElement("div");
+      notice.className = "classChatWatchEmpty";
+      notice.innerHTML = "<strong>DASH stream could not be loaded</strong><small>The stream may be offline, encrypted, or may not allow cross-origin playback.</small>";
+      const openLink = document.createElement("a");
+      openLink.className = "classChatWatchOpenSite";
+      openLink.href = url;
+      openLink.target = "_blank";
+      openLink.rel = "noopener noreferrer";
+      openLink.textContent = "Open stream";
+      notice.appendChild(openLink);
+      elements.watchPlayer.replaceChildren(notice);
+      watchPlayer = notice;
+      watchPlayerProvider = "dash-unavailable";
+      watchPlayerSyncSupported = false;
+      watchJoined = true;
+      renderWatchParty();
+    };
+
+    video.addEventListener("loadedmetadata", () => {
+      watchDashReady = true;
+      applyWatchStateToPlayer(true);
+    }, { once: true });
+    video.addEventListener("error", showFailure, { once: true });
+    elements.watchPlayer.replaceChildren(video);
+    watchPlayer = video;
+
+    if (!window.dashjs?.MediaPlayer) {
+      showFailure();
+      return;
+    }
+    watchDash = window.dashjs.MediaPlayer().create();
+    watchDash.initialize(video, url, false);
+    renderWatchParty();
+  }
+
   function mountWebsiteWatchPlayer(value) {
     const url = safeWatchWebsiteUrl(value);
     if (!url) return;
@@ -2470,11 +2545,16 @@
   }
 
   function destroyWatchPlayer() {
+    const playerNode = watchPlayer;
+    watchPlayer = null;
     watchHls?.destroy();
     watchHls = null;
     watchHlsReady = false;
-    watchPlayer?.remove();
-    watchPlayer = null;
+    const activeDash = watchDash;
+    watchDash = null;
+    activeDash?.reset();
+    watchDashReady = false;
+    playerNode?.remove();
     watchPlayerKey = "";
     watchPlayerProvider = "";
     watchPlayerTime = 0;
@@ -2544,8 +2624,9 @@
         || !watchPlayer
         || currentWatchParty.Provider === "instagram"
         || (currentWatchParty.Provider === "hls" && !watchHlsReady)
+        || (currentWatchParty.Provider === "dash" && !watchDashReady)
         || (currentWatchParty.Provider === "drive" && !watchPlayerSyncSupported)
-        || (["direct", "hls"].includes(currentWatchParty.Provider) && !watchPlayerSyncSupported)
+        || (["direct", "hls", "dash"].includes(currentWatchParty.Provider) && !watchPlayerSyncSupported)
         || currentWatchParty.Provider === "bilibili"
         || currentWatchParty.Provider === "vimeo"
         || currentWatchParty.Provider === "website") return;
@@ -2707,9 +2788,11 @@
     if (vimeoId) return { provider: "vimeo", videoId: vimeoId, url };
     const hlsUrl = hlsVideoUrl(url);
     if (hlsUrl) return { provider: "hls", videoId: "hls", url: hlsUrl };
+    const dashUrl = dashVideoUrl(url);
+    if (dashUrl) return { provider: "dash", videoId: "dash", url: dashUrl };
     const directUrl = directVideoUrl(url);
     if (directUrl) return { provider: "direct", videoId: "direct", url: directUrl };
-    throw new Error("That is a webpage, not a supported video link. Use YouTube, TikTok, Instagram, Drive, Bilibili, Vimeo, HLS .m3u8, or a direct video file.");
+    throw new Error("That is a webpage, not a supported video link. Use YouTube, TikTok, Instagram, Drive, Bilibili, Vimeo, HLS .m3u8, DASH .mpd, or a direct video file.");
   }
 
   function safeWatchWebsiteUrl(value) {

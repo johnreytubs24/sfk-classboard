@@ -1160,7 +1160,7 @@
           <section class="classChatWatchRequestCard">
             <div>
               <strong id="classChatWatchFormTitle">Request to Host</strong>
-              <small id="classChatWatchFormHint">Video links only: YouTube, TikTok, Instagram, Drive, Bilibili, Vimeo, HLS .m3u8, or direct video files.</small>
+              <small id="classChatWatchFormHint">Video links only: YouTube, TikTok, Instagram, Drive, Bilibili, Vimeo, HLS .m3u8, DASH .mpd, or direct video files.</small>
             </div>
             <form id="classChatWatchRequestForm">
               <input id="classChatWatchUrl" type="url" maxlength="2000" placeholder="Paste video link" required />
@@ -1240,7 +1240,8 @@
   <script src="firebase-adapter.js?v=15-secure-auth"></script>
   <script src="script.js?v=73-clock-access-menu"></script>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.6.16/dist/hls.min.js"></script>
-  <script src="class-chat.js?v=50-hls-watch-party"></script>
+  <script src="https://cdn.dashjs.org/v5.2.0/legacy/umd/dash.all.min.js"></script>
+  <script src="class-chat.js?v=51-dash-watch-party"></script>
   <script src="pwa.js?v=3"></script>
 </body>
 </html>
