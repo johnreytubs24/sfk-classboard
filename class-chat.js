@@ -40,6 +40,7 @@
   let scheduledRefreshTimer = null;
   let scheduledMessagesSignature = "";
   const pollVoteUnsubscribes = new Map();
+  const reactionStateByMessage = new Map();
   let currentMessages = [];
   let regularMessages = [];
   let scheduledMessages = [];
@@ -1858,7 +1859,7 @@
     longPressFeedbackTimer = window.setTimeout(() => {
       if (!messageGesture || messageGesture.messageId !== article.dataset.messageId) return;
       article.classList.add("is-longpress-arming");
-    }, 60);
+    }, 45);
     window.clearTimeout(longPressTimer);
     longPressTimer = window.setTimeout(() => {
       if (!messageGesture || messageGesture.messageId !== article.dataset.messageId) return;
@@ -1869,8 +1870,7 @@
       article.classList.add("is-longpress-triggered");
       window.setTimeout(() => article.classList.remove("is-longpress-triggered"), 260);
       showReactionTray(article.dataset.messageId, article.querySelector(".classChatBubble"));
-      navigator.vibrate?.(8);
-    }, 350);
+    }, 300);
   }
 
   function moveMessageGesture(event) {
@@ -1936,7 +1936,6 @@
     if (!message || message.Removed) return;
     showQuickHeart(gesture.article);
     reactToMessage(gesture.messageId, "🫶");
-    navigator.vibrate?.(8);
   }
 
   function cancelMessageGesture() {
@@ -2098,7 +2097,6 @@
     const article = elements.messages.querySelector(`.classChatMessage[data-message-id="${cssEscape(messageId)}"]`);
     const bubble = article?.querySelector(".classChatBubble");
     if (!article || !bubble || !source) return;
-    navigator.vibrate?.(6);
 
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
       showReactionBurst(article, emoji);
@@ -2126,7 +2124,7 @@
         transform: `translate(calc(-50% + ${endX - startX}px), calc(-50% + ${endY - startY}px)) scale(.72) rotate(0deg)`
       }
     ], {
-      duration: 430,
+      duration: 190,
       easing: "cubic-bezier(.2,.9,.25,1)",
       fill: "forwards"
     });
@@ -2149,21 +2147,47 @@
     window.setTimeout(() => {
       burst.remove();
       article.classList.remove("is-reaction-pulse");
-    }, 700);
+    }, 420);
+  }
+
+  function currentUserReaction(messageId) {
+    const groups = reactionStateByMessage.get(messageId);
+    if (!groups) return "";
+    for (const [emoji, users] of groups.entries()) {
+      if (users.some((user) => user.uid === currentProfile.uid)) return emoji;
+    }
+    return "";
   }
 
   function isRemovingOwnReaction(messageId, emoji) {
-    const container = elements.messages.querySelector(`[data-reactions-for="${cssEscape(messageId)}"]`);
-    return Array.from(container?.querySelectorAll("[data-existing-reaction]") || [])
-      .some((button) => button.dataset.existingReaction === emoji && button.classList.contains("is-mine"));
+    return currentUserReaction(messageId) === emoji;
   }
 
   function animateReactionRemoval(messageId, emoji) {
     const container = elements.messages.querySelector(`[data-reactions-for="${cssEscape(messageId)}"]`);
-    const chip = Array.from(container?.querySelectorAll("[data-existing-reaction]") || [])
-      .find((button) => button.dataset.existingReaction === emoji && button.classList.contains("is-mine"));
+    const chip = container?.querySelector(".classChatReactionChip");
     chip?.classList.add("is-removing");
-    navigator.vibrate?.(5);
+  }
+
+  function optimisticReactionGroups(messageId, emoji) {
+    const sourceGroups = reactionStateByMessage.get(messageId) || new Map();
+    const groups = new Map(Array.from(sourceGroups.entries()).map(([key, users]) => [
+      key,
+      users.map((user) => ({ ...user }))
+    ]));
+    const existingEmoji = currentUserReaction(messageId);
+
+    if (existingEmoji && groups.has(existingEmoji)) {
+      const remaining = groups.get(existingEmoji).filter((user) => user.uid !== currentProfile.uid);
+      if (remaining.length) groups.set(existingEmoji, remaining);
+      else groups.delete(existingEmoji);
+    }
+    if (existingEmoji !== emoji) {
+      if (!groups.has(emoji)) groups.set(emoji, []);
+      groups.get(emoji).push({ uid: currentProfile.uid, name: currentProfile.name });
+    }
+    reactionStateByMessage.set(messageId, groups);
+    return { groups, removed: existingEmoji === emoji };
   }
 
   async function reactToMessage(messageId, emoji, animationSource = null) {
@@ -2174,11 +2198,12 @@
       else animateReactionSelection(messageId, emoji, animationSource);
     }
     hideReactionTray();
+    const optimistic = optimisticReactionGroups(messageId, emoji);
+    renderReactionSummary(messageId, optimistic.groups, optimistic.removed ? "" : emoji);
 
     const ref = db.collection("chatMessages").doc(messageId).collection("reactions").doc(currentProfile.uid);
     try {
-      const existing = await ref.get();
-      if (existing.exists && existing.data()?.Emoji === emoji) {
+      if (optimistic.removed) {
         await ref.delete();
       } else {
         await ref.set({
@@ -2188,8 +2213,8 @@
           UpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
       }
-      await loadReactions(messageId, removingIntent ? "" : emoji);
     } catch (error) {
+      await loadReactions(messageId);
       window.alert(readableError(error));
     }
   }
@@ -2207,33 +2232,42 @@
         if (!groups.has(reaction.Emoji)) groups.set(reaction.Emoji, []);
         groups.get(reaction.Emoji).push({ uid: doc.id, name: reaction.Name || "Classmate" });
       });
-
-      container.innerHTML = Array.from(groups.entries()).map(([emoji, users]) => {
-        const mine = users.some((user) => user.uid === currentProfile.uid);
-        const names = users.map((user) => user.name).join(", ");
-        return `<button type="button" class="classChatReactionChip ${mine ? "is-mine" : ""}"
-                  data-existing-reaction="${emoji}" data-message-id="${messageId}"
-                  title="${escapeHtml(names)}">${emoji} ${users.length}</button>`;
-      }).join("");
-      container.closest(".classChatMessage")?.classList.toggle("has-reactions", groups.size > 0);
-
-      container.querySelectorAll("[data-existing-reaction]").forEach((button) => {
-        button.addEventListener("click", () => {
-          reactToMessage(button.dataset.messageId, button.dataset.existingReaction, button);
-        });
-      });
-      if (pulseEmoji) {
-        const chip = Array.from(container.querySelectorAll("[data-existing-reaction]"))
-          .find((button) => button.dataset.existingReaction === pulseEmoji);
-        if (chip) {
-          chip.classList.remove("is-new");
-          void chip.offsetWidth;
-          chip.classList.add("is-new");
-        }
-      }
+      reactionStateByMessage.set(messageId, groups);
+      renderReactionSummary(messageId, groups, pulseEmoji);
     } catch (error) {
       container.innerHTML = "";
       container.closest(".classChatMessage")?.classList.remove("has-reactions");
+    }
+  }
+
+  function renderReactionSummary(messageId, groups, pulseEmoji = "") {
+    const container = elements.messages.querySelector(`[data-reactions-for="${cssEscape(messageId)}"]`);
+    if (!container) return;
+    const entries = Array.from(groups.entries())
+      .filter(([, users]) => users.length)
+      .sort((a, b) => b[1].length - a[1].length);
+    const total = entries.reduce((sum, [, users]) => sum + users.length, 0);
+    const mine = entries.some(([, users]) => users.some((user) => user.uid === currentProfile.uid));
+    const title = entries.map(([emoji, users]) => (
+      `${emoji} ${users.map((user) => user.name).join(", ")}`
+    )).join(" | ");
+    const visibleEmojis = entries.slice(0, 3).map(([emoji]) => `<span>${emoji}</span>`).join("");
+
+    container.innerHTML = total ? `
+      <button type="button" class="classChatReactionChip ${mine ? "is-mine" : ""}"
+              data-reaction-summary="${messageId}" title="${escapeHtml(title)}">
+        <span class="classChatReactionEmojis">${visibleEmojis}</span>
+        <b>${total}</b>
+      </button>` : "";
+    container.closest(".classChatMessage")?.classList.toggle("has-reactions", total > 0);
+    const chip = container.querySelector("[data-reaction-summary]");
+    if (chip) {
+      chip.addEventListener("click", () => showReactionTray(messageId, chip));
+      if (pulseEmoji) {
+        chip.classList.remove("is-new");
+        void chip.offsetWidth;
+        chip.classList.add("is-new");
+      }
     }
   }
 

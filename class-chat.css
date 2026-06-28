@@ -133,10 +133,10 @@
   inset: 0;
   z-index: 10;
   background: rgba(8, 8, 8, .56);
-  backdrop-filter: blur(2.2px);
-  -webkit-backdrop-filter: blur(2.2px);
+  backdrop-filter: blur(1.3px);
+  -webkit-backdrop-filter: blur(1.3px);
   pointer-events: none;
-  animation: classChatReactionFocusIn .12s ease-out both;
+  animation: classChatReactionFocusIn .08s linear both;
 }
 
 .classChatMessage.is-reaction-focus {
@@ -1510,13 +1510,13 @@
   position: relative;
   z-index: 2;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 4px;
   justify-content: flex-start;
   width: fit-content;
   max-width: calc(100% - 16px);
-  margin: 0 8px -11px;
-  transform: translateY(-50%);
+  margin: 3px 8px -6px;
+  transform: translateY(-32%);
 }
 
 .classChatReactionSummary:empty {
@@ -1529,9 +1529,13 @@
 }
 
 .classChatReactionChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
   border: 1px solid #ddd7c8;
   border-radius: 999px;
-  padding: 2px 6px;
+  padding: 3px 7px;
   background: rgba(255, 255, 255, .98);
   color: #111;
   font-size: .72rem;
@@ -1540,6 +1544,21 @@
   cursor: pointer;
   transform-origin: center;
   transition: transform .15s ease, border-color .15s ease, background .15s ease;
+}
+
+.classChatReactionEmojis {
+  display: inline-flex;
+  align-items: center;
+  letter-spacing: -3px;
+}
+
+.classChatReactionEmojis span {
+  display: inline-block;
+}
+
+.classChatReactionChip b {
+  margin-left: 2px;
+  font-size: .68rem;
 }
 
 .classChatReactionChip.is-mine {
@@ -1551,7 +1570,7 @@
 }
 
 .classChatReactionChip.is-new {
-  animation: classChatReactionChipPop .48s cubic-bezier(.18, 1.25, .35, 1) both;
+  animation: classChatReactionChipPop .24s cubic-bezier(.2, 1.12, .3, 1) both;
 }
 
 .classChatReactionChip.is-removing {
@@ -1560,7 +1579,7 @@
 }
 
 .classChatMessage.is-reaction-pulse .classChatBubble {
-  animation: classChatReactionBubblePulse .42s cubic-bezier(.2, .9, .3, 1);
+  animation: classChatReactionBubblePulse .22s cubic-bezier(.2, .9, .3, 1);
 }
 
 .classChatMessageActions {
@@ -1768,7 +1787,7 @@
 }
 
 .classChatReactionTray.is-opening {
-  animation: classChatReactionTrayIn .14s cubic-bezier(.2, .9, .3, 1) both;
+  animation: classChatReactionTrayIn .10s cubic-bezier(.2, .9, .3, 1) both;
 }
 
 .classChatReactionChoices {
@@ -1806,12 +1825,12 @@
 }
 
 .classChatReactionTray.is-opening .classChatReactionChoices button {
-  animation: classChatReactionChoiceIn .18s cubic-bezier(.2, 1.15, .3, 1) both;
-  animation-delay: calc(var(--reaction-index, 0) * 8ms);
+  animation: classChatReactionChoiceIn .12s cubic-bezier(.2, 1.08, .3, 1) both;
+  animation-delay: calc(var(--reaction-index, 0) * 3ms);
 }
 
 .classChatReactionTray.is-opening .classChatTrayActions {
-  animation: classChatActionPanelIn .16s cubic-bezier(.2, .9, .3, 1) 18ms both;
+  animation: classChatActionPanelIn .11s cubic-bezier(.2, .9, .3, 1) 5ms both;
 }
 
 .classChatReactionChoices button:hover {
@@ -1853,7 +1872,7 @@
   place-items: center;
   font-size: 2rem;
   font-weight: 400;
-  animation: classChatReactionBurstPop .62s cubic-bezier(.18, 1.2, .32, 1) both;
+  animation: classChatReactionBurstPop .34s cubic-bezier(.2, 1.1, .3, 1) both;
   filter: drop-shadow(0 4px 7px rgba(17, 17, 17, .18));
 }
 
@@ -1865,7 +1884,7 @@
   height: 7px;
   border-radius: 50%;
   background: #f7c600;
-  animation: classChatReactionSpark .58s ease-out both;
+  animation: classChatReactionSpark .32s ease-out both;
 }
 
 .classChatReactionBurst i:nth-of-type(1) {
