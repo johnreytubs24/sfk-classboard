@@ -1446,13 +1446,12 @@
       return `
         <div class="classChatSocialVideo is-tiktok">
           <iframe
-            src="https://www.tiktok.com/embed/v2/${tiktokId}"
+            src="https://www.tiktok.com/player/v1/${tiktokId}?controls=1&progress_bar=1&play_button=1&volume_control=1&fullscreen_button=1&description=0&music_info=0&rel=0&autoplay=0"
             title="TikTok video"
             loading="lazy"
             referrerpolicy="strict-origin-when-cross-origin"
             allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
             allowfullscreen></iframe>
-          <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Open in TikTok</a>
         </div>`;
     }
     if (isTikTokShortUrl(url)) {
@@ -1466,7 +1465,7 @@
     const instagram = instagramEmbedData(url);
     if (instagram) {
       return `
-        <div class="classChatSocialVideo is-instagram">
+        <div class="classChatSocialVideo is-instagram is-instagram-${instagram.type}">
           <iframe
             src="https://www.instagram.com/${instagram.type}/${instagram.code}/embed/"
             title="Instagram post"
@@ -1650,13 +1649,12 @@
       container.classList.remove("is-tiktok-loading");
       container.innerHTML = `
         <iframe
-          src="https://www.tiktok.com/embed/v2/${videoId}"
+          src="https://www.tiktok.com/player/v1/${videoId}?controls=1&progress_bar=1&play_button=1&volume_control=1&fullscreen_button=1&description=0&music_info=0&rel=0&autoplay=0"
           title="TikTok video"
           loading="lazy"
           referrerpolicy="strict-origin-when-cross-origin"
           allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-          allowfullscreen></iframe>
-        <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Open in TikTok</a>`;
+          allowfullscreen></iframe>`;
     });
   }
 

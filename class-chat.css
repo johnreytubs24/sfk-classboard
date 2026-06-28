@@ -1334,8 +1334,22 @@
 
 .classChatSocialVideo.is-instagram {
   width: min(300px, 70vw);
-  height: min(465px, 65vh);
+  height: min(560px, 72vh);
   background: #fff;
+}
+
+.classChatSocialVideo.is-instagram-reel,
+.classChatSocialVideo.is-instagram-tv {
+  width: min(245px, 66vw);
+  height: min(435px, 64vh);
+  background: #000;
+}
+
+.classChatSocialVideo.is-instagram-reel iframe,
+.classChatSocialVideo.is-instagram-tv iframe {
+  width: calc(100% + 2px);
+  height: calc(100% + 158px);
+  transform: translate(-1px, -70px);
 }
 
 .classChatSocialVideo iframe {
