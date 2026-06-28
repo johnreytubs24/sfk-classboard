@@ -407,6 +407,8 @@
     elements.jumpUnread = document.getElementById("classChatJumpUnread");
     elements.toast = document.getElementById("classChatToast");
     elements.exitDialog = document.getElementById("classChatExitDialog");
+    elements.exitTitle = document.getElementById("classChatExitTitle");
+    elements.exitText = document.getElementById("classChatExitText");
     elements.exitNo = document.getElementById("classChatExitNo");
     elements.exitYes = document.getElementById("classChatExitYes");
   }
@@ -518,6 +520,12 @@
     }
     closeChatMenu();
     hideReactionTray();
+    const isCapsule = timeCapsulePendingOpen
+      || elements.panel.classList.contains("is-time-capsule-open");
+    elements.exitTitle.textContent = isCapsule ? "Exit SFK Time Capsule?" : "Exit SFK Chat?";
+    elements.exitText.textContent = isCapsule
+      ? "Do you really want to exit the SFK Time Capsule?"
+      : "Do you really want to exit SFK Chat?";
     elements.exitDialog.hidden = false;
     window.setTimeout(() => elements.exitNo.focus(), 40);
   }

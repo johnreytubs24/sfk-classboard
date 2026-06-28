@@ -1,4 +1,4 @@
-const CACHE_NAME = "sfk-classboard-v182-capsule-totals-fix";
+const CACHE_NAME = "sfk-classboard-v183-context-exit";
 const APP_SHELL = [
   "./",
   "./index.html",
