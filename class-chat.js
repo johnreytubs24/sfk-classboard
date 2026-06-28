@@ -903,7 +903,7 @@
     updateCapsuleLoginCountdown();
     capsuleLoginTimer = window.setInterval(updateCapsuleLoginCountdown, 1000);
     if (!db) return;
-    capsuleLoginUnsubscribe = db.collection("timeCapsulePublic").doc("main")
+    capsuleLoginUnsubscribe = db.collection("settings").doc("timeCapsulePublic")
       .onSnapshot((snapshot) => {
         const data = snapshot.exists ? snapshot.data() || {} : {};
         const unlockAt = data.UnlockAt?.toDate?.();

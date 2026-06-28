@@ -194,7 +194,7 @@
 
   function startPublicStatusListener() {
     state.statusUnsubscribe?.();
-    state.statusUnsubscribe = state.context.db.collection("timeCapsulePublic").doc("main")
+    state.statusUnsubscribe = state.context.db.collection("settings").doc("timeCapsulePublic")
       .onSnapshot((snapshot) => {
         state.publicStatus = snapshot.exists ? snapshot.data() || {} : null;
         renderStats();
@@ -295,7 +295,7 @@
   function renderStats() {
     const own = state.entries.filter((entry) => entry.AuthorUID === state.context.profile.uid);
     const visibleClassEntries = isAdmin() || isUnlocked()
-      ? state.entries.filter((entry) => isAdmin() || entry.Status === "approved")
+      ? state.entries.filter((entry) => entry.Status === "approved")
       : null;
     const contributors = visibleClassEntries
       ? new Set(visibleClassEntries.map((entry) => entry.AuthorUID).filter(Boolean)).size
@@ -304,7 +304,7 @@
     const publicSealedCount = safeCount(state.publicStatus?.SealedCount);
     const publicContributorCount = safeCount(state.publicStatus?.ContributorCount);
     elements.classCount.textContent = visibleClassEntries
-      ? String(visibleClassEntries.filter((entry) => entry.Status !== "rejected").length)
+      ? String(visibleClassEntries.length)
       : String(publicSealedCount);
     elements.contributorCount.textContent = contributors == null
       ? String(publicContributorCount)
@@ -318,7 +318,7 @@
 
   function syncPublicStatus() {
     if (!isAdmin() || !state.settings || !state.entriesLoaded) return;
-    const sealedEntries = state.entries.filter((entry) => entry.Status !== "rejected");
+    const sealedEntries = state.entries.filter((entry) => entry.Status === "approved");
     const contributorCount = new Set(
       sealedEntries.map((entry) => entry.AuthorUID).filter(Boolean)
     ).size;
@@ -332,7 +332,7 @@
     ].join(":");
     if (state.publishedStatusSignature === signature) return;
     state.publishedStatusSignature = signature;
-    state.context.db.collection("timeCapsulePublic").doc("main").set({
+    state.context.db.collection("settings").doc("timeCapsulePublic").set({
       UnlockAt: firebase.firestore.Timestamp.fromDate(unlockAt),
       SubmissionDeadline: firebase.firestore.Timestamp.fromDate(deadline),
       SealedCount: sealedEntries.length,
