@@ -103,6 +103,7 @@
   let watchPlayerKey = "";
   let lastWatchDriftSync = 0;
   let tiktokAutoplayFallbackUsed = false;
+  let tiktokNeedsSoundUnlock = false;
 
   const elements = {};
 
@@ -2205,7 +2206,11 @@
     elements.watchProvider.textContent = drivePreviewFallback ? "DRIVE PREVIEW" : provider.toUpperCase();
     elements.watchStage.classList.remove("is-empty");
     elements.watchStage.dataset.provider = provider;
-    elements.watchJoin.hidden = usesIndependentPlayer || watchJoined;
+    const showTikTokSoundUnlock = provider === "tiktok"
+      && watchJoined
+      && tiktokNeedsSoundUnlock;
+    elements.watchJoin.hidden = usesIndependentPlayer || (watchJoined && !showTikTokSoundUnlock);
+    elements.watchJoin.textContent = showTikTokSoundUnlock ? "Tap for sound" : "Join Watch Party";
     elements.watchPlayPause.innerHTML = currentWatchParty.PlaybackState === "playing" ? "&#10074;&#10074;" : "&#9654;";
     if (!elements.watchRoom.hidden) ensureWatchPlayer();
     updateWatchTimeDisplay();
@@ -2268,7 +2273,8 @@
       iframe.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
     } else if (provider === "tiktok") {
       const shouldAutoplay = watchJoined && currentWatchParty.PlaybackState === "playing" ? 1 : 0;
-      iframe.src = `https://www.tiktok.com/player/v1/${videoId}?controls=0&play_button=0&progress_bar=0&volume_control=1&fullscreen_button=1&description=0&music_info=0&rel=0&autoplay=${shouldAutoplay}`;
+      tiktokNeedsSoundUnlock = shouldAutoplay === 1;
+      iframe.src = `https://www.tiktok.com/player/v1/${videoId}?controls=0&play_button=0&progress_bar=0&volume_control=1&fullscreen_button=1&description=0&music_info=0&rel=0&autoplay=${shouldAutoplay}&muted=${shouldAutoplay}`;
       iframe.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
     } else if (provider === "bilibili") {
       const parameter = videoId.toLowerCase().startsWith("av")
@@ -2561,13 +2567,46 @@
     watchPlayerDuration = 0;
     watchPlayerSyncSupported = false;
     tiktokAutoplayFallbackUsed = false;
+    tiktokNeedsSoundUnlock = false;
   }
 
   function joinWatchParty() {
+    if (currentWatchParty?.Provider === "tiktok" && watchJoined && tiktokNeedsSoundUnlock) {
+      tiktokNeedsSoundUnlock = false;
+      sendWatchPlayerCommand("unMute");
+      sendWatchPlayerCommand("play");
+      elements.watchJoin.hidden = true;
+      return;
+    }
     watchJoined = true;
     watchSessionJoined = true;
     elements.watchJoin.hidden = true;
+    if (currentWatchParty?.Provider === "tiktok") {
+      tiktokNeedsSoundUnlock = false;
+      sendWatchPlayerCommand("unMute");
+    }
     applyWatchStateToPlayer(true);
+  }
+
+  function startTikTokMutedAutoplay() {
+    if (currentWatchParty?.Provider !== "tiktok"
+        || !watchJoined
+        || currentWatchParty.PlaybackState !== "playing"
+        || !watchPlayer) return;
+    const targetPlayer = watchPlayer;
+    tiktokNeedsSoundUnlock = true;
+    sendWatchPlayerCommand("mute");
+    sendWatchPlayerCommand("seek", watchTargetPosition());
+    [0, 120, 420, 900].forEach((delay) => {
+      window.setTimeout(() => {
+        if (watchPlayer === targetPlayer
+            && currentWatchParty?.Provider === "tiktok"
+            && currentWatchParty.PlaybackState === "playing") {
+          sendWatchPlayerCommand("play");
+        }
+      }, delay);
+    });
+    renderWatchParty();
   }
 
   function watchTargetPosition() {
@@ -2657,7 +2696,11 @@
     }
     if (data?.["x-tiktok-player"] === true) {
       if (data.type === "onPlayerReady") {
-        applyWatchStateToPlayer(true);
+        if (watchJoined && currentWatchParty?.PlaybackState === "playing") {
+          startTikTokMutedAutoplay();
+        } else {
+          applyWatchStateToPlayer(true);
+        }
       }
       if (data.type === "onCurrentTime") {
         if (Number.isFinite(data.value?.currentTime)) watchPlayerTime = data.value.currentTime;
@@ -2668,8 +2711,7 @@
           && watchJoined
           && !tiktokAutoplayFallbackUsed) {
         tiktokAutoplayFallbackUsed = true;
-        sendWatchPlayerCommand("mute");
-        window.setTimeout(() => sendWatchPlayerCommand("play"), 80);
+        startTikTokMutedAutoplay();
         showChatToast("TikTok continued muted because the browser blocked autoplay audio.");
       }
     }
