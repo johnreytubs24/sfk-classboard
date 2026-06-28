@@ -105,6 +105,7 @@
   let tiktokAutoplayFallbackUsed = false;
   let tiktokNeedsSoundUnlock = false;
   let tiktokAutoUnmuteAttempted = false;
+  let watchEndUpdatePending = false;
 
   const elements = {};
 
@@ -2267,21 +2268,21 @@
     iframe.referrerPolicy = "strict-origin-when-cross-origin";
     if (provider === "youtube") {
       const origin = encodeURIComponent(window.location.origin);
-      iframe.src = `https://www.youtube-nocookie.com/embed/${videoId}?enablejsapi=1&controls=0&playsinline=1&rel=0&origin=${origin}`;
+      iframe.src = `https://www.youtube-nocookie.com/embed/${videoId}?enablejsapi=1&controls=0&playsinline=1&rel=0&loop=0&origin=${origin}`;
       iframe.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
     } else if (provider === "tiktok") {
       const shouldAutoplay = watchJoined && currentWatchParty.PlaybackState === "playing" ? 1 : 0;
       tiktokNeedsSoundUnlock = shouldAutoplay === 1;
-      iframe.src = `https://www.tiktok.com/player/v1/${videoId}?controls=0&play_button=0&progress_bar=0&volume_control=1&fullscreen_button=1&description=0&music_info=0&rel=0&autoplay=${shouldAutoplay}&muted=${shouldAutoplay}`;
+      iframe.src = `https://www.tiktok.com/player/v1/${videoId}?controls=0&play_button=0&progress_bar=0&volume_control=1&fullscreen_button=1&description=0&music_info=0&rel=0&loop=0&autoplay=${shouldAutoplay}&muted=${shouldAutoplay}`;
       iframe.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
     } else if (provider === "bilibili") {
       const parameter = videoId.toLowerCase().startsWith("av")
         ? `aid=${encodeURIComponent(videoId.slice(2))}`
         : `bvid=${encodeURIComponent(videoId)}`;
-      iframe.src = `https://player.bilibili.com/player.html?${parameter}&autoplay=0&danmaku=0&p=1`;
+      iframe.src = `https://player.bilibili.com/player.html?${parameter}&autoplay=0&danmaku=0&loop=0&p=1`;
       iframe.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
     } else if (provider === "vimeo") {
-      iframe.src = `https://player.vimeo.com/video/${encodeURIComponent(videoId)}?title=0&byline=0&portrait=0`;
+      iframe.src = `https://player.vimeo.com/video/${encodeURIComponent(videoId)}?title=0&byline=0&portrait=0&loop=0`;
       iframe.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
     } else {
       iframe.src = `https://www.instagram.com/${instagramType}/${videoId}/embed/`;
@@ -2289,6 +2290,9 @@
     }
     iframe.setAttribute("allowfullscreen", "");
     iframe.addEventListener("load", () => {
+      if (provider === "vimeo") {
+        iframe.contentWindow?.postMessage({ method: "addEventListener", value: "ended" }, "*");
+      }
       window.setTimeout(() => applyWatchStateToPlayer(true), 180);
     });
     elements.watchPlayer.innerHTML = "";
@@ -2334,6 +2338,8 @@
   }
 
   function configureSyncedNativeWatchVideo(video) {
+    video.loop = false;
+    video.removeAttribute("loop");
     watchPlayerSyncSupported = true;
     watchPlayerProvider = "native";
     const updateMetrics = () => {
@@ -2358,6 +2364,9 @@
       if (canControlWatchParty() && !suppressWatchPlayerEvents) {
         updateWatchPartyState(currentWatchParty.PlaybackState, video.currentTime);
       }
+    });
+    video.addEventListener("ended", () => {
+      pauseWatchPartyAtEnd(video.duration || video.currentTime);
     });
     video.addEventListener("webkitbeginfullscreen", () => {
       window.SFK_WATCH_PARTY_LANDSCAPE = true;
@@ -2567,6 +2576,7 @@
     tiktokAutoplayFallbackUsed = false;
     tiktokNeedsSoundUnlock = false;
     tiktokAutoUnmuteAttempted = false;
+    watchEndUpdatePending = false;
   }
 
   function joinWatchParty() {
@@ -2610,6 +2620,19 @@
       if (updatedAt) position += Math.max(0, Date.now() - updatedAt) / 1000;
     }
     return Math.max(0, position);
+  }
+
+  function pauseWatchPartyAtEnd(position) {
+    const finalPosition = Math.max(0, Number(position || watchPlayerDuration || watchPlayerTime || 0));
+    watchPlayerTime = finalPosition;
+    updateWatchTimeDisplay();
+    if (!currentWatchParty?.Active
+        || currentWatchParty.PlaybackState !== "playing"
+        || !canControlWatchParty()
+        || watchEndUpdatePending) return;
+    watchEndUpdatePending = true;
+    updateWatchPartyState("paused", finalPosition)
+      .finally(() => { watchEndUpdatePending = false; });
   }
 
   function sendWatchPlayerCommand(command, value) {
@@ -2686,6 +2709,24 @@
     if (data?.event === "infoDelivery" && data.info) {
       if (Number.isFinite(data.info.currentTime)) watchPlayerTime = data.info.currentTime;
       if (Number.isFinite(data.info.duration)) watchPlayerDuration = data.info.duration;
+      if (Number(data.info.playerState) === 0) {
+        pauseWatchPartyAtEnd(data.info.duration || data.info.currentTime);
+      }
+    }
+    if (watchPlayerProvider === "youtube" && data?.event === "onReady") {
+      watchPlayer.contentWindow?.postMessage(JSON.stringify({
+        event: "command",
+        func: "addEventListener",
+        args: ["onStateChange"]
+      }), "*");
+    }
+    if (watchPlayerProvider === "youtube"
+        && data?.event === "onStateChange"
+        && Number(data.info) === 0) {
+      pauseWatchPartyAtEnd(watchPlayerDuration || watchPlayerTime);
+    }
+    if (watchPlayerProvider === "vimeo" && data?.event === "ended") {
+      pauseWatchPartyAtEnd(watchPlayerDuration || watchPlayerTime);
     }
     if (data?.["x-tiktok-player"] === true) {
       if (data.type === "onPlayerReady") {
@@ -2710,6 +2751,9 @@
             sendWatchPlayerCommand("unMute");
           }
         }, 120);
+      }
+      if (data.type === "onStateChange" && Number(data.value) === 0) {
+        pauseWatchPartyAtEnd(watchPlayerDuration || watchPlayerTime);
       }
       if (data.type === "onPlayerError"
           && Number(data.value?.errorCode ?? data.errorCode) === 3002
