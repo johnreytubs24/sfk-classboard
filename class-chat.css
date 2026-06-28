@@ -3618,6 +3618,13 @@ body.classChatIsOpen {
   color: var(--chat-accent);
 }
 
+.classChatPanel.has-custom-theme .classChatRoleBadge,
+.classChatPanel.has-custom-theme .classChatRoleBadge.is-admin,
+.classChatPanel.has-custom-theme .classChatRoleBadge.is-officer {
+  background: var(--chat-accent);
+  color: var(--chat-accent-ink);
+}
+
 @media (max-width: 600px) {
   .classChatBackdrop {
     display: none;

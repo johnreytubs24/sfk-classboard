@@ -1,4 +1,4 @@
-const CACHE_NAME = "sfk-classboard-v164-custom-accents-dark-mode";
+const CACHE_NAME = "sfk-classboard-v165-theme-role-badges";
 const APP_SHELL = [
   "./",
   "./index.html",
