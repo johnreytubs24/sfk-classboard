@@ -58,6 +58,7 @@
   let currentConfig = { Locked: false, SlowModeSeconds: 0 };
   let reactionMessageId = "";
   let longPressTimer = null;
+  let longPressFeedbackTimer = null;
   let typingTimer = null;
   let typingClearTimer = null;
   let messageGesture = null;
@@ -1848,16 +1849,27 @@
       startY: event.clientY,
       pointerId: event.pointerId,
       pointerType: event.pointerType,
+      moved: false,
       translated: false,
       longPressed: false
     };
     if (event.pointerType === "mouse") return;
+    window.clearTimeout(longPressFeedbackTimer);
+    longPressFeedbackTimer = window.setTimeout(() => {
+      if (!messageGesture || messageGesture.messageId !== article.dataset.messageId) return;
+      article.classList.add("is-longpress-arming");
+    }, 90);
     window.clearTimeout(longPressTimer);
     longPressTimer = window.setTimeout(() => {
       if (!messageGesture || messageGesture.messageId !== article.dataset.messageId) return;
       messageGesture.longPressed = true;
+      article.classList.remove("is-longpress-arming");
+      article.classList.remove("is-longpress-triggered");
+      void article.offsetWidth;
+      article.classList.add("is-longpress-triggered");
+      window.setTimeout(() => article.classList.remove("is-longpress-triggered"), 260);
       showReactionTray(article.dataset.messageId, article.querySelector(".classChatBubble"));
-      navigator.vibrate?.(24);
+      navigator.vibrate?.([14, 24, 18]);
     }, 440);
   }
 
@@ -1865,7 +1877,12 @@
     if (!messageGesture || messageGesture.pointerId !== event.pointerId) return;
     const dx = event.clientX - messageGesture.startX;
     const dy = event.clientY - messageGesture.startY;
-    if (Math.abs(dx) > 8 || Math.abs(dy) > 8) window.clearTimeout(longPressTimer);
+    if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
+      messageGesture.moved = true;
+      window.clearTimeout(longPressTimer);
+      window.clearTimeout(longPressFeedbackTimer);
+      messageGesture.article.classList.remove("is-longpress-arming");
+    }
     if (messageGesture.pointerType === "mouse" || Math.abs(dx) <= Math.abs(dy)) return;
 
     const message = findMessage(messageGesture.messageId);
@@ -1883,6 +1900,7 @@
 
   function finishMessageGesture(event) {
     window.clearTimeout(longPressTimer);
+    window.clearTimeout(longPressFeedbackTimer);
     if (!messageGesture || messageGesture.pointerId !== event.pointerId) return;
     const gesture = messageGesture;
     messageGesture = null;
@@ -1897,7 +1915,7 @@
       return;
     }
 
-    if (gesture.pointerType !== "mouse" && !gesture.translated && !gesture.longPressed) {
+    if (gesture.pointerType !== "mouse" && !gesture.moved && !gesture.translated && !gesture.longPressed) {
       handleTouchTap(gesture);
     }
   }
@@ -1923,12 +1941,13 @@
 
   function cancelMessageGesture() {
     window.clearTimeout(longPressTimer);
+    window.clearTimeout(longPressFeedbackTimer);
     if (messageGesture?.article) resetGestureArticle(messageGesture.article);
     messageGesture = null;
   }
 
   function resetGestureArticle(article) {
-    article.classList.remove("is-reply-ready");
+    article.classList.remove("is-reply-ready", "is-longpress-arming", "is-longpress-triggered");
     article.style.removeProperty("--chat-swipe");
   }
 
@@ -1979,6 +1998,7 @@
       && message.Type !== "poll"
       && Date.now() - timestampToMillis(message.CreatedAt) <= OWN_DELETE_WINDOW_MS;
     const canRemove = currentProfile.role === "admin" || canDeleteOwn;
+    elements.reactionTray.classList.toggle("is-own-target", own);
     elements.reactionTray.innerHTML = `
       <div class="classChatReactionChoices">
         ${REACTIONS.map((emoji, index) => (
@@ -2021,8 +2041,12 @@
     const anchorRect = anchor.getBoundingClientRect();
     const trayWidth = Math.min(360, panelRect.width - 24);
     const left = Math.max(12, Math.min(anchorRect.left - panelRect.left, panelRect.width - trayWidth - 12));
-    const top = Math.max(74, anchorRect.top - panelRect.top - 112);
     elements.reactionTray.style.left = `${left}px`;
+    elements.reactionTray.style.top = "74px";
+    const trayHeight = elements.reactionTray.offsetHeight;
+    const desiredTop = anchorRect.top - panelRect.top - 58;
+    const maxTop = Math.max(74, panelRect.height - trayHeight - 76);
+    const top = Math.max(74, Math.min(desiredTop, maxTop));
     elements.reactionTray.style.top = `${top}px`;
     void elements.reactionTray.offsetWidth;
     elements.reactionTray.classList.add("is-opening");
@@ -2037,11 +2061,18 @@
   function showQuickHeart(article) {
     const bubble = article.querySelector(".classChatBubble");
     if (!bubble) return;
+    bubble.querySelector(".classChatQuickHeart")?.remove();
     const heart = document.createElement("span");
     heart.className = "classChatQuickHeart";
-    heart.textContent = "🫶";
+    heart.innerHTML = "<b>🫶</b><i></i><i></i><i></i><i></i>";
     bubble.appendChild(heart);
-    window.setTimeout(() => heart.remove(), 620);
+    article.classList.remove("is-double-heart");
+    void article.offsetWidth;
+    article.classList.add("is-double-heart");
+    window.setTimeout(() => {
+      heart.remove();
+      article.classList.remove("is-double-heart");
+    }, 780);
   }
 
   function handleOutsideReactionTray(event) {

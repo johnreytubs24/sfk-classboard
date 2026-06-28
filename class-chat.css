@@ -1035,6 +1035,9 @@
   overscroll-behavior: contain;
   padding: 16px 14px 10px;
   scrollbar-width: thin;
+  scroll-behavior: smooth;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
 }
 
 .classChatDay {
@@ -1058,6 +1061,24 @@
   transition: transform .18s cubic-bezier(.22, .8, .25, 1);
   animation: classChatBubbleIn .18s ease-out;
   touch-action: pan-y;
+}
+
+.classChatMessage .classChatBubble {
+  transition: transform .18s cubic-bezier(.2, .9, .3, 1), box-shadow .18s ease, filter .18s ease;
+  transform-origin: center bottom;
+}
+
+.classChatMessage.is-longpress-arming .classChatBubble {
+  transform: scale(.955);
+  filter: brightness(.97);
+}
+
+.classChatMessage.is-longpress-triggered .classChatBubble {
+  animation: classChatLongPressRelease .24s cubic-bezier(.18, 1.08, .32, 1) both;
+}
+
+.classChatMessage.is-double-heart .classChatBubble {
+  animation: classChatDoubleHeartPulse .52s cubic-bezier(.2, .9, .3, 1);
 }
 
 .classChatMessage.is-group-end {
@@ -1710,15 +1731,14 @@
   z-index: 5;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   width: min(360px, calc(100% - 24px));
   max-width: calc(100% - 24px);
   box-sizing: border-box;
-  padding: 7px;
-  border: 1px solid #ddd7c8;
-  border-radius: 18px;
-  background: #fff;
-  box-shadow: 0 12px 32px rgba(17, 17, 17, .24);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  pointer-events: none;
   transform-origin: center bottom;
   will-change: transform, opacity;
 }
@@ -1729,12 +1749,28 @@
 
 .classChatReactionChoices {
   display: flex;
-  gap: 1px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2px;
+  overflow-x: auto;
+  border: 1px solid #ddd7c8;
+  border-radius: 999px;
+  padding: 7px 9px;
+  background: rgba(255, 255, 255, .98);
+  box-shadow: 0 10px 28px rgba(17, 17, 17, .22);
+  pointer-events: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.classChatReactionChoices::-webkit-scrollbar {
+  display: none;
 }
 
 .classChatReactionChoices button {
   width: 34px;
   height: 34px;
+  flex: 0 0 34px;
   border: 0;
   border-radius: 50%;
   background: transparent;
@@ -1748,6 +1784,10 @@
 .classChatReactionTray.is-opening .classChatReactionChoices button {
   animation: classChatReactionChoiceIn .34s cubic-bezier(.16, 1.35, .32, 1) both;
   animation-delay: calc(var(--reaction-index, 0) * 22ms);
+}
+
+.classChatReactionTray.is-opening .classChatTrayActions {
+  animation: classChatActionPanelIn .24s cubic-bezier(.18, 1.08, .32, 1) 55ms both;
 }
 
 .classChatReactionChoices button:hover {
@@ -1827,6 +1867,17 @@
   100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+@keyframes classChatActionPanelIn {
+  0% { opacity: 0; transform: translateY(-7px) scale(.96); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes classChatLongPressRelease {
+  0% { transform: scale(.955); filter: brightness(.97); }
+  68% { transform: scale(1.012); filter: brightness(1); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+
 @keyframes classChatReactionChoiceIn {
   0% { opacity: 0; transform: translateY(9px) scale(.45); }
   68% { opacity: 1; transform: translateY(-3px) scale(1.12); }
@@ -1863,24 +1914,60 @@
 }
 
 .classChatTrayActions {
+  width: min(238px, 78vw);
+  max-height: min(48vh, 410px);
+  align-self: flex-start;
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding-top: 6px;
-  border-top: 1px solid #eeeae1;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid #ddd7c8;
+  border-radius: 17px;
+  padding: 6px;
+  background: rgba(255, 255, 255, .98);
+  box-shadow: 0 12px 30px rgba(17, 17, 17, .22);
+  pointer-events: auto;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.classChatReactionTray.is-own-target .classChatTrayActions {
+  align-self: flex-end;
 }
 
 .classChatTrayActions button {
-  min-height: 34px;
-  flex: 1 1 42%;
+  width: 100%;
+  min-height: 42px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 11px;
   border: 0;
-  border-radius: 10px;
-  padding: 6px 10px;
-  background: #f4f2ed;
+  border-radius: 11px;
+  padding: 9px 12px;
+  background: transparent;
   color: #111;
-  font-size: .75rem;
+  font-size: .82rem;
   font-weight: 900;
+  text-align: left;
   cursor: pointer;
+  transition: background .13s ease, transform .13s ease;
+}
+
+.classChatTrayActions button span {
+  width: 24px;
+  flex: 0 0 24px;
+  font-size: 1.12rem;
+  text-align: center;
+}
+
+.classChatTrayActions button:hover {
+  background: #f3f0e8;
+}
+
+.classChatTrayActions button[data-chat-tray-action="delete"] {
+  color: #c4242d;
 }
 
 .classChatTrayActions button:active {
@@ -1892,11 +1979,39 @@
   top: 50%;
   left: 50%;
   z-index: 3;
-  font-size: 2.3rem;
+  width: 82px;
+  height: 82px;
   pointer-events: none;
   transform: translate(-50%, -50%);
-  animation: classChatHeartPop .62s ease-out both;
 }
+
+.classChatQuickHeart b {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 2.65rem;
+  font-weight: 400;
+  line-height: 1;
+  animation: classChatHeartPop .74s cubic-bezier(.18, 1.22, .3, 1) both;
+  filter: drop-shadow(0 7px 11px rgba(17, 17, 17, .24));
+}
+
+.classChatQuickHeart i {
+  position: absolute;
+  top: 38px;
+  left: 38px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f7c600;
+  animation: classChatDoubleHeartSpark .62s ease-out both;
+}
+
+.classChatQuickHeart i:nth-of-type(1) { --heart-x: -34px; --heart-y: -24px; }
+.classChatQuickHeart i:nth-of-type(2) { --heart-x: 35px; --heart-y: -22px; animation-delay: 25ms; }
+.classChatQuickHeart i:nth-of-type(3) { --heart-x: -27px; --heart-y: 30px; animation-delay: 45ms; }
+.classChatQuickHeart i:nth-of-type(4) { --heart-x: 30px; --heart-y: 28px; animation-delay: 65ms; }
 
 .classChatToast {
   position: absolute;
@@ -1929,9 +2044,22 @@
 }
 
 @keyframes classChatHeartPop {
-  0% { opacity: 0; transform: translate(-50%, -50%) scale(.3) rotate(-8deg); }
-  38% { opacity: 1; transform: translate(-50%, -60%) scale(1.18) rotate(4deg); }
-  100% { opacity: 0; transform: translate(-50%, -92%) scale(.88) rotate(0); }
+  0% { opacity: 0; transform: scale(.25) rotate(-10deg); }
+  34% { opacity: 1; transform: translateY(-3px) scale(1.24) rotate(5deg); }
+  64% { opacity: 1; transform: translateY(-5px) scale(.98) rotate(0); }
+  100% { opacity: 0; transform: translateY(-20px) scale(.82) rotate(0); }
+}
+
+@keyframes classChatDoubleHeartSpark {
+  0% { opacity: 0; transform: translate(0, 0) scale(.2); }
+  28% { opacity: 1; transform: translate(0, 0) scale(1); }
+  100% { opacity: 0; transform: translate(var(--heart-x), var(--heart-y)) scale(.55); }
+}
+
+@keyframes classChatDoubleHeartPulse {
+  0%, 100% { transform: scale(1); }
+  32% { transform: scale(.975); }
+  64% { transform: scale(1.018); }
 }
 
 body.classChatIsOpen {
@@ -2287,8 +2415,15 @@ body.classChatIsOpen {
 }
 
 .classChatPanel.is-dark .classChatReactionTray {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.classChatPanel.is-dark .classChatReactionChoices,
+.classChatPanel.is-dark .classChatTrayActions {
   border-color: #3a3a3a;
-  background: #1d1d1d;
+  background: rgba(29, 29, 29, .98);
   box-shadow: 0 14px 34px rgba(0, 0, 0, .50);
 }
 
@@ -2296,14 +2431,18 @@ body.classChatIsOpen {
   color: #fff;
 }
 
-.classChatPanel.is-dark .classChatReactionChoices button:hover,
 .classChatPanel.is-dark .classChatTrayActions button {
-  background: #303030;
+  background: transparent;
   color: #fff;
 }
 
-.classChatPanel.is-dark .classChatTrayActions {
-  border-top-color: #3a3a3a;
+.classChatPanel.is-dark .classChatReactionChoices button:hover,
+.classChatPanel.is-dark .classChatTrayActions button:hover {
+  background: #303030;
+}
+
+.classChatPanel.is-dark .classChatTrayActions button[data-chat-tray-action="delete"] {
+  color: #ff6b72;
 }
 
 @media (max-width: 600px) {
@@ -2371,10 +2510,15 @@ body.classChatIsOpen {
 
   .classChatReactionTray,
   .classChatReactionChoices button,
+  .classChatTrayActions,
   .classChatReactionChip,
   .classChatReactionBurst b,
   .classChatReactionBurst i,
-  .classChatMessage.is-reaction-pulse .classChatBubble {
+  .classChatQuickHeart b,
+  .classChatQuickHeart i,
+  .classChatMessage .classChatBubble,
+  .classChatMessage.is-reaction-pulse .classChatBubble,
+  .classChatMessage.is-double-heart .classChatBubble {
     animation: none !important;
     transition: none !important;
   }
