@@ -75,6 +75,8 @@
   let suppressChatPopstate = false;
   let profileCustomColorSelected = false;
   let firstCustomColorSelected = false;
+  let loadingEarlierMessages = false;
+  let hasMoreMessages = true;
 
   const elements = {};
 
@@ -138,7 +140,7 @@
     elements.pollOptionsEditor.addEventListener("click", handlePollOptionEditorClick);
     elements.pinned.addEventListener("click", focusPinnedMessage);
     elements.jumpUnread.addEventListener("click", jumpToUnread);
-    elements.messages.addEventListener("scroll", updateJumpButton);
+    elements.messages.addEventListener("scroll", handleMessagesScroll, { passive: true });
     elements.roleTabs.forEach((button) => {
       button.addEventListener("click", () => selectRole(button.dataset.chatRole));
     });
@@ -148,7 +150,6 @@
     elements.composer.addEventListener("submit", sendMessage);
     elements.input.addEventListener("input", handleComposerInput);
     elements.replyCancel.addEventListener("click", clearReply);
-    elements.loadEarlier.addEventListener("click", loadEarlier);
     elements.messages.addEventListener("click", handleMessageClick);
     elements.messages.addEventListener("dblclick", handleMessageDoubleClick);
     elements.messages.addEventListener("pointerdown", startLongPress);
@@ -251,7 +252,6 @@
     elements.firstCustomColor = document.getElementById("classChatFirstCustomColor");
     elements.loginMessage = document.getElementById("classChatLoginMessage");
     elements.messages = document.getElementById("classChatMessages");
-    elements.loadEarlier = document.getElementById("classChatLoadEarlier");
     elements.typing = document.getElementById("classChatTyping");
     elements.reply = document.getElementById("classChatReply");
     elements.replyName = document.getElementById("classChatReplyName");
@@ -975,23 +975,8 @@
   function startRealtimeListeners() {
     stopRealtimeListeners();
     messageLimit = Math.max(MESSAGE_LIMIT_STEP, messageLimit);
-
-    messagesUnsubscribe = db.collection("chatMessages")
-      .orderBy("CreatedAt", "desc")
-      .limit(messageLimit)
-      .onSnapshot((snapshot) => {
-        const wasNearBottom = isNearBottom();
-        regularMessages = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })).reverse();
-        rebuildCurrentMessages();
-        renderMessages();
-        markRead();
-        markLocalRead();
-        if (wasNearBottom || currentMessages[currentMessages.length - 1]?.SenderUID === currentProfile.uid) {
-          scrollToBottom();
-        }
-      }, (error) => {
-        elements.messages.innerHTML = `<p class="classChatDay">${escapeHtml(readableError(error))}</p>`;
-      });
+    hasMoreMessages = true;
+    startMessagesListener(false);
 
     typingUnsubscribe = db.collection("chatTyping").onSnapshot((snapshot) => {
       const now = Date.now();
@@ -1094,6 +1079,48 @@
     }, 30000);
   }
 
+  function startMessagesListener(preserveScrollPosition) {
+    if (messagesUnsubscribe) messagesUnsubscribe();
+    const previousHeight = elements.messages.scrollHeight;
+    const previousTop = elements.messages.scrollTop;
+    let preserveOnFirstSnapshot = preserveScrollPosition;
+    if (preserveScrollPosition) {
+      loadingEarlierMessages = true;
+      elements.messages.classList.add("is-loading-earlier");
+      elements.messages.setAttribute("aria-busy", "true");
+    }
+
+    messagesUnsubscribe = db.collection("chatMessages")
+      .orderBy("CreatedAt", "desc")
+      .limit(messageLimit)
+      .onSnapshot((snapshot) => {
+        const wasNearBottom = isNearBottom();
+        hasMoreMessages = snapshot.size >= messageLimit;
+        regularMessages = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })).reverse();
+        rebuildCurrentMessages();
+        renderMessages();
+        markRead();
+        markLocalRead();
+        if (preserveOnFirstSnapshot) {
+          preserveOnFirstSnapshot = false;
+          window.requestAnimationFrame(() => {
+            elements.messages.classList.add("is-restoring-scroll");
+            elements.messages.scrollTop = elements.messages.scrollHeight - previousHeight + previousTop;
+            elements.messages.classList.remove("is-restoring-scroll", "is-loading-earlier");
+            elements.messages.removeAttribute("aria-busy");
+            loadingEarlierMessages = false;
+          });
+        } else if (wasNearBottom || currentMessages[currentMessages.length - 1]?.SenderUID === currentProfile.uid) {
+          scrollToBottom();
+        }
+      }, (error) => {
+        loadingEarlierMessages = false;
+        elements.messages.classList.remove("is-loading-earlier");
+        elements.messages.removeAttribute("aria-busy");
+        elements.messages.innerHTML = `<p class="classChatDay">${escapeHtml(readableError(error))}</p>`;
+      });
+  }
+
   function stopRealtimeListeners() {
     if (messagesUnsubscribe) messagesUnsubscribe();
     if (typingUnsubscribe) typingUnsubscribe();
@@ -1115,6 +1142,9 @@
     savedUnsubscribe = null;
     scheduledUnsubscribe = null;
     scheduledRefreshTimer = null;
+    loadingEarlierMessages = false;
+    elements.messages?.classList.remove("is-loading-earlier", "is-restoring-scroll");
+    elements.messages?.removeAttribute("aria-busy");
     clearPollVoteListeners();
   }
 
@@ -1238,8 +1268,14 @@
   }
 
   function loadEarlier() {
+    if (loadingEarlierMessages || !hasMoreMessages || elements.messages.scrollTop > 80) return;
     messageLimit += MESSAGE_LIMIT_STEP;
-    startRealtimeListeners();
+    startMessagesListener(true);
+  }
+
+  function handleMessagesScroll() {
+    updateJumpButton();
+    if (elements.messages.scrollTop <= 80) loadEarlier();
   }
 
   function renderMessages() {
