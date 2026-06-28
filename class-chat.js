@@ -104,6 +104,7 @@
   let lastWatchDriftSync = 0;
   let tiktokAutoplayFallbackUsed = false;
   let tiktokNeedsSoundUnlock = false;
+  let tiktokAutoUnmuteAttempted = false;
 
   const elements = {};
 
@@ -2206,11 +2207,8 @@
     elements.watchProvider.textContent = drivePreviewFallback ? "DRIVE PREVIEW" : provider.toUpperCase();
     elements.watchStage.classList.remove("is-empty");
     elements.watchStage.dataset.provider = provider;
-    const showTikTokSoundUnlock = provider === "tiktok"
-      && watchJoined
-      && tiktokNeedsSoundUnlock;
-    elements.watchJoin.hidden = usesIndependentPlayer || (watchJoined && !showTikTokSoundUnlock);
-    elements.watchJoin.textContent = showTikTokSoundUnlock ? "Tap for sound" : "Join Watch Party";
+    elements.watchJoin.hidden = usesIndependentPlayer || watchJoined;
+    elements.watchJoin.textContent = "Join Watch Party";
     elements.watchPlayPause.innerHTML = currentWatchParty.PlaybackState === "playing" ? "&#10074;&#10074;" : "&#9654;";
     if (!elements.watchRoom.hidden) ensureWatchPlayer();
     updateWatchTimeDisplay();
@@ -2568,21 +2566,16 @@
     watchPlayerSyncSupported = false;
     tiktokAutoplayFallbackUsed = false;
     tiktokNeedsSoundUnlock = false;
+    tiktokAutoUnmuteAttempted = false;
   }
 
   function joinWatchParty() {
-    if (currentWatchParty?.Provider === "tiktok" && watchJoined && tiktokNeedsSoundUnlock) {
-      tiktokNeedsSoundUnlock = false;
-      sendWatchPlayerCommand("unMute");
-      sendWatchPlayerCommand("play");
-      elements.watchJoin.hidden = true;
-      return;
-    }
     watchJoined = true;
     watchSessionJoined = true;
     elements.watchJoin.hidden = true;
     if (currentWatchParty?.Provider === "tiktok") {
       tiktokNeedsSoundUnlock = false;
+      tiktokAutoUnmuteAttempted = true;
       sendWatchPlayerCommand("unMute");
     }
     applyWatchStateToPlayer(true);
@@ -2595,6 +2588,7 @@
         || !watchPlayer) return;
     const targetPlayer = watchPlayer;
     tiktokNeedsSoundUnlock = true;
+    tiktokAutoUnmuteAttempted = false;
     sendWatchPlayerCommand("mute");
     sendWatchPlayerCommand("seek", watchTargetPosition());
     [0, 120, 420, 900].forEach((delay) => {
@@ -2606,7 +2600,6 @@
         }
       }, delay);
     });
-    renderWatchParty();
   }
 
   function watchTargetPosition() {
@@ -2705,6 +2698,18 @@
       if (data.type === "onCurrentTime") {
         if (Number.isFinite(data.value?.currentTime)) watchPlayerTime = data.value.currentTime;
         if (Number.isFinite(data.value?.duration)) watchPlayerDuration = data.value.duration;
+      }
+      if (data.type === "onStateChange"
+          && Number(data.value) === 1
+          && tiktokNeedsSoundUnlock
+          && !tiktokAutoUnmuteAttempted) {
+        tiktokAutoUnmuteAttempted = true;
+        tiktokNeedsSoundUnlock = false;
+        window.setTimeout(() => {
+          if (currentWatchParty?.Provider === "tiktok" && watchJoined) {
+            sendWatchPlayerCommand("unMute");
+          }
+        }, 120);
       }
       if (data.type === "onPlayerError"
           && Number(data.value?.errorCode ?? data.errorCode) === 3002
