@@ -1,4 +1,4 @@
-const CACHE_NAME = "sfk-classboard-v156-public-links-watch-party";
+const CACHE_NAME = "sfk-classboard-v158-video-only-watch-links";
 const APP_SHELL = [
   "./",
   "./index.html",

@@ -88,6 +88,7 @@
   let watchPlayerProvider = "";
   let watchPlayerTime = 0;
   let watchPlayerDuration = 0;
+  let watchPlayerSyncSupported = false;
   let suppressWatchPlayerEvents = false;
   let watchPlayerKey = "";
   let lastWatchDriftSync = 0;
@@ -1794,6 +1795,29 @@
     }
   }
 
+  function bilibiliVideoId(value) {
+    try {
+      const parsed = new URL(String(value));
+      const host = parsed.hostname.replace(/^www\./, "").toLowerCase();
+      if (host !== "bilibili.com" && host !== "m.bilibili.com") return "";
+      const match = parsed.pathname.match(/\/video\/(BV[0-9A-Za-z]{10}|av\d{5,15})(?:\/|$)/i);
+      return match?.[1] || "";
+    } catch (error) {
+      return "";
+    }
+  }
+
+  function directVideoUrl(value) {
+    const url = safeHttpUrl(value);
+    if (!url) return "";
+    try {
+      const parsed = new URL(url);
+      return /\.(mp4|m4v|webm|ogv|ogg|mov)$/i.test(parsed.pathname) ? parsed.href : "";
+    } catch (error) {
+      return "";
+    }
+  }
+
   function startWatchPartyListeners() {
     watchPartyUnsubscribe = db.collection("chatWatchParty").doc("main").onSnapshot((snapshot) => {
       currentWatchParty = snapshot.exists ? snapshot.data() : null;
@@ -1866,11 +1890,20 @@
   function renderWatchParty() {
     if (!elements.watchRoom) return;
     const active = currentWatchParty?.Active === true;
+    const drivePreviewFallback = active
+      && currentWatchParty.Provider === "drive"
+      && !watchPlayerSyncSupported;
+    const directVideoUnavailable = active
+      && currentWatchParty.Provider === "direct"
+      && !watchPlayerSyncSupported;
     elements.watchEnd.hidden = !active || !canControlWatchParty();
     elements.watchNow.hidden = !active;
     elements.watchControls.hidden = !active || !canControlWatchParty()
       || currentWatchParty.Provider === "instagram"
-      || currentWatchParty.Provider === "drive"
+      || drivePreviewFallback
+      || directVideoUnavailable
+      || currentWatchParty.Provider === "bilibili"
+      || currentWatchParty.Provider === "vimeo"
       || currentWatchParty.Provider === "website";
     elements.watchFullscreen.hidden = !active || currentConfig.WatchPartyFullscreenAllowed === false;
     elements.watchRequestForm.querySelector("button").textContent = isWatchStaff()
@@ -1896,16 +1929,23 @@
 
     const provider = String(currentWatchParty.Provider || "video");
     const usesIndependentPlayer = provider === "instagram"
-      || provider === "drive"
+      || drivePreviewFallback
+      || directVideoUnavailable
+      || provider === "bilibili"
+      || provider === "vimeo"
       || provider === "website";
-    elements.watchStatus.textContent = currentWatchParty.PlaybackState === "playing"
-      ? `Playing with ${currentWatchParty.HostName || "SFK"}`
-      : usesIndependentPlayer
-        ? `Viewing with ${currentWatchParty.HostName || "SFK"}`
-        : `Paused by ${currentWatchParty.HostName || "SFK"}`;
+    elements.watchStatus.textContent = directVideoUnavailable
+      ? "Direct video is unavailable on this device"
+      : drivePreviewFallback
+      ? "Drive Preview fallback · sync unavailable"
+      : currentWatchParty.PlaybackState === "playing"
+        ? `Playing with ${currentWatchParty.HostName || "SFK"}`
+        : usesIndependentPlayer
+          ? `Viewing with ${currentWatchParty.HostName || "SFK"}`
+          : `Paused by ${currentWatchParty.HostName || "SFK"}`;
     elements.watchNowTitle.textContent = currentWatchParty.Title || "Watch Party";
     elements.watchHost.textContent = `Hosted by ${currentWatchParty.HostName || "SFK"}`;
-    elements.watchProvider.textContent = provider.toUpperCase();
+    elements.watchProvider.textContent = drivePreviewFallback ? "DRIVE PREVIEW" : provider.toUpperCase();
     elements.watchStage.classList.remove("is-empty");
     elements.watchStage.dataset.provider = provider;
     elements.watchJoin.hidden = usesIndependentPlayer || watchJoined;
@@ -1919,7 +1959,7 @@
     const provider = currentWatchParty.Provider;
     const videoId = currentWatchParty.VideoID || "";
     const instagramType = currentWatchParty.InstagramType || "reel";
-    const sourceKey = provider === "website"
+    const sourceKey = provider === "website" || provider === "direct"
       ? String(currentWatchParty.OriginalURL || "")
       : videoId;
     const nextKey = `${provider}:${instagramType}:${sourceKey}`;
@@ -1933,7 +1973,10 @@
     watchPlayerProvider = provider;
     watchPlayerTime = Number(currentWatchParty.Position || 0);
     watchPlayerDuration = 0;
-    watchJoined = provider === "instagram" || provider === "drive" || provider === "website";
+    watchJoined = provider === "instagram"
+      || provider === "bilibili"
+      || provider === "vimeo"
+      || provider === "website";
 
     if (provider === "drive") {
       mountDriveWatchPlayer(videoId);
@@ -1941,6 +1984,10 @@
     }
     if (provider === "website") {
       mountWebsiteWatchPlayer(currentWatchParty.OriginalURL);
+      return;
+    }
+    if (provider === "direct") {
+      mountDirectWatchPlayer(currentWatchParty.OriginalURL);
       return;
     }
 
@@ -1955,6 +2002,15 @@
       iframe.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
     } else if (provider === "tiktok") {
       iframe.src = `https://www.tiktok.com/player/v1/${videoId}?controls=0&play_button=0&progress_bar=0&volume_control=1&fullscreen_button=1&description=0&music_info=0&rel=0&autoplay=0`;
+      iframe.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
+    } else if (provider === "bilibili") {
+      const parameter = videoId.toLowerCase().startsWith("av")
+        ? `aid=${encodeURIComponent(videoId.slice(2))}`
+        : `bvid=${encodeURIComponent(videoId)}`;
+      iframe.src = `https://player.bilibili.com/player.html?${parameter}&autoplay=0&danmaku=0&p=1`;
+      iframe.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
+    } else if (provider === "vimeo") {
+      iframe.src = `https://player.vimeo.com/video/${encodeURIComponent(videoId)}?title=0&byline=0&portrait=0`;
       iframe.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
     } else {
       iframe.src = `https://www.instagram.com/${instagramType}/${videoId}/embed/`;
@@ -1979,14 +2035,7 @@
     video.src = `https://drive.usercontent.google.com/download?id=${encodeURIComponent(videoId)}&export=download&confirm=t`;
     video.referrerPolicy = "no-referrer";
     video.setAttribute("controlslist", "nodownload");
-    video.addEventListener("webkitbeginfullscreen", () => {
-      window.SFK_WATCH_PARTY_LANDSCAPE = true;
-      window.SFK_PHONE_ORIENTATION?.allowWatchLandscape?.(true);
-    });
-    video.addEventListener("webkitendfullscreen", () => {
-      window.SFK_WATCH_PARTY_LANDSCAPE = false;
-      window.SFK_PHONE_ORIENTATION?.allowWatchLandscape?.(false);
-    });
+    configureSyncedNativeWatchVideo(video);
 
     let fallbackMounted = false;
     video.addEventListener("error", () => {
@@ -2002,6 +2051,84 @@
       iframe.referrerPolicy = "strict-origin-when-cross-origin";
       elements.watchPlayer.replaceChildren(iframe);
       watchPlayer = iframe;
+      watchPlayerProvider = "drive-preview";
+      watchPlayerSyncSupported = false;
+      watchJoined = true;
+      renderWatchParty();
+    }, { once: true });
+
+    elements.watchPlayer.replaceChildren(video);
+    watchPlayer = video;
+    renderWatchParty();
+  }
+
+  function configureSyncedNativeWatchVideo(video) {
+    watchPlayerSyncSupported = true;
+    watchPlayerProvider = "native";
+    const updateMetrics = () => {
+      if (Number.isFinite(video.currentTime)) watchPlayerTime = video.currentTime;
+      if (Number.isFinite(video.duration)) watchPlayerDuration = video.duration;
+      updateWatchTimeDisplay();
+    };
+    video.addEventListener("loadedmetadata", updateMetrics);
+    video.addEventListener("durationchange", updateMetrics);
+    video.addEventListener("timeupdate", updateMetrics);
+    video.addEventListener("play", () => {
+      if (canControlWatchParty() && !suppressWatchPlayerEvents) {
+        updateWatchPartyState("playing", video.currentTime);
+      }
+    });
+    video.addEventListener("pause", () => {
+      if (canControlWatchParty() && !suppressWatchPlayerEvents && !video.ended) {
+        updateWatchPartyState("paused", video.currentTime);
+      }
+    });
+    video.addEventListener("seeked", () => {
+      if (canControlWatchParty() && !suppressWatchPlayerEvents) {
+        updateWatchPartyState(currentWatchParty.PlaybackState, video.currentTime);
+      }
+    });
+    video.addEventListener("webkitbeginfullscreen", () => {
+      window.SFK_WATCH_PARTY_LANDSCAPE = true;
+      window.SFK_PHONE_ORIENTATION?.allowWatchLandscape?.(true);
+    });
+    video.addEventListener("webkitendfullscreen", () => {
+      window.SFK_WATCH_PARTY_LANDSCAPE = false;
+      window.SFK_PHONE_ORIENTATION?.allowWatchLandscape?.(false);
+    });
+  }
+
+  function mountDirectWatchPlayer(value) {
+    const url = directVideoUrl(value);
+    if (!url) return;
+    const video = document.createElement("video");
+    video.className = "classChatWatchFrame classChatWatchDriveVideo";
+    video.controls = true;
+    video.playsInline = true;
+    video.preload = "metadata";
+    video.src = url;
+    video.referrerPolicy = "strict-origin-when-cross-origin";
+    video.setAttribute("controlslist", "nodownload");
+    configureSyncedNativeWatchVideo(video);
+
+    video.addEventListener("error", () => {
+      if (watchPlayer !== video) return;
+      const notice = document.createElement("div");
+      notice.className = "classChatWatchEmpty";
+      notice.innerHTML = "<strong>Video could not be loaded</strong><small>The source may block direct playback.</small>";
+      const openLink = document.createElement("a");
+      openLink.className = "classChatWatchOpenSite";
+      openLink.href = url;
+      openLink.target = "_blank";
+      openLink.rel = "noopener noreferrer";
+      openLink.textContent = "Open video";
+      notice.appendChild(openLink);
+      elements.watchPlayer.replaceChildren(notice);
+      watchPlayer = notice;
+      watchPlayerProvider = "direct-unavailable";
+      watchPlayerSyncSupported = false;
+      watchJoined = true;
+      renderWatchParty();
     }, { once: true });
 
     elements.watchPlayer.replaceChildren(video);
@@ -2012,26 +2139,18 @@
   function mountWebsiteWatchPlayer(value) {
     const url = safeWatchWebsiteUrl(value);
     if (!url) return;
-
-    const frame = document.createElement("iframe");
-    frame.className = "classChatWatchFrame";
-    frame.title = "Shared website";
-    frame.src = url;
-    frame.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
-    frame.allowFullscreen = true;
-    frame.setAttribute("allowfullscreen", "");
-    frame.setAttribute("sandbox", "allow-scripts allow-same-origin allow-forms allow-presentation allow-popups");
-    frame.referrerPolicy = "strict-origin-when-cross-origin";
-
+    const notice = document.createElement("div");
+    notice.className = "classChatWatchEmpty";
+    notice.innerHTML = "<strong>Website pages are not supported</strong><small>Use the actual video link instead.</small>";
     const openLink = document.createElement("a");
     openLink.className = "classChatWatchOpenSite";
     openLink.href = url;
     openLink.target = "_blank";
     openLink.rel = "noopener noreferrer";
     openLink.textContent = "Open website";
-
-    elements.watchPlayer.replaceChildren(frame, openLink);
-    watchPlayer = frame;
+    notice.appendChild(openLink);
+    elements.watchPlayer.replaceChildren(notice);
+    watchPlayer = notice;
     renderWatchParty();
   }
 
@@ -2042,6 +2161,7 @@
     watchPlayerProvider = "";
     watchPlayerTime = 0;
     watchPlayerDuration = 0;
+    watchPlayerSyncSupported = false;
   }
 
   function joinWatchParty() {
@@ -2061,7 +2181,19 @@
   }
 
   function sendWatchPlayerCommand(command, value) {
-    if (!watchPlayer?.contentWindow) return;
+    if (!watchPlayer) return;
+    if (watchPlayerProvider === "native" && watchPlayer.tagName === "VIDEO") {
+      if (command === "seek") watchPlayer.currentTime = Math.max(0, Number(value || 0));
+      if (command === "pause") watchPlayer.pause();
+      if (command === "play") {
+        watchPlayer.play().catch(() => {
+          watchJoined = false;
+          renderWatchParty();
+        });
+      }
+      return;
+    }
+    if (!watchPlayer.contentWindow) return;
     if (watchPlayerProvider === "youtube") {
       const commands = {
         play: ["playVideo", []],
@@ -2090,7 +2222,10 @@
     if (!currentWatchParty?.Active
         || !watchPlayer
         || currentWatchParty.Provider === "instagram"
-        || currentWatchParty.Provider === "drive"
+        || (currentWatchParty.Provider === "drive" && !watchPlayerSyncSupported)
+        || (currentWatchParty.Provider === "direct" && !watchPlayerSyncSupported)
+        || currentWatchParty.Provider === "bilibili"
+        || currentWatchParty.Provider === "vimeo"
         || currentWatchParty.Provider === "website") return;
     const target = watchTargetPosition();
     const drift = Math.abs(Number(watchPlayerTime || 0) - target);
@@ -2232,9 +2367,13 @@
     }
     const driveId = googleDriveFileId(url);
     if (driveId) return { provider: "drive", videoId: driveId, url };
-    const websiteUrl = safeWatchWebsiteUrl(url);
-    if (websiteUrl) return { provider: "website", videoId: "website", url: websiteUrl };
-    throw new Error("Use a public video or website link.");
+    const bilibiliId = bilibiliVideoId(url);
+    if (bilibiliId) return { provider: "bilibili", videoId: bilibiliId, url };
+    const vimeoId = vimeoVideoId(url);
+    if (vimeoId) return { provider: "vimeo", videoId: vimeoId, url };
+    const directUrl = directVideoUrl(url);
+    if (directUrl) return { provider: "direct", videoId: "direct", url: directUrl };
+    throw new Error("That is a webpage, not a supported video link. Use YouTube, TikTok, Instagram, Drive, Bilibili, Vimeo, or a direct video file.");
   }
 
   function safeWatchWebsiteUrl(value) {
