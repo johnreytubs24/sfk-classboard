@@ -20,6 +20,7 @@
   const CHAT_LAST_COUNT_KEY = "sfkClassChatLastReadCount";
   const CHAT_LAST_TIME_KEY = "sfkClassChatLastReadTime";
   const CHAT_DRAFT_PREFIX = "sfkClassChatDraft:";
+  const DEFAULT_CAPSULE_UNLOCK_AT = new Date(2027, 3, 3, 12, 0, 0);
   const STAFF_EMAILS = {
     admin: String(window.SFK_AUTH_ACCOUNTS?.admin || "").trim().toLowerCase(),
     officer: String(window.SFK_AUTH_ACCOUNTS?.officer || "").trim().toLowerCase()
@@ -91,6 +92,9 @@
   let loadingEarlierMessages = false;
   let hasMoreMessages = true;
   let timeCapsulePendingOpen = false;
+  let capsuleLoginUnlockAt = new Date(DEFAULT_CAPSULE_UNLOCK_AT);
+  let capsuleLoginUnsubscribe = null;
+  let capsuleLoginTimer = null;
   let currentWatchParty = null;
   let watchRequests = [];
   let ownWatchRequest = null;
@@ -337,6 +341,9 @@
     elements.staffSubmit = document.getElementById("classChatStaffSubmit");
     elements.pinNoticeTitle = document.getElementById("classChatPinNoticeTitle");
     elements.pinNoticeText = document.getElementById("classChatPinNoticeText");
+    elements.capsuleSeal = document.getElementById("classChatCapsuleSeal");
+    elements.capsuleSealLabel = document.getElementById("classChatCapsuleSealLabel");
+    elements.capsuleCountdown = document.getElementById("classChatCapsuleCountdown");
     elements.room = document.getElementById("classChatRoom");
     elements.pinned = document.getElementById("classChatPinned");
     elements.pinnedName = document.getElementById("classChatPinnedName");
@@ -828,6 +835,7 @@
   }
 
   function showRoom() {
+    stopCapsuleLoginStatus();
     elements.panel.classList.remove("is-time-capsule-login");
     elements.login.hidden = true;
     elements.room.hidden = false;
@@ -884,6 +892,54 @@
     elements.pinNoticeText.textContent = isCapsule
       ? "Replace the default PIN before opening the Time Capsule."
       : "Replace the default PIN before opening the class conversation.";
+    elements.capsuleSeal.hidden = !isCapsule;
+    if (isCapsule) startCapsuleLoginStatus();
+    else stopCapsuleLoginStatus();
+  }
+
+  function startCapsuleLoginStatus() {
+    stopCapsuleLoginStatus();
+    capsuleLoginUnlockAt = new Date(DEFAULT_CAPSULE_UNLOCK_AT);
+    updateCapsuleLoginCountdown();
+    capsuleLoginTimer = window.setInterval(updateCapsuleLoginCountdown, 1000);
+    if (!db) return;
+    capsuleLoginUnsubscribe = db.collection("timeCapsulePublic").doc("main")
+      .onSnapshot((snapshot) => {
+        const data = snapshot.exists ? snapshot.data() || {} : {};
+        const unlockAt = data.UnlockAt?.toDate?.();
+        if (unlockAt instanceof Date && Number.isFinite(unlockAt.getTime())) {
+          capsuleLoginUnlockAt = unlockAt;
+        }
+        updateCapsuleLoginCountdown();
+      }, () => {
+        updateCapsuleLoginCountdown();
+      });
+  }
+
+  function stopCapsuleLoginStatus() {
+    capsuleLoginUnsubscribe?.();
+    capsuleLoginUnsubscribe = null;
+    window.clearInterval(capsuleLoginTimer);
+    capsuleLoginTimer = null;
+  }
+
+  function updateCapsuleLoginCountdown() {
+    if (!elements.capsuleCountdown || !elements.capsuleSealLabel) return;
+    const difference = capsuleLoginUnlockAt.getTime() - Date.now();
+    if (difference <= 0) {
+      elements.capsuleSealLabel.textContent = "CAPSULE UNLOCKED";
+      elements.capsuleCountdown.textContent = "Sign in to open our SFK memories.";
+      elements.capsuleSeal.classList.add("is-unlocked");
+      return;
+    }
+    elements.capsuleSeal.classList.remove("is-unlocked");
+    elements.capsuleSealLabel.textContent = "SEALED FOR NOW";
+    const days = Math.floor(difference / 86400000);
+    const hours = Math.floor((difference % 86400000) / 3600000);
+    const minutes = Math.floor((difference % 3600000) / 60000);
+    const seconds = Math.floor((difference % 60000) / 1000);
+    elements.capsuleCountdown.textContent =
+      `${days}d ${hours}h ${minutes}m ${seconds}s until unlock`;
   }
 
   async function signInStudent(event) {

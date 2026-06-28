@@ -15,7 +15,7 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png?v=3" />
   <link rel="stylesheet" href="style.css?v=74-clock-access-menu" />
   <link rel="stylesheet" href="class-chat.css?v=46-watch-request-queue" />
-  <link rel="stylesheet" href="time-capsule.css?v=3-premium-capsule" />
+  <link rel="stylesheet" href="time-capsule.css?v=4-capsule-status" />
   <script src="orientation-lock.js?v=4-watch-party-landscape" defer></script>
 
   <style id="sfkStartIntroStyle">
@@ -1043,6 +1043,13 @@
           <span id="classChatWelcomeMark" class="classChatWelcomeMark">SFK</span>
           <h3 id="classChatLoginTitle">Class conversation</h3>
           <p id="classChatLoginDescription">Use your assigned chat account. Your name will appear automatically.</p>
+          <div id="classChatCapsuleSeal" class="classChatCapsuleSeal" hidden>
+            <span class="classChatCapsuleLock" aria-hidden="true"><i></i></span>
+            <div>
+              <strong id="classChatCapsuleSealLabel">SEALED FOR NOW</strong>
+              <small id="classChatCapsuleCountdown">Preparing unlock countdown...</small>
+            </div>
+          </div>
         </div>
 
         <div class="classChatRoleTabs" role="tablist" aria-label="Chat account type">
@@ -1360,8 +1367,8 @@
   <script src="script.js?v=73-clock-access-menu"></script>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.6.16/dist/hls.min.js"></script>
   <script src="https://cdn.dashjs.org/v5.2.0/legacy/umd/dash.all.min.js"></script>
-  <script src="time-capsule.js?v=2-premium-capsule"></script>
-  <script src="class-chat.js?v=59-capsule-login"></script>
+  <script src="time-capsule.js?v=3-capsule-status"></script>
+  <script src="class-chat.js?v=60-capsule-countdown"></script>
   <script src="pwa.js?v=3"></script>
 </body>
 </html>

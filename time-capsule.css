@@ -113,10 +113,19 @@
   height: 76px;
   padding-bottom: 7px;
   box-shadow: none;
+  transform-origin: center 58%;
+  animation: timeCapsuleHeartBeat 1.9s ease-in-out infinite;
 }
 
 .classChatPanel.is-time-capsule-login .classChatWelcome h3 {
   font-size: 1.55rem;
+}
+
+@keyframes timeCapsuleHeartBeat {
+  0%, 38%, 100% { transform: scale(1); }
+  10% { transform: scale(1.075); }
+  18% { transform: scale(.985); }
+  26% { transform: scale(1.045); }
 }
 
 .classChatPanel.is-time-capsule-open > .classChatTopbar,
@@ -1026,6 +1035,100 @@
   color: #111;
 }
 
+.classChatCapsuleSeal {
+  width: min(330px, 100%);
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  box-sizing: border-box;
+  margin: 17px auto 0;
+  border: 1px solid #d9ae00;
+  border-radius: 13px;
+  padding: 10px 12px;
+  background: rgba(255, 242, 168, .86);
+  text-align: left;
+  box-shadow: 0 6px 16px rgba(126, 97, 0, .09);
+}
+
+.classChatCapsuleSeal[hidden] {
+  display: none !important;
+}
+
+.classChatCapsuleSeal > div {
+  min-width: 0;
+}
+
+.classChatCapsuleSeal strong,
+.classChatCapsuleSeal small {
+  display: block;
+}
+
+.classChatCapsuleSeal strong {
+  margin-bottom: 3px;
+  color: #6f5800;
+  font-size: .65rem;
+  letter-spacing: .07em;
+}
+
+.classChatCapsuleSeal small {
+  color: #292400;
+  font-size: .76rem;
+  font-weight: 850;
+  line-height: 1.25;
+}
+
+.classChatCapsuleLock {
+  position: relative;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  display: block;
+  border-radius: 50%;
+  background: #f7c600;
+}
+
+.classChatCapsuleLock::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 8px;
+  width: 12px;
+  height: 11px;
+  border: 3px solid #111;
+  border-bottom: 0;
+  border-radius: 8px 8px 0 0;
+  transform: translateX(-50%);
+}
+
+.classChatCapsuleLock i {
+  position: absolute;
+  left: 50%;
+  top: 17px;
+  width: 18px;
+  height: 14px;
+  border-radius: 3px;
+  background: #111;
+  transform: translateX(-50%);
+}
+
+.classChatCapsuleLock i::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 4px;
+  width: 3px;
+  height: 6px;
+  border-radius: 3px;
+  background: #f7c600;
+  transform: translateX(-50%);
+}
+
+.classChatCapsuleSeal.is-unlocked .classChatCapsuleLock::before {
+  left: 42%;
+  transform: translateX(-50%) rotate(-28deg);
+  transform-origin: left bottom;
+}
+
 .timeCapsuleHeader,
 .classChatPanel.is-dark .timeCapsuleHeader {
   min-height: 76px;
@@ -1567,6 +1670,10 @@
     animation-duration: .01ms !important;
     transition-duration: .01ms !important;
   }
+
+  .classChatPanel.is-time-capsule-login .classChatWelcomeMark {
+    animation: none !important;
+  }
 }
 
 @media (max-width: 680px) {
@@ -1585,6 +1692,11 @@
 
   .timeCapsuleBody {
     padding: 13px 10px 26px;
+  }
+
+  .classChatCapsuleSeal {
+    margin-top: 14px;
+    padding: 9px 10px;
   }
 
   .timeCapsuleHero {

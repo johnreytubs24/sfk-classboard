@@ -25,6 +25,10 @@
     settingsUnsubscribe: null,
     entriesUnsubscribe: null,
     publicUnsubscribe: null,
+    statusUnsubscribe: null,
+    publicStatus: null,
+    entriesLoaded: false,
+    publishedStatusSignature: "",
     countdownTimer: null,
     presentationTimer: null,
     presentationEntries: [],
@@ -118,6 +122,9 @@
     state.settings = null;
     state.entries = [];
     state.slideIndex = 0;
+    state.publicStatus = null;
+    state.entriesLoaded = false;
+    state.publishedStatusSignature = "";
     elements.room.hidden = false;
     elements.adminPanel.hidden = true;
     elements.adminToggle.hidden = context.profile.role !== "admin";
@@ -125,6 +132,7 @@
     elements.headerStatus.textContent = `${context.profile.name} · Capsule contributor`;
     context.panel?.classList.add("is-time-capsule-open");
     resetForm();
+    startPublicStatusListener();
     startSettingsListener();
     startCountdown();
   }
@@ -151,9 +159,11 @@
     state.settingsUnsubscribe?.();
     state.entriesUnsubscribe?.();
     state.publicUnsubscribe?.();
+    state.statusUnsubscribe?.();
     state.settingsUnsubscribe = null;
     state.entriesUnsubscribe = null;
     state.publicUnsubscribe = null;
+    state.statusUnsubscribe = null;
     window.clearInterval(state.countdownTimer);
     state.countdownTimer = null;
   }
@@ -176,9 +186,22 @@
       renderSettings();
       startEntriesListeners();
       renderAll();
+      syncPublicStatus();
     }, (error) => {
       elements.headerStatus.textContent = readableError(error);
     });
+  }
+
+  function startPublicStatusListener() {
+    state.statusUnsubscribe?.();
+    state.statusUnsubscribe = state.context.db.collection("timeCapsulePublic").doc("main")
+      .onSnapshot((snapshot) => {
+        state.publicStatus = snapshot.exists ? snapshot.data() || {} : null;
+        renderStats();
+      }, () => {
+        state.publicStatus = null;
+        renderStats();
+      });
   }
 
   function defaultSettings() {
@@ -203,7 +226,9 @@
       state.entriesUnsubscribe = state.context.db.collection("timeCapsuleEntries")
         .onSnapshot((snapshot) => {
           state.entries = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+          state.entriesLoaded = true;
           renderAll();
+          syncPublicStatus();
         }, showEntriesError);
       return;
     }
@@ -276,8 +301,46 @@
       ? new Set(visibleClassEntries.map((entry) => entry.AuthorUID).filter(Boolean)).size
       : null;
     elements.entryCount.textContent = String(own.length);
-    elements.classCount.textContent = visibleClassEntries ? String(visibleClassEntries.length) : "--";
-    elements.contributorCount.textContent = contributors == null ? "--" : String(contributors);
+    const publicSealedCount = safeCount(state.publicStatus?.SealedCount);
+    const publicContributorCount = safeCount(state.publicStatus?.ContributorCount);
+    elements.classCount.textContent = visibleClassEntries
+      ? String(visibleClassEntries.filter((entry) => entry.Status !== "rejected").length)
+      : String(publicSealedCount);
+    elements.contributorCount.textContent = contributors == null
+      ? String(publicContributorCount)
+      : String(contributors);
+  }
+
+  function safeCount(value) {
+    const count = Number(value);
+    return Number.isFinite(count) && count >= 0 ? Math.floor(count) : 0;
+  }
+
+  function syncPublicStatus() {
+    if (!isAdmin() || !state.settings || !state.entriesLoaded) return;
+    const sealedEntries = state.entries.filter((entry) => entry.Status !== "rejected");
+    const contributorCount = new Set(
+      sealedEntries.map((entry) => entry.AuthorUID).filter(Boolean)
+    ).size;
+    const unlockAt = settingsDate("UnlockAt", DEFAULT_UNLOCK_AT);
+    const deadline = settingsDate("SubmissionDeadline", DEFAULT_DEADLINE);
+    const signature = [
+      unlockAt.getTime(),
+      deadline.getTime(),
+      sealedEntries.length,
+      contributorCount
+    ].join(":");
+    if (state.publishedStatusSignature === signature) return;
+    state.publishedStatusSignature = signature;
+    state.context.db.collection("timeCapsulePublic").doc("main").set({
+      UnlockAt: firebase.firestore.Timestamp.fromDate(unlockAt),
+      SubmissionDeadline: firebase.firestore.Timestamp.fromDate(deadline),
+      SealedCount: sealedEntries.length,
+      ContributorCount: contributorCount,
+      UpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true }).catch(() => {
+      state.publishedStatusSignature = "";
+    });
   }
 
   function renderComposeState() {
