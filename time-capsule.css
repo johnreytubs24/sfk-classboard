@@ -1035,6 +1035,200 @@
   color: #111;
 }
 
+.classChatPanel.is-time-capsule-dark.is-time-capsule-login {
+  background: #121212;
+  color: #fff;
+}
+
+.classChatPanel.is-time-capsule-dark.is-time-capsule-login .classChatTopbar {
+  border-bottom-color: #333;
+  background: rgba(18, 18, 18, .97);
+}
+
+.classChatPanel.is-time-capsule-dark.is-time-capsule-login .classChatBack,
+.classChatPanel.is-time-capsule-dark.is-time-capsule-login .classChatLogout,
+.classChatPanel.is-time-capsule-dark.is-time-capsule-login .classChatIdentity h2,
+.classChatPanel.is-time-capsule-dark.is-time-capsule-login .classChatWelcome h3 {
+  color: #fff;
+}
+
+.classChatPanel.is-time-capsule-dark.is-time-capsule-login .classChatIdentity p,
+.classChatPanel.is-time-capsule-dark.is-time-capsule-login .classChatWelcome p {
+  color: #b8b3aa;
+}
+
+.classChatPanel.is-time-capsule-dark.is-time-capsule-login .classChatLogin {
+  background:
+    linear-gradient(rgba(247, 198, 0, .055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(247, 198, 0, .055) 1px, transparent 1px),
+    #121212;
+  background-size: 28px 28px;
+}
+
+.classChatPanel.is-time-capsule-dark.is-time-capsule-login .classChatRoleTabs {
+  background: #292929;
+}
+
+.classChatPanel.is-time-capsule-dark.is-time-capsule-login .classChatRoleTabs button {
+  color: #b8b3aa;
+}
+
+.classChatPanel.is-time-capsule-dark.is-time-capsule-login .classChatRoleTabs button.is-active {
+  background: #414141;
+  color: #fff;
+}
+
+.classChatPanel.is-time-capsule-dark.is-time-capsule-login .classChatAuthForm {
+  color: #fff;
+}
+
+.classChatPanel.is-time-capsule-dark.is-time-capsule-login .classChatAuthForm input,
+.classChatPanel.is-time-capsule-dark.is-time-capsule-login .classChatAuthForm select {
+  border-color: #4a4a4a;
+  background: #222;
+  color: #fff;
+  color-scheme: dark;
+}
+
+.classChatPanel.is-time-capsule-dark .classChatCapsuleSeal {
+  border-color: #8c7200;
+  background: #29240e;
+}
+
+.classChatPanel.is-time-capsule-dark .classChatCapsuleSeal strong {
+  color: #f7c600;
+}
+
+.classChatPanel.is-time-capsule-dark .classChatCapsuleSeal small {
+  color: #eee8cb;
+}
+
+.classChatPanel.is-time-capsule-dark .timeCapsuleRoom {
+  --tc-bg: #101010;
+  --tc-surface: #1c1c1c;
+  --tc-surface-2: #252525;
+  --tc-text: #fff;
+  --tc-muted: #aaa59c;
+  --tc-line: rgba(255, 255, 255, .14);
+  --tc-gold-soft: rgba(247, 198, 0, .15);
+  background:
+    linear-gradient(rgba(247, 198, 0, .05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(247, 198, 0, .05) 1px, transparent 1px),
+    var(--tc-bg);
+  background-size: 30px 30px;
+}
+
+.classChatPanel.is-time-capsule-dark .timeCapsuleHeader {
+  border-color: var(--tc-line);
+  background: rgba(16, 16, 16, .96);
+  color: var(--tc-text);
+}
+
+.classChatPanel.is-time-capsule-dark .timeCapsuleHeader > button,
+.classChatPanel.is-time-capsule-dark .timeCapsuleHeader h2 {
+  color: #fff;
+}
+
+.classChatPanel.is-time-capsule-dark .timeCapsuleHeader p {
+  color: var(--tc-muted);
+}
+
+.classChatPanel.is-time-capsule-dark .timeCapsuleStats span,
+.classChatPanel.is-time-capsule-dark .timeCapsuleComposeCard,
+.classChatPanel.is-time-capsule-dark .timeCapsuleEntriesSection,
+.classChatPanel.is-time-capsule-dark .timeCapsuleAdminPanel,
+.classChatPanel.is-time-capsule-dark .timeCapsuleEntry {
+  border-color: var(--tc-line);
+  background: var(--tc-surface);
+  color: var(--tc-text);
+}
+
+.classChatPanel.is-time-capsule-dark #timeCapsuleForm,
+.classChatPanel.is-time-capsule-dark #timeCapsuleSettingsForm {
+  border-color: var(--tc-line);
+  background: var(--tc-surface-2);
+}
+
+.classChatPanel.is-time-capsule-dark #timeCapsuleForm label,
+.classChatPanel.is-time-capsule-dark #timeCapsuleSettingsForm label {
+  color: #fff;
+}
+
+.classChatPanel.is-time-capsule-dark #timeCapsuleForm input,
+.classChatPanel.is-time-capsule-dark #timeCapsuleForm textarea,
+.classChatPanel.is-time-capsule-dark #timeCapsuleForm select,
+.classChatPanel.is-time-capsule-dark #timeCapsuleSettingsForm input,
+.classChatPanel.is-time-capsule-dark #timeCapsuleReviewFilter {
+  border-color: #4a4a4a;
+  background: #252525;
+  color: #fff;
+  color-scheme: dark;
+}
+
+.classChatPanel.is-time-capsule-dark .timeCapsuleEntryActions button {
+  border-color: #4a4a4a;
+  background: #292929;
+  color: #fff;
+}
+
+.classChatPanel.is-time-capsule-dark .classChatExitCard {
+  border-color: #555;
+  background: #1d1d1d;
+  color: #fff;
+}
+
+.classChatPanel.capsule-font-small .timeCapsuleRoom,
+.classChatPanel.capsule-font-small.is-time-capsule-login {
+  --tc-font-adjust: -.08rem;
+}
+
+.classChatPanel.capsule-font-large .timeCapsuleRoom,
+.classChatPanel.capsule-font-large.is-time-capsule-login {
+  --tc-font-adjust: .1rem;
+}
+
+.classChatPanel.capsule-font-small.is-time-capsule-login .classChatWelcome h3 {
+  font-size: 1.4rem;
+}
+
+.classChatPanel.capsule-font-large.is-time-capsule-login .classChatWelcome h3 {
+  font-size: 1.72rem;
+}
+
+.classChatPanel.capsule-font-small.is-time-capsule-login .classChatWelcome p,
+.classChatPanel.capsule-font-small.is-time-capsule-login .classChatAuthForm {
+  font-size: .8rem;
+}
+
+.classChatPanel.capsule-font-large.is-time-capsule-login .classChatWelcome p,
+.classChatPanel.capsule-font-large.is-time-capsule-login .classChatAuthForm {
+  font-size: .98rem;
+}
+
+.classChatPanel.capsule-font-small .timeCapsuleRoom :is(p, small, label, input, textarea, select, button) {
+  font-size: .7rem;
+}
+
+.classChatPanel.capsule-font-large .timeCapsuleRoom :is(p, small, label, input, textarea, select, button) {
+  font-size: .9rem;
+}
+
+.classChatPanel.capsule-font-small .timeCapsuleHero h3 {
+  font-size: 1.25rem;
+}
+
+.classChatPanel.capsule-font-large .timeCapsuleHero h3 {
+  font-size: 2.15rem;
+}
+
+.classChatPanel.capsule-font-small .timeCapsuleEntry p {
+  font-size: .75rem;
+}
+
+.classChatPanel.capsule-font-large .timeCapsuleEntry p {
+  font-size: .94rem;
+}
+
 .classChatCapsuleSeal {
   width: min(330px, 100%);
   display: flex;

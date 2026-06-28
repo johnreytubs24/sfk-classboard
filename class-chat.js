@@ -15,8 +15,10 @@
     "#73B9FF", "#68D9B0", "#FF9E45", "#A9B1BD"
   ];
   const CHAT_THEME_KEY = "sfkClassChatTheme";
+  const CAPSULE_THEME_KEY = "sfkTimeCapsuleTheme";
   const CHAT_ACCENT_PREFIX = "sfkClassChatAccent:";
   const CHAT_FONT_SIZE_KEY = "sfkClassChatFontSize";
+  const CAPSULE_FONT_SIZE_KEY = "sfkTimeCapsuleFontSize";
   const CHAT_LAST_COUNT_KEY = "sfkClassChatLastReadCount";
   const CHAT_LAST_TIME_KEY = "sfkClassChatLastReadTime";
   const CHAT_DRAFT_PREFIX = "sfkClassChatDraft:";
@@ -261,6 +263,7 @@
     elements.moreToggle = document.getElementById("classChatMoreToggle");
     elements.moreTools = document.getElementById("classChatMoreTools");
     elements.leave = document.getElementById("classChatLeave");
+    elements.leaveLabel = document.getElementById("classChatLeaveLabel");
     elements.searchOpen = document.getElementById("classChatSearchOpen");
     elements.savedOpen = document.getElementById("classChatSavedOpen");
     elements.savedLabel = document.getElementById("classChatSavedLabel");
@@ -454,6 +457,8 @@
 
   function openTimeCapsuleFromBoard() {
     timeCapsulePendingOpen = true;
+    applySavedCapsulePreferences();
+    elements.leaveLabel.textContent = "Leave Time Capsule";
     openChat();
   }
 
@@ -594,8 +599,28 @@
   }
 
   function toggleChatTheme() {
+    if (isTimeCapsuleContext()) {
+      const nextTheme = elements.panel.classList.contains("is-time-capsule-dark") ? "light" : "dark";
+      setCapsuleTheme(nextTheme, true);
+      return;
+    }
     const nextTheme = elements.panel.classList.contains("is-dark") ? "light" : "dark";
     setChatTheme(nextTheme, true);
+  }
+
+  function setCapsuleTheme(theme, persist) {
+    const dark = theme === "dark";
+    elements.panel.classList.toggle("is-time-capsule-dark", dark);
+    elements.themeToggle.setAttribute("aria-pressed", String(dark));
+    elements.themeLabel.textContent = dark ? "Light mode" : "Dark mode";
+    elements.themeToggle.querySelector(".classChatMenuIcon").textContent = dark ? "☀" : "☽";
+    if (persist) {
+      try {
+        localStorage.setItem(CAPSULE_THEME_KEY, dark ? "dark" : "light");
+      } catch (error) {
+        // Capsule theme persistence is optional when storage is blocked.
+      }
+    }
   }
 
   function setChatTheme(theme, persist) {
@@ -625,6 +650,14 @@
   }
 
   function cycleChatFontSize() {
+    if (isTimeCapsuleContext()) {
+      const current = elements.panel.classList.contains("capsule-font-large")
+        ? "large"
+        : elements.panel.classList.contains("capsule-font-small") ? "small" : "default";
+      const next = current === "small" ? "default" : current === "default" ? "large" : "small";
+      setCapsuleFontSize(next, true);
+      return;
+    }
     const current = elements.panel.classList.contains("font-large")
       ? "large"
       : elements.panel.classList.contains("font-small") ? "small" : "default";
@@ -644,6 +677,46 @@
         // Font-size persistence is optional when storage is blocked.
       }
     }
+  }
+
+  function setCapsuleFontSize(size, persist) {
+    elements.panel.classList.toggle("capsule-font-small", size === "small");
+    elements.panel.classList.toggle("capsule-font-large", size === "large");
+    const label = size.charAt(0).toUpperCase() + size.slice(1);
+    elements.fontSizeLabel.textContent = `Text size: ${label}`;
+    if (persist) {
+      try {
+        localStorage.setItem(CAPSULE_FONT_SIZE_KEY, size);
+      } catch (error) {
+        // Capsule font-size persistence is optional when storage is blocked.
+      }
+    }
+  }
+
+  function applySavedCapsulePreferences() {
+    let theme = "light";
+    let size = "default";
+    try {
+      theme = localStorage.getItem(CAPSULE_THEME_KEY) === "dark" ? "dark" : "light";
+      const savedSize = localStorage.getItem(CAPSULE_FONT_SIZE_KEY);
+      if (["small", "default", "large"].includes(savedSize)) size = savedSize;
+    } catch (error) {
+      theme = "light";
+      size = "default";
+    }
+    elements.panel.classList.remove("is-dark", "font-small", "font-large");
+    setCapsuleTheme(theme, false);
+    setCapsuleFontSize(size, false);
+  }
+
+  function restoreChatPreferences() {
+    elements.panel.classList.remove("is-time-capsule-dark", "capsule-font-small", "capsule-font-large");
+    applySavedTheme();
+    applySavedFontSize();
+  }
+
+  function isTimeCapsuleContext() {
+    return timeCapsulePendingOpen || elements.panel.classList.contains("is-time-capsule-open");
   }
 
   function startUnreadBadgeListener() {
@@ -901,8 +974,14 @@
       ? "Replace the default PIN before opening the Time Capsule."
       : "Replace the default PIN before opening the class conversation.";
     elements.capsuleSeal.hidden = !isCapsule;
-    if (isCapsule) startCapsuleLoginStatus();
-    else stopCapsuleLoginStatus();
+    elements.leaveLabel.textContent = isCapsule ? "Leave Time Capsule" : "Leave chat";
+    if (isCapsule) {
+      applySavedCapsulePreferences();
+      startCapsuleLoginStatus();
+    } else {
+      stopCapsuleLoginStatus();
+      restoreChatPreferences();
+    }
   }
 
   function startCapsuleLoginStatus() {

@@ -1,4 +1,4 @@
-const CACHE_NAME = "sfk-classboard-v183-context-exit";
+const CACHE_NAME = "sfk-classboard-v184-capsule-menu";
 const APP_SHELL = [
   "./",
   "./index.html",
