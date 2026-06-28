@@ -1505,22 +1505,6 @@
         </div>`;
     }
 
-    const facebook = facebookEmbedData(url);
-    if (facebook) {
-      const plugin = facebook.type === "post" ? "post.php" : "video.php";
-      return `
-        <div class="classChatSocialVideo is-facebook ${facebook.type === "post" ? "is-facebook-post" : ""}">
-          <iframe
-            src="https://www.facebook.com/plugins/${plugin}?href=${encodeURIComponent(url)}&show_text=${facebook.type === "post" ? "true" : "false"}&width=500"
-            title="Facebook video player"
-            loading="lazy"
-            scrolling="no"
-            frameborder="0"
-            allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-            allowfullscreen></iframe>
-          <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Open in Facebook</a>
-        </div>`;
-    }
     return "";
   }
 
@@ -1656,20 +1640,6 @@
           allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
           allowfullscreen></iframe>`;
     });
-  }
-
-  function facebookEmbedData(value) {
-    try {
-      const parsed = new URL(String(value));
-      const host = parsed.hostname.replace(/^www\./, "").toLowerCase();
-      if (!["facebook.com", "m.facebook.com", "web.facebook.com"].includes(host)) return null;
-      if (/\/reel\/[^/]+/i.test(parsed.pathname)) return { type: "post" };
-      if (/\/videos\/[^/]+/i.test(parsed.pathname)) return { type: "video" };
-      if (/\/watch\/?$/i.test(parsed.pathname) && parsed.searchParams.has("v")) return { type: "video" };
-      return null;
-    } catch (error) {
-      return null;
-    }
   }
 
   function instagramEmbedData(value) {

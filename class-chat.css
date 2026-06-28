@@ -1299,15 +1299,6 @@
   background: #111;
 }
 
-.classChatSocialVideo.is-facebook {
-  aspect-ratio: 16 / 9;
-}
-
-.classChatSocialVideo.is-facebook-post {
-  height: min(430px, 62vh);
-  aspect-ratio: auto;
-}
-
 .classChatSocialVideo.is-drive,
 .classChatSocialVideo.is-vimeo {
   aspect-ratio: 16 / 9;
