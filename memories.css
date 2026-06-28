@@ -720,13 +720,6 @@ select:focus-visible {
   border-radius: 8px;
   background: #000;
   box-shadow: 0 7px 22px rgba(0,0,0,.35);
-  opacity: .2;
-  transition: opacity 180ms ease;
-}
-
-.youtubeMusicPopover:hover .postMusicFrame,
-.youtubeMusicPopover:focus-within .postMusicFrame {
-  opacity: .45;
 }
 
 .youtubeMusicPopover {

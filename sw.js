@@ -1,4 +1,4 @@
-const CACHE_NAME = "sfk-classboard-v186-faded-youtube-player";
+const CACHE_NAME = "sfk-classboard-v187-original-youtube-player";
 const APP_SHELL = [
   "./",
   "./index.html",
