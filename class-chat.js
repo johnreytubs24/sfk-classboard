@@ -1277,7 +1277,7 @@
         ? `<span class="classChatRemoved">Message removed by the Adviser.</span>`
         : message.Type === "poll"
           ? renderPollMarkup(message)
-          : `<div class="classChatText">${formatMessageText(message.Text || "")}${message.Edited ? `<small class="classChatEdited">edited</small>` : ""}</div>${renderYoutubeEmbed(message.Text || "")}${renderMediaAttachment(message)}`;
+          : `<div class="classChatText">${formatMessageText(message.Text || "")}${message.Edited ? `<small class="classChatEdited">edited</small>` : ""}</div>${renderSocialVideoEmbed(message.Text || "")}${renderMediaAttachment(message)}`;
 
       const replySource = message.ReplyToID ? findMessage(message.ReplyToID) : null;
       const replyIsUnavailable = removed
@@ -1418,22 +1418,55 @@
     return output;
   }
 
-  function renderYoutubeEmbed(text) {
+  function renderSocialVideoEmbed(text) {
     if (currentConfig.ClickableLinksEnabled === false) return "";
     const urlMatch = String(text || "").match(/https?:\/\/[^\s<>"']+/i);
     if (!urlMatch) return "";
-    const videoId = youtubeVideoId(urlMatch[0]);
-    if (!videoId) return "";
-    return `
-      <div class="classChatYoutube">
-        <iframe
-          src="https://www.youtube-nocookie.com/embed/${videoId}"
-          title="YouTube video player"
-          loading="lazy"
-          referrerpolicy="strict-origin-when-cross-origin"
-          allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-          allowfullscreen></iframe>
-      </div>`;
+    const url = safeHttpUrl(urlMatch[0].replace(/[),.!?;:]+$/, ""));
+    if (!url) return "";
+
+    const youtubeId = youtubeVideoId(url);
+    if (youtubeId) {
+      return `
+        <div class="classChatYoutube">
+          <iframe
+            src="https://www.youtube-nocookie.com/embed/${youtubeId}"
+            title="YouTube video player"
+            loading="lazy"
+            referrerpolicy="strict-origin-when-cross-origin"
+            allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen></iframe>
+        </div>`;
+    }
+
+    const tiktokId = tiktokVideoId(url);
+    if (tiktokId) {
+      return `
+        <div class="classChatSocialVideo is-tiktok">
+          <iframe
+            src="https://www.tiktok.com/player/v1/${tiktokId}?controls=1&autoplay=0&description=1"
+            title="TikTok video player"
+            loading="lazy"
+            referrerpolicy="strict-origin-when-cross-origin"
+            allow="fullscreen"
+            allowfullscreen></iframe>
+        </div>`;
+    }
+
+    if (isFacebookVideoUrl(url)) {
+      return `
+        <div class="classChatSocialVideo is-facebook">
+          <iframe
+            src="https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=false&width=500"
+            title="Facebook video player"
+            loading="lazy"
+            scrolling="no"
+            frameborder="0"
+            allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+            allowfullscreen></iframe>
+        </div>`;
+    }
+    return "";
   }
 
   function renderMediaAttachment(message) {
@@ -1507,6 +1540,34 @@
     }
   }
 
+  function tiktokVideoId(value) {
+    try {
+      const parsed = new URL(String(value));
+      const host = parsed.hostname.replace(/^www\./, "").toLowerCase();
+      if (host !== "tiktok.com" && host !== "m.tiktok.com") return "";
+      const match = parsed.pathname.match(/\/video\/(\d{8,24})(?:\/|$)/)
+        || parsed.pathname.match(/\/player\/v1\/(\d{8,24})(?:\/|$)/);
+      return match?.[1] || "";
+    } catch (error) {
+      return "";
+    }
+  }
+
+  function isFacebookVideoUrl(value) {
+    try {
+      const parsed = new URL(String(value));
+      const host = parsed.hostname.replace(/^www\./, "").toLowerCase();
+      if (!["facebook.com", "m.facebook.com", "web.facebook.com", "fb.watch"].includes(host)) return false;
+      return host === "fb.watch"
+        || /\/(reel|videos|watch)\//i.test(parsed.pathname)
+        || /\/share\/(v|r)\//i.test(parsed.pathname)
+        || parsed.pathname === "/watch/"
+        || parsed.searchParams.has("v");
+    } catch (error) {
+      return false;
+    }
+  }
+
   function isCurrentUserMentioned(text) {
     if (!currentProfile?.name) return false;
     return String(text || "").toLowerCase().includes(`@${currentProfile.name.toLowerCase()}`);
@@ -1531,7 +1592,7 @@
   }
 
   function updateJumpButton() {
-    if (elements.room.hidden) {
+    if (elements.room.hidden || !elements.reply.hidden) {
       elements.jumpUnread.hidden = true;
       return;
     }
@@ -1969,6 +2030,7 @@
     elements.replyName.textContent = `Replying to ${message.SenderName || "Message"}`;
     elements.replyText.textContent = message.Text || "";
     elements.reply.hidden = false;
+    updateJumpButton();
     elements.input.focus();
   }
 
@@ -1977,6 +2039,7 @@
     replyTarget = null;
     editTarget = null;
     elements.reply.hidden = true;
+    updateJumpButton();
     if (wasEditing) {
       elements.input.value = draftBeforeEdit;
       draftBeforeEdit = "";
@@ -1993,6 +2056,7 @@
     elements.replyName.textContent = "Editing message";
     elements.replyText.textContent = message.Text || "";
     elements.reply.hidden = false;
+    updateJumpButton();
     elements.input.value = message.Text || "";
     resizeComposer();
     elements.input.focus();

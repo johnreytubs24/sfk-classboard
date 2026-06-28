@@ -1289,6 +1289,32 @@
   border: 0;
 }
 
+.classChatSocialVideo {
+  width: min(310px, 72vw);
+  margin-top: 9px;
+  overflow: hidden;
+  border: 1px solid rgba(17, 17, 17, .24);
+  border-radius: 12px;
+  background: #111;
+}
+
+.classChatSocialVideo.is-facebook {
+  aspect-ratio: 16 / 9;
+}
+
+.classChatSocialVideo.is-tiktok {
+  width: min(245px, 66vw);
+  aspect-ratio: 9 / 16;
+  max-height: 410px;
+}
+
+.classChatSocialVideo iframe {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border: 0;
+}
+
 .classChatMediaAttachment {
   width: min(310px, 72vw);
   margin-top: 9px;
@@ -1678,6 +1704,8 @@
 }
 
 .classChatReply button {
+  position: relative;
+  z-index: 6;
   width: 30px;
   height: 30px;
   border: 0;
