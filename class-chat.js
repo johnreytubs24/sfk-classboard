@@ -44,6 +44,7 @@
   let watchSyncTimer = null;
   let scheduledMessagesSignature = "";
   const pollVoteUnsubscribes = new Map();
+  const reactionUnsubscribes = new Map();
   const reactionStateByMessage = new Map();
   const tiktokEmbedIdCache = new Map();
   let currentMessages = [];
@@ -1217,6 +1218,7 @@
     elements.messages?.classList.remove("is-loading-earlier", "is-restoring-scroll");
     elements.messages?.removeAttribute("aria-busy");
     closeWatchParty();
+    clearReactionListeners();
     clearPollVoteListeners();
   }
 
@@ -1442,7 +1444,7 @@
         </article>`;
     }).join("");
 
-    currentMessages.filter((message) => !message.IsScheduled).forEach((message) => loadReactions(message.id));
+    syncReactionListeners();
     clearPollVoteListeners();
     currentMessages.filter((message) => message.Type === "poll" && !message.Removed)
       .forEach((message) => loadPollVotes(message));
@@ -3244,6 +3246,75 @@
       container.innerHTML = "";
       container.closest(".classChatMessage")?.classList.remove("has-reactions");
     }
+  }
+
+  function syncReactionListeners() {
+    if (!db || !currentProfile) return;
+    const activeIds = new Set(
+      currentMessages
+        .filter((message) => !message.IsScheduled && !message.Removed)
+        .map((message) => message.id)
+    );
+
+    reactionUnsubscribes.forEach((unsubscribe, messageId) => {
+      if (activeIds.has(messageId)) return;
+      unsubscribe();
+      reactionUnsubscribes.delete(messageId);
+      reactionStateByMessage.delete(messageId);
+    });
+
+    activeIds.forEach((messageId) => {
+      const cachedGroups = reactionStateByMessage.get(messageId);
+      if (cachedGroups) renderReactionSummary(messageId, cachedGroups);
+      if (reactionUnsubscribes.has(messageId)) return;
+
+      let initialized = false;
+      const unsubscribe = db.collection("chatMessages").doc(messageId).collection("reactions")
+        .onSnapshot((snapshot) => {
+          const groups = reactionGroupsFromSnapshot(snapshot);
+          const remoteChange = initialized
+            ? snapshot.docChanges().find((change) => (
+              change.doc.id !== currentProfile.uid
+              && (change.type === "added" || change.type === "modified")
+            ))
+            : null;
+          const pulseEmoji = remoteChange?.doc.data()?.Emoji || "";
+          initialized = true;
+          reactionStateByMessage.set(messageId, groups);
+          renderReactionSummary(messageId, groups, pulseEmoji);
+          if (reactionDetailsMessageId === messageId) {
+            renderReactionDetailsList(messageId, groups);
+          }
+        }, () => {
+          const container = elements.messages.querySelector(
+            `[data-reactions-for="${cssEscape(messageId)}"]`
+          );
+          if (container) container.innerHTML = "";
+          container?.closest(".classChatMessage")?.classList.remove("has-reactions");
+        });
+
+      reactionUnsubscribes.set(messageId, unsubscribe);
+    });
+  }
+
+  function reactionGroupsFromSnapshot(snapshot) {
+    const groups = new Map();
+    snapshot.docs.forEach((doc) => {
+      const reaction = doc.data() || {};
+      if (!REACTIONS.includes(reaction.Emoji)) return;
+      if (!groups.has(reaction.Emoji)) groups.set(reaction.Emoji, []);
+      groups.get(reaction.Emoji).push({
+        uid: doc.id,
+        name: reaction.Name || "Classmate"
+      });
+    });
+    return groups;
+  }
+
+  function clearReactionListeners() {
+    reactionUnsubscribes.forEach((unsubscribe) => unsubscribe());
+    reactionUnsubscribes.clear();
+    reactionStateByMessage.clear();
   }
 
   function renderReactionSummary(messageId, groups, pulseEmoji = "") {
