@@ -89,6 +89,7 @@
   let currentWatchParty = null;
   let watchRequests = [];
   let watchJoined = false;
+  let watchSessionJoined = false;
   let watchPlayer = null;
   let watchPlayerProvider = "";
   let watchPlayerTime = 0;
@@ -1431,6 +1432,8 @@
     elements.messages?.classList.remove("is-loading-earlier", "is-restoring-scroll");
     elements.messages?.removeAttribute("aria-busy");
     closeWatchParty();
+    watchJoined = false;
+    watchSessionJoined = false;
     clearReactionListeners();
     clearPollVoteListeners();
   }
@@ -2099,7 +2102,6 @@
   function closeWatchParty() {
     if (!elements.watchRoom || elements.watchRoom.hidden) return;
     elements.watchRoom.hidden = true;
-    watchJoined = false;
     destroyWatchPlayer();
   }
 
@@ -2132,6 +2134,8 @@
       : "Send request";
 
     if (!active) {
+      watchJoined = false;
+      watchSessionJoined = false;
       elements.watchStatus.textContent = "No active watch party";
       elements.watchJoin.hidden = true;
       elements.watchStage.classList.add("is-empty");
@@ -2196,10 +2200,11 @@
     watchPlayerProvider = provider;
     watchPlayerTime = Number(currentWatchParty.Position || 0);
     watchPlayerDuration = 0;
-    watchJoined = provider === "instagram"
+    const independentPlayer = provider === "instagram"
       || provider === "bilibili"
       || provider === "vimeo"
       || provider === "website";
+    watchJoined = independentPlayer || watchSessionJoined;
 
     if (provider === "drive") {
       mountDriveWatchPlayer(videoId);
@@ -2389,6 +2394,7 @@
 
   function joinWatchParty() {
     watchJoined = true;
+    watchSessionJoined = true;
     elements.watchJoin.hidden = true;
     applyWatchStateToPlayer(true);
   }
@@ -2411,6 +2417,7 @@
       if (command === "play") {
         watchPlayer.play().catch(() => {
           watchJoined = false;
+          watchSessionJoined = false;
           renderWatchParty();
         });
       }

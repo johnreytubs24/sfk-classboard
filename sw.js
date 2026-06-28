@@ -1,4 +1,4 @@
-const CACHE_NAME = "sfk-classboard-v165-theme-role-badges";
+const CACHE_NAME = "sfk-classboard-v166-persistent-watch-join";
 const APP_SHELL = [
   "./",
   "./index.html",
