@@ -29,6 +29,7 @@
     publicStatus: null,
     entriesLoaded: false,
     publishedStatusSignature: "",
+    statusRetryTimer: null,
     countdownTimer: null,
     presentationTimer: null,
     presentationEntries: [],
@@ -125,6 +126,8 @@
     state.publicStatus = null;
     state.entriesLoaded = false;
     state.publishedStatusSignature = "";
+    window.clearTimeout(state.statusRetryTimer);
+    state.statusRetryTimer = null;
     elements.room.hidden = false;
     elements.adminPanel.hidden = true;
     elements.adminToggle.hidden = context.profile.role !== "admin";
@@ -165,7 +168,9 @@
     state.publicUnsubscribe = null;
     state.statusUnsubscribe = null;
     window.clearInterval(state.countdownTimer);
+    window.clearTimeout(state.statusRetryTimer);
     state.countdownTimer = null;
+    state.statusRetryTimer = null;
   }
 
   function startSettingsListener() {
@@ -198,9 +203,11 @@
       .onSnapshot((snapshot) => {
         state.publicStatus = snapshot.exists ? snapshot.data() || {} : null;
         renderStats();
+        if (isAdmin() && !snapshot.exists) syncPublicStatus();
       }, () => {
         state.publicStatus = null;
         renderStats();
+        if (isAdmin()) schedulePublicStatusRetry();
       });
   }
 
@@ -303,11 +310,14 @@
     elements.entryCount.textContent = String(own.length);
     const publicSealedCount = safeCount(state.publicStatus?.SealedCount);
     const publicContributorCount = safeCount(state.publicStatus?.ContributorCount);
+    const ownApprovedCount = own.filter((entry) => entry.Status === "approved").length;
+    const sealedCount = Math.max(publicSealedCount, ownApprovedCount);
+    const contributorCount = Math.max(publicContributorCount, ownApprovedCount > 0 ? 1 : 0);
     elements.classCount.textContent = visibleClassEntries
       ? String(visibleClassEntries.length)
-      : String(publicSealedCount);
+      : String(sealedCount);
     elements.contributorCount.textContent = contributors == null
-      ? String(publicContributorCount)
+      ? String(contributorCount)
       : String(contributors);
   }
 
@@ -338,9 +348,29 @@
       SealedCount: sealedEntries.length,
       ContributorCount: contributorCount,
       UpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }, { merge: true }).catch(() => {
+    }, { merge: true }).then(() => {
+      window.clearTimeout(state.statusRetryTimer);
+      state.statusRetryTimer = null;
+      state.publicStatus = {
+        ...(state.publicStatus || {}),
+        SealedCount: sealedEntries.length,
+        ContributorCount: contributorCount,
+        UnlockAt: firebase.firestore.Timestamp.fromDate(unlockAt)
+      };
+      renderStats();
+    }).catch((error) => {
       state.publishedStatusSignature = "";
+      console.warn("Time Capsule totals could not be published:", error);
+      schedulePublicStatusRetry();
     });
+  }
+
+  function schedulePublicStatusRetry() {
+    if (!isAdmin() || state.statusRetryTimer) return;
+    state.statusRetryTimer = window.setTimeout(() => {
+      state.statusRetryTimer = null;
+      syncPublicStatus();
+    }, 3000);
   }
 
   function renderComposeState() {

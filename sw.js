@@ -1,4 +1,4 @@
-const CACHE_NAME = "sfk-classboard-v181-capsule-public-totals";
+const CACHE_NAME = "sfk-classboard-v182-capsule-totals-fix";
 const APP_SHELL = [
   "./",
   "./index.html",
