@@ -10,6 +10,13 @@
     prediction: "Prediction",
     photo: "Photo Memory"
   };
+  const ENTRY_PROMPTS = {
+    memory: "What moment from this class do you never want to forget?",
+    message: "What would you like to tell your future classmates and yourself?",
+    goal: "What do you hope you will have achieved by unlock day?",
+    prediction: "What do you think will be different when we open this capsule?",
+    photo: "What story or feeling should future-you remember about this photo?"
+  };
 
   const state = {
     context: null,
@@ -72,7 +79,9 @@
     elements.form = document.getElementById("timeCapsuleForm");
     elements.editId = document.getElementById("timeCapsuleEditId");
     elements.type = document.getElementById("timeCapsuleType");
+    elements.promptText = document.getElementById("timeCapsulePromptText");
     elements.text = document.getElementById("timeCapsuleText");
+    elements.characterCount = document.getElementById("timeCapsuleCharacterCount");
     elements.imageUrl = document.getElementById("timeCapsuleImageUrl");
     elements.cancelEdit = document.getElementById("timeCapsuleCancelEdit");
     elements.submit = document.getElementById("timeCapsuleSubmit");
@@ -97,6 +106,8 @@
     elements.play = document.getElementById("timeCapsulePlay");
     elements.next = document.getElementById("timeCapsuleNext");
     elements.print = document.getElementById("timeCapsulePrint");
+    elements.type.addEventListener("change", updateEntryPrompt);
+    elements.text.addEventListener("input", updateCharacterCount);
   }
 
   function open(context) {
@@ -341,7 +352,22 @@
     const opening = elements.form.hidden;
     elements.form.hidden = !opening;
     elements.composeToggle.setAttribute("aria-expanded", String(opening));
-    if (opening) window.setTimeout(() => elements.text.focus(), 50);
+    elements.composeCard.classList.toggle("is-composing", opening);
+    if (opening) {
+      updateEntryPrompt();
+      updateCharacterCount();
+      window.setTimeout(() => elements.text.focus(), 50);
+    }
+  }
+
+  function updateEntryPrompt() {
+    if (!elements.promptText) return;
+    elements.promptText.textContent = ENTRY_PROMPTS[elements.type.value] || ENTRY_PROMPTS.memory;
+  }
+
+  function updateCharacterCount() {
+    if (!elements.characterCount) return;
+    elements.characterCount.textContent = `${elements.text.value.length} / 1200`;
   }
 
   async function submitEntry(event) {
@@ -403,7 +429,10 @@
       elements.cancelEdit.hidden = false;
       elements.submit.textContent = "Update Entry";
       elements.form.hidden = false;
+      elements.composeCard.classList.add("is-composing");
       elements.composeToggle.setAttribute("aria-expanded", "true");
+      updateEntryPrompt();
+      updateCharacterCount();
       elements.form.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
@@ -444,7 +473,10 @@
     elements.submit.textContent = "Seal Entry";
     elements.formMessage.textContent = "";
     elements.form.hidden = true;
+    elements.composeCard.classList.remove("is-composing");
     elements.composeToggle.setAttribute("aria-expanded", "false");
+    updateEntryPrompt();
+    updateCharacterCount();
   }
 
   function toggleAdminPanel() {

@@ -15,7 +15,7 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png?v=3" />
   <link rel="stylesheet" href="style.css?v=74-clock-access-menu" />
   <link rel="stylesheet" href="class-chat.css?v=46-watch-request-queue" />
-  <link rel="stylesheet" href="time-capsule.css?v=2-capsule-login" />
+  <link rel="stylesheet" href="time-capsule.css?v=3-premium-capsule" />
   <script src="orientation-lock.js?v=4-watch-party-landscape" defer></script>
 
   <style id="sfkStartIntroStyle">
@@ -1219,8 +1219,8 @@
 
           <section id="timeCapsuleComposeCard" class="timeCapsuleComposeCard">
             <header>
-              <div><strong>Add to the Capsule</strong><small>Submit as many entries as you want before the deadline.</small></div>
-              <button id="timeCapsuleComposeToggle" type="button" aria-expanded="false">+</button>
+              <div><strong>Leave something for our future selves</strong><small>Add as many memories, messages, and moments as you want.</small></div>
+              <button id="timeCapsuleComposeToggle" type="button" aria-expanded="false" aria-label="Add a capsule entry">+</button>
             </header>
             <form id="timeCapsuleForm" hidden>
               <input id="timeCapsuleEditId" type="hidden" />
@@ -1233,8 +1233,13 @@
                   <option value="photo">Photo memory</option>
                 </select>
               </label>
+              <div class="timeCapsulePrompt" aria-live="polite">
+                <span aria-hidden="true">&#9829;</span>
+                <div><strong>A little prompt</strong><small id="timeCapsulePromptText">What moment from this class do you never want to forget?</small></div>
+              </div>
               <label>Your entry
                 <textarea id="timeCapsuleText" maxlength="1200" rows="5" placeholder="Write something for our future selves..."></textarea>
+                <small id="timeCapsuleCharacterCount" class="timeCapsuleCharacterCount">0 / 1200</small>
               </label>
               <label>Photo link <small>Optional public HTTPS image link</small>
                 <input id="timeCapsuleImageUrl" type="url" maxlength="2000" placeholder="https://..." />
@@ -1355,7 +1360,7 @@
   <script src="script.js?v=73-clock-access-menu"></script>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.6.16/dist/hls.min.js"></script>
   <script src="https://cdn.dashjs.org/v5.2.0/legacy/umd/dash.all.min.js"></script>
-  <script src="time-capsule.js?v=1"></script>
+  <script src="time-capsule.js?v=2-premium-capsule"></script>
   <script src="class-chat.js?v=59-capsule-login"></script>
   <script src="pwa.js?v=3"></script>
 </body>

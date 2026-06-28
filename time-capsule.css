@@ -918,6 +918,759 @@
   }
 }
 
+/* Light yearbook-style Time Capsule visual system */
+.timeCapsuleRoom {
+  --tc-bg: #f6f3ea;
+  --tc-surface: #fffefb;
+  --tc-surface-2: #f0ece1;
+  --tc-text: #111;
+  --tc-muted: #716c63;
+  --tc-line: rgba(17, 17, 17, .14);
+  --tc-gold: #f7c600;
+  --tc-gold-soft: #fff2a8;
+  background:
+    linear-gradient(rgba(17, 17, 17, .035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(17, 17, 17, .035) 1px, transparent 1px),
+    var(--tc-bg);
+  background-size: 30px 30px;
+  color: var(--tc-text);
+}
+
+.classChatPanel.is-dark .timeCapsuleRoom {
+  --tc-bg: #f6f3ea;
+  --tc-surface: #fffefb;
+  --tc-surface-2: #f0ece1;
+  --tc-text: #111;
+  --tc-muted: #716c63;
+  --tc-line: rgba(17, 17, 17, .14);
+  --tc-gold-soft: #fff2a8;
+  background:
+    linear-gradient(rgba(17, 17, 17, .035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(17, 17, 17, .035) 1px, transparent 1px),
+    var(--tc-bg);
+  background-size: 30px 30px;
+}
+
+.classChatPanel.is-time-capsule-login,
+.classChatPanel.is-dark.is-time-capsule-login {
+  background: #fffdf7;
+  color: #111;
+}
+
+.classChatPanel.is-time-capsule-login .classChatTopbar,
+.classChatPanel.is-dark.is-time-capsule-login .classChatTopbar {
+  border-bottom-color: #e4dece;
+  background: rgba(255, 253, 247, .97);
+}
+
+.classChatPanel.is-time-capsule-login .classChatBack,
+.classChatPanel.is-time-capsule-login .classChatLogout,
+.classChatPanel.is-time-capsule-login .classChatIdentity h2,
+.classChatPanel.is-dark.is-time-capsule-login .classChatBack,
+.classChatPanel.is-dark.is-time-capsule-login .classChatLogout,
+.classChatPanel.is-dark.is-time-capsule-login .classChatIdentity h2 {
+  color: #111;
+}
+
+.classChatPanel.is-time-capsule-login .classChatIdentity p,
+.classChatPanel.is-time-capsule-login .classChatWelcome p,
+.classChatPanel.is-dark.is-time-capsule-login .classChatIdentity p,
+.classChatPanel.is-dark.is-time-capsule-login .classChatWelcome p {
+  color: #716c63;
+}
+
+.classChatPanel.is-time-capsule-login .classChatLogin,
+.classChatPanel.is-dark.is-time-capsule-login .classChatLogin {
+  background:
+    linear-gradient(rgba(247, 198, 0, .065) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(247, 198, 0, .065) 1px, transparent 1px),
+    #fffdf7;
+  background-size: 28px 28px;
+}
+
+.classChatPanel.is-time-capsule-login .classChatRoleTabs,
+.classChatPanel.is-dark.is-time-capsule-login .classChatRoleTabs {
+  background: #eee9dc;
+}
+
+.classChatPanel.is-time-capsule-login .classChatRoleTabs button,
+.classChatPanel.is-dark.is-time-capsule-login .classChatRoleTabs button {
+  color: #6b665c;
+}
+
+.classChatPanel.is-time-capsule-login .classChatRoleTabs button.is-active,
+.classChatPanel.is-dark.is-time-capsule-login .classChatRoleTabs button.is-active {
+  background: #fff;
+  color: #111;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .08);
+}
+
+.classChatPanel.is-time-capsule-login .classChatAuthForm,
+.classChatPanel.is-dark.is-time-capsule-login .classChatAuthForm {
+  color: #111;
+}
+
+.classChatPanel.is-time-capsule-login .classChatAuthForm input,
+.classChatPanel.is-time-capsule-login .classChatAuthForm select,
+.classChatPanel.is-dark.is-time-capsule-login .classChatAuthForm input,
+.classChatPanel.is-dark.is-time-capsule-login .classChatAuthForm select {
+  border-color: #cfc8ba;
+  background: #fff;
+  color: #111;
+  color-scheme: light;
+}
+
+.classChatPanel.is-time-capsule-login .classChatPinNotice,
+.classChatPanel.is-dark.is-time-capsule-login .classChatPinNotice {
+  background: #fff3b5;
+  color: #111;
+}
+
+.timeCapsuleHeader,
+.classChatPanel.is-dark .timeCapsuleHeader {
+  min-height: 76px;
+  border-color: var(--tc-line);
+  padding: 10px 18px;
+  background: color-mix(in srgb, var(--tc-bg) 92%, transparent);
+  color: var(--tc-text);
+  box-shadow: 0 1px 0 rgba(247, 198, 0, .18);
+}
+
+.timeCapsuleHeader > button,
+.timeCapsuleHeader h2,
+.classChatPanel.is-dark .timeCapsuleHeader > button,
+.classChatPanel.is-dark .timeCapsuleHeader h2 {
+  color: var(--tc-text);
+}
+
+.timeCapsuleHeader h2 {
+  font-size: 1.1rem;
+  letter-spacing: 0;
+}
+
+.timeCapsuleHeader p,
+.classChatPanel.is-dark .timeCapsuleHeader p {
+  color: var(--tc-muted);
+  font-size: .72rem;
+}
+
+#timeCapsuleBack {
+  transition: background 120ms ease, transform 120ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#timeCapsuleBack:hover,
+#timeCapsuleBack:focus-visible {
+  background: var(--tc-gold-soft);
+  outline: none;
+}
+
+#timeCapsuleBack:active {
+  transform: scale(.88);
+}
+
+.timeCapsuleHeart {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--tc-gold);
+  color: #111;
+  font-size: 2rem;
+  -webkit-text-stroke: 0;
+  filter: none;
+  box-shadow: 0 0 0 2px #111, 0 0 0 4px var(--tc-gold);
+}
+
+.timeCapsuleHeart i {
+  right: -2px;
+  bottom: 0;
+  transform: scale(.82);
+}
+
+.timeCapsuleAdminToggle {
+  border-color: var(--tc-gold) !important;
+  background: var(--tc-gold) !important;
+  color: #111 !important;
+  box-shadow: none;
+  transition: transform 120ms ease, filter 120ms ease;
+}
+
+.timeCapsuleAdminToggle:active {
+  transform: scale(.93);
+}
+
+.timeCapsuleBody {
+  padding: 22px 18px 34px;
+  scrollbar-color: var(--tc-gold) transparent;
+}
+
+.timeCapsuleHero {
+  position: relative;
+  min-height: 150px;
+  overflow: hidden;
+  border: 1px solid #d9ae00;
+  border-radius: 18px;
+  padding: 24px;
+  background:
+    linear-gradient(rgba(255, 255, 255, .24) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, .24) 1px, transparent 1px),
+    #f7c600;
+  background-size: 24px 24px;
+  color: #111;
+  box-shadow: 0 16px 34px rgba(126, 97, 0, .18);
+}
+
+.timeCapsuleHero::after {
+  content: "";
+  position: absolute;
+  right: -38px;
+  bottom: -55px;
+  width: 180px;
+  height: 180px;
+  border: 34px solid rgba(255, 255, 255, .22);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.timeCapsuleLockMark {
+  z-index: 1;
+  width: 78px;
+  height: 78px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .76);
+  box-shadow: inset 0 0 0 1px rgba(17, 17, 17, .11);
+}
+
+.timeCapsuleLockMark span {
+  color: #111;
+  font-size: 4.4rem;
+  -webkit-text-stroke: 0;
+  filter: drop-shadow(0 6px 12px rgba(126, 97, 0, .16));
+}
+
+.timeCapsuleLockMark i {
+  right: 1px;
+  bottom: 2px;
+  background: var(--tc-gold);
+}
+
+.timeCapsuleHero > div:nth-child(2) {
+  position: relative;
+  z-index: 1;
+}
+
+.timeCapsuleHero > div:nth-child(2) > span {
+  width: fit-content;
+  margin-bottom: 7px;
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, .7);
+  color: #111;
+  font-size: .63rem;
+}
+
+.timeCapsuleHero h3 {
+  font-size: clamp(1.4rem, 3vw, 2.15rem);
+  letter-spacing: 0;
+}
+
+.timeCapsuleHero p {
+  color: #4f4200;
+  font-size: .84rem;
+}
+
+.timeCapsuleHero > button {
+  position: relative;
+  z-index: 1;
+  border-color: #111;
+  border-radius: 999px;
+  background: #111;
+  color: #f7c600;
+  box-shadow: none;
+  transition: transform 120ms ease, filter 120ms ease;
+}
+
+.timeCapsuleHero > button:active {
+  transform: scale(.94);
+}
+
+.timeCapsuleStats {
+  position: relative;
+  z-index: 2;
+  gap: 8px;
+  margin: -17px auto 18px;
+  padding: 0 16px;
+}
+
+.timeCapsuleStats span,
+.classChatPanel.is-dark .timeCapsuleStats span {
+  border: 1px solid var(--tc-line);
+  border-radius: 13px;
+  padding: 11px 8px;
+  background: var(--tc-surface);
+  color: var(--tc-text);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .10);
+}
+
+.timeCapsuleStats strong {
+  color: var(--tc-gold);
+  font-size: 1.28rem;
+}
+
+.timeCapsuleStats small,
+.classChatPanel.is-dark .timeCapsuleStats small {
+  color: var(--tc-muted);
+}
+
+.timeCapsuleComposeCard,
+.timeCapsuleEntriesSection,
+.timeCapsuleAdminPanel,
+.classChatPanel.is-dark .timeCapsuleComposeCard,
+.classChatPanel.is-dark .timeCapsuleEntriesSection,
+.classChatPanel.is-dark .timeCapsuleAdminPanel {
+  overflow: hidden;
+  border: 1px solid var(--tc-line);
+  border-radius: 16px;
+  background: var(--tc-surface);
+  color: var(--tc-text);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, .08);
+}
+
+.timeCapsuleComposeCard {
+  border-color: color-mix(in srgb, var(--tc-gold) 58%, var(--tc-line));
+}
+
+.timeCapsuleComposeCard > header {
+  min-height: 72px;
+  justify-content: flex-start;
+  padding: 13px 15px;
+}
+
+.timeCapsuleComposeCard > header::before {
+  content: "\2665";
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--tc-gold);
+  color: #111;
+  font-size: 1.45rem;
+}
+
+.timeCapsuleComposeCard > header > div {
+  min-width: 0;
+  flex: 1;
+}
+
+.timeCapsuleComposeCard header strong {
+  font-size: .9rem;
+  line-height: 1.2;
+}
+
+.timeCapsuleComposeCard header small,
+.timeCapsuleEntriesSection header small,
+.timeCapsuleAdminPanel header small,
+.classChatPanel.is-dark .timeCapsuleComposeCard header small,
+.classChatPanel.is-dark .timeCapsuleEntriesSection header small,
+.classChatPanel.is-dark .timeCapsuleAdminPanel header small {
+  color: var(--tc-muted);
+  line-height: 1.25;
+}
+
+#timeCapsuleComposeToggle {
+  flex-basis: 40px;
+  width: 40px;
+  height: 40px;
+  margin-left: auto;
+  border: 1px solid var(--tc-line);
+  background: var(--tc-surface-2);
+  color: var(--tc-text);
+  font-size: 1.7rem;
+  transition: transform 160ms cubic-bezier(.2, .8, .2, 1), background 120ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#timeCapsuleComposeToggle:hover,
+#timeCapsuleComposeToggle:focus-visible,
+.timeCapsuleComposeCard.is-composing #timeCapsuleComposeToggle {
+  background: var(--tc-gold);
+  color: #111;
+  outline: none;
+}
+
+#timeCapsuleComposeToggle:active {
+  transform: scale(.88);
+}
+
+#timeCapsuleComposeToggle[aria-expanded="true"] {
+  transform: rotate(45deg);
+}
+
+#timeCapsuleForm,
+#timeCapsuleSettingsForm,
+.classChatPanel.is-dark #timeCapsuleForm,
+.classChatPanel.is-dark #timeCapsuleSettingsForm {
+  border-color: var(--tc-line);
+  padding: 16px;
+  background: color-mix(in srgb, var(--tc-surface-2) 46%, transparent);
+}
+
+#timeCapsuleForm:not([hidden]) {
+  animation: timeCapsuleFormIn 180ms cubic-bezier(.2, .8, .2, 1) both;
+}
+
+@keyframes timeCapsuleFormIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+#timeCapsuleForm label,
+#timeCapsuleSettingsForm label,
+.classChatPanel.is-dark #timeCapsuleForm label,
+.classChatPanel.is-dark #timeCapsuleSettingsForm label {
+  position: relative;
+  color: var(--tc-text);
+  font-size: .72rem;
+}
+
+#timeCapsuleForm input,
+#timeCapsuleForm textarea,
+#timeCapsuleForm select,
+#timeCapsuleSettingsForm input,
+#timeCapsuleReviewFilter,
+.classChatPanel.is-dark #timeCapsuleForm input,
+.classChatPanel.is-dark #timeCapsuleForm textarea,
+.classChatPanel.is-dark #timeCapsuleForm select,
+.classChatPanel.is-dark #timeCapsuleSettingsForm input,
+.classChatPanel.is-dark #timeCapsuleReviewFilter {
+  min-height: 46px;
+  border: 1px solid var(--tc-line);
+  border-radius: 12px;
+  background: var(--tc-surface);
+  color: var(--tc-text);
+  outline: none;
+  transition: border 120ms ease, box-shadow 120ms ease;
+}
+
+#timeCapsuleForm input:focus,
+#timeCapsuleForm textarea:focus,
+#timeCapsuleForm select:focus,
+#timeCapsuleSettingsForm input:focus,
+#timeCapsuleReviewFilter:focus {
+  border-color: var(--tc-gold);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--tc-gold) 22%, transparent);
+}
+
+#timeCapsuleForm textarea {
+  min-height: 132px;
+  padding: 13px;
+}
+
+.timeCapsulePrompt {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-left: 3px solid var(--tc-gold);
+  border-radius: 0 10px 10px 0;
+  padding: 10px 12px;
+  background: var(--tc-gold-soft);
+}
+
+.timeCapsulePrompt > span {
+  color: var(--tc-gold);
+  font-size: 1.25rem;
+}
+
+.timeCapsulePrompt strong,
+.timeCapsulePrompt small {
+  display: block;
+}
+
+.timeCapsulePrompt strong {
+  margin-bottom: 2px;
+  font-size: .68rem;
+}
+
+.timeCapsulePrompt small {
+  color: var(--tc-muted);
+  font-size: .7rem;
+  line-height: 1.3;
+}
+
+#timeCapsuleForm .timeCapsuleCharacterCount {
+  justify-self: end;
+  margin-top: -2px;
+  color: var(--tc-muted);
+  font-size: .62rem;
+}
+
+.timeCapsuleFormActions button,
+.timeCapsuleAdminPanel button {
+  border-radius: 999px;
+  box-shadow: none;
+  transition: transform 120ms ease, filter 120ms ease;
+}
+
+.timeCapsuleFormActions button:last-child,
+#timeCapsuleSettingsForm .timeCapsuleFormActions button:last-child {
+  border-color: var(--tc-gold);
+  background: var(--tc-gold);
+  color: #111;
+}
+
+.timeCapsuleFormActions button:active,
+.timeCapsuleAdminPanel button:active {
+  transform: scale(.94);
+}
+
+.timeCapsuleEntriesSection > header {
+  min-height: 66px;
+  border-color: var(--tc-line);
+  padding: 13px 15px;
+}
+
+.timeCapsuleEntriesSection header strong {
+  font-size: .92rem;
+}
+
+.timeCapsuleEntries,
+.timeCapsuleReviewList {
+  gap: 12px;
+  padding: 14px;
+}
+
+.timeCapsuleEntry,
+.classChatPanel.is-dark .timeCapsuleEntry {
+  overflow: visible;
+  border: 1px solid var(--tc-line);
+  border-radius: 14px;
+  background: var(--tc-surface-2);
+  color: var(--tc-text);
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.timeCapsuleEntry:hover {
+  z-index: 1;
+  border-color: color-mix(in srgb, var(--tc-gold) 65%, var(--tc-line));
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, .12);
+}
+
+.timeCapsuleEntry img {
+  border-radius: 13px 13px 0 0;
+}
+
+.timeCapsuleEntryBody {
+  padding: 13px;
+}
+
+.timeCapsuleEntryMeta span {
+  color: var(--tc-gold);
+}
+
+.timeCapsuleEntryMeta b {
+  background: color-mix(in srgb, var(--tc-muted) 14%, transparent);
+  color: var(--tc-muted);
+}
+
+.timeCapsuleEntry p {
+  font-size: .84rem;
+  line-height: 1.5;
+}
+
+.timeCapsuleEntry footer {
+  color: var(--tc-muted);
+}
+
+.timeCapsuleEntryActions button {
+  border-color: var(--tc-line);
+  border-radius: 999px;
+  background: var(--tc-surface);
+  color: var(--tc-text);
+}
+
+.timeCapsuleEmpty {
+  min-height: 120px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 7px;
+  color: var(--tc-muted);
+}
+
+.timeCapsuleEmpty::before {
+  content: "\2665";
+  display: block;
+  color: var(--tc-gold);
+  font-size: 2rem;
+  line-height: 1;
+  opacity: .7;
+}
+
+.timeCapsuleAdminPanel {
+  border-color: var(--tc-gold);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .12);
+}
+
+.timeCapsuleAdminPanel > header,
+.classChatPanel.is-dark .timeCapsuleAdminPanel > header {
+  background: #111;
+  color: #fff;
+}
+
+.timeCapsuleReviewHeader,
+.classChatPanel.is-dark .timeCapsuleReviewHeader {
+  border-color: var(--tc-line);
+}
+
+.timeCapsulePresentation {
+  background: #f6f3ea;
+  color: #111;
+}
+
+.timeCapsulePresentation > header,
+.timeCapsulePresentation > footer {
+  border-color: #ded8ca;
+  background: rgba(255, 253, 247, .97);
+}
+
+.timeCapsulePresentation > header button,
+.timeCapsulePresentation > footer button {
+  border-color: #d7d0c2;
+  background: #fff;
+  color: #111;
+}
+
+.timeCapsuleSlideCard {
+  border-color: #d9ae00;
+  border-radius: 18px;
+  background: #fff;
+  color: #111;
+  box-shadow: 0 18px 45px rgba(126, 97, 0, .16);
+}
+
+.timeCapsuleSlideCard span {
+  color: #8b6f00;
+}
+
+.timeCapsuleSlideCard footer {
+  color: #716c63;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .timeCapsuleRoom *,
+  .timeCapsuleRoom *::before,
+  .timeCapsuleRoom *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .timeCapsuleHeader,
+  .classChatPanel.is-dark .timeCapsuleHeader {
+    min-height: 68px;
+    grid-template-columns: 36px 40px minmax(0, 1fr) auto;
+    padding: 8px 11px;
+  }
+
+  .timeCapsuleHeart {
+    width: 38px;
+    height: 38px;
+    font-size: 1.55rem;
+  }
+
+  .timeCapsuleBody {
+    padding: 13px 10px 26px;
+  }
+
+  .timeCapsuleHero {
+    min-height: 128px;
+    grid-template-columns: 56px minmax(0, 1fr);
+    border-radius: 15px;
+    padding: 16px 14px 22px;
+  }
+
+  .timeCapsuleLockMark {
+    width: 54px;
+    height: 54px;
+  }
+
+  .timeCapsuleLockMark span {
+    font-size: 3.35rem;
+  }
+
+  .timeCapsuleHero h3 {
+    font-size: 1.28rem;
+  }
+
+  .timeCapsuleHero p {
+    font-size: .74rem;
+  }
+
+  .timeCapsuleStats {
+    margin-top: -13px;
+    padding: 0 8px;
+  }
+
+  .timeCapsuleStats strong {
+    font-size: 1.08rem;
+  }
+
+  .timeCapsuleStats small {
+    font-size: .58rem;
+  }
+
+  .timeCapsuleComposeCard,
+  .timeCapsuleEntriesSection,
+  .timeCapsuleAdminPanel,
+  .classChatPanel.is-dark .timeCapsuleComposeCard,
+  .classChatPanel.is-dark .timeCapsuleEntriesSection,
+  .classChatPanel.is-dark .timeCapsuleAdminPanel {
+    border-radius: 14px;
+  }
+
+  .timeCapsuleComposeCard > header {
+    min-height: 67px;
+    padding: 11px 12px;
+  }
+
+  .timeCapsuleComposeCard > header::before {
+    flex-basis: 36px;
+    width: 36px;
+    height: 36px;
+    font-size: 1.2rem;
+  }
+
+  .timeCapsuleComposeCard header strong {
+    font-size: .8rem;
+  }
+
+  #timeCapsuleComposeToggle {
+    flex-basis: 36px;
+    width: 36px;
+    height: 36px;
+  }
+
+  #timeCapsuleForm,
+  #timeCapsuleSettingsForm {
+    padding: 13px;
+  }
+
+  .timeCapsuleEntries,
+  .timeCapsuleReviewList {
+    padding: 11px;
+  }
+
+  .timeCapsuleEntry:hover {
+    transform: none;
+    box-shadow: none;
+  }
+}
+
 @media print {
   body.timeCapsulePrinting * {
     visibility: hidden !important;
