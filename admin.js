@@ -1037,6 +1037,82 @@ function readAttachmentFile(file) {
   });
 }
 
+/* CLASS SCHEDULE */
+async function saveClassSchedule() {
+  const payload = {
+    Day: document.getElementById("scheduleDay").value,
+    StartTime: normalizeScheduleTimeInput(document.getElementById("scheduleStartTime").value),
+    EndTime: normalizeScheduleTimeInput(document.getElementById("scheduleEndTime").value),
+    Subject: document.getElementById("scheduleSubject").value.trim(),
+    Teacher: document.getElementById("scheduleTeacher").value.trim(),
+    Room: document.getElementById("scheduleRoom").value.trim(),
+    Color: normalizeScheduleColorInput(document.getElementById("scheduleColor").value),
+    Publish: document.getElementById("schedulePublish").value
+  };
+
+  if (!payload.Day || !payload.StartTime || !payload.EndTime || !payload.Subject) {
+    showToast("Day, start time, end time, and subject/block are required.");
+    return;
+  }
+
+  if (scheduleTimeToMinutes(payload.EndTime) <= scheduleTimeToMinutes(payload.StartTime)) {
+    showToast("End time must be after the start time.");
+    return;
+  }
+
+  const saved = await sendAdminData("schedule", payload);
+
+  if (saved) {
+    clearFields([
+      "scheduleStartTime",
+      "scheduleEndTime",
+      "scheduleSubject",
+      "scheduleTeacher",
+      "scheduleRoom",
+      "scheduleColor",
+      "schedulePublish"
+    ]);
+  }
+}
+
+function normalizeScheduleColorInput(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+
+  const hex = text.match(/^#?([0-9a-fA-F]{6})$/);
+  if (hex) return `#${hex[1].toUpperCase()}`;
+
+  return text.replace(/\s+/g, " ");
+}
+
+function normalizeScheduleTimeInput(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+
+  const match = text.match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) return text;
+
+  let hour = Number(match[1]);
+  const minute = match[2];
+  const meridiem = hour >= 12 ? "PM" : "AM";
+  if (hour === 0) hour = 12;
+  else if (hour > 12) hour -= 12;
+  return `${hour}:${minute} ${meridiem}`;
+}
+
+function scheduleTimeToMinutes(value) {
+  const text = String(value || "").trim();
+  const match = text.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+  if (!match) return 99999;
+
+  let hour = Number(match[1]);
+  const minute = Number(match[2]);
+  const meridiem = String(match[3] || "").toUpperCase();
+  if (meridiem === "PM" && hour < 12) hour += 12;
+  if (meridiem === "AM" && hour === 12) hour = 0;
+  return hour * 60 + minute;
+}
+
 /* DAILY SCHEDULE INFO */
 async function saveDailyInfo() {
   const payload = {

@@ -13,7 +13,7 @@
   <link rel="manifest" href="admin.webmanifest?v=1" />
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=3" />
   <link rel="apple-touch-icon" href="icons/icon-192.png?v=3" />
-  <link rel="stylesheet" href="admin.css?v=class-chat-cleanup" />
+  <link rel="stylesheet" href="admin.css?v=phone-orientation-lock" />
   <script src="orientation-lock.js?v=3-phone-device-lock" defer></script>
 </head>
 
@@ -325,6 +325,49 @@
           <button onclick="saveTickerMessage()">Save Ticker Message</button>
         </div>
 
+
+        <!-- CLASS SCHEDULE -->
+        <div class="formCard">
+          <h2>🗓️ Class Schedule</h2>
+
+          <label for="scheduleDay">Day</label>
+          <select id="scheduleDay">
+            <option value="Monday">Monday</option>
+            <option value="Tuesday">Tuesday</option>
+            <option value="Wednesday">Wednesday</option>
+            <option value="Thursday">Thursday</option>
+            <option value="Friday">Friday</option>
+          </select>
+
+          <label for="scheduleStartTime">Start Time</label>
+          <input id="scheduleStartTime" type="time" />
+
+          <label for="scheduleEndTime">End Time</label>
+          <input id="scheduleEndTime" type="time" />
+
+          <label for="scheduleSubject">Subject / Block</label>
+          <input id="scheduleSubject" list="subjectOptions" type="text" placeholder="Example: ICT / Break / Assembly" />
+
+          <label for="scheduleTeacher">Teacher</label>
+          <input id="scheduleTeacher" list="teacherOptions" type="text" placeholder="Select or type teacher" />
+
+          <label for="scheduleRoom">Room</label>
+          <input id="scheduleRoom" type="text" placeholder="Example: ComLab / Room 404" />
+
+          <label for="scheduleColor">Color Hex</label>
+          <input id="scheduleColor" list="scheduleColorOptions" type="text" placeholder="Type or paste hex, example: #FFD700" />
+          <small class="fieldHint">Optional. Type/copy a hex color. Subject guide: English #EC407A · Math #2E7D32 · Science #FFD700 · ICT/LE #D32F2F · Filipino #8B5A2B · CLED #7B1FA2 · MAPEH #111111 · AP #1976D2</small>
+
+          <label for="schedulePublish">Publish</label>
+          <select id="schedulePublish">
+            <option value="YES">YES</option>
+            <option value="NO">NO</option>
+          </select>
+
+          <button onclick="saveClassSchedule()">Save Schedule Period</button>
+          <small class="fieldHint">Tip: Use Manage Existing Data → Class Schedule to edit, hide, delete, or reorder existing periods.</small>
+        </div>
+
         <!-- DAILY SCHEDULE INFO -->
         <div class="formCard">
           <h2>🚪 Daily Schedule Info</h2>
@@ -374,6 +417,30 @@
         <option value="Performance Task"></option>
       </datalist>
 
+      <datalist id="scheduleColorOptions">
+        <option value="#EC407A" label="English - Pink"></option>
+        <option value="#2E7D32" label="Mathematics - Green"></option>
+        <option value="#FFD700" label="Science - Gold"></option>
+        <option value="#D32F2F" label="ICT / LE - Red"></option>
+        <option value="#8B5A2B" label="Filipino - Brown"></option>
+        <option value="#7B1FA2" label="CLED - Violet"></option>
+        <option value="#111111" label="MAPEH - Black"></option>
+        <option value="#1976D2" label="AP - Blue"></option>
+        <option value="#F7C600" label="SFK Yellow / Homeroom"></option>
+      </datalist>
+
+      <datalist id="teacherOptions">
+        <option value="Mr. John Rey Tubello"></option>
+        <option value="Ms. Chiarah De Castro"></option>
+        <option value="Mrs. Melanie Sebastian"></option>
+        <option value="Ms. Hannah Lee Cillo"></option>
+        <option value="Ms Christine Tolentino"></option>
+        <option value="Ms. Kamille Lajom"></option>
+        <option value="Mr. Alexis Pastrana"></option>
+        <option value="Ms. Gina Soriano"></option>
+        <option value="Mr. Runmar Quipanes"></option>
+      </datalist>
+
       <datalist id="uniformOptions">
         <option value="Complete School Uniform"></option>
         <option value="Activity Shirt"></option>
@@ -392,6 +459,7 @@
         </div>
 
         <div class="manageTabs">
+          <button onclick="loadAdminTable('Schedule', this)">Class Schedule</button>
           <button onclick="loadAdminTable('Announcements', this)">Announcements</button>
           <button onclick="loadAdminTable('ThingsToBring', this)">Things to Bring</button>
           <button onclick="loadAdminTable('AdviserReminders', this)">Adviser Reminders</button>
@@ -468,9 +536,8 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
   <script src="firebase-config.js?v=2-secure-auth"></script>
   <script src="auth.js?v=2-persistent-login"></script>
-  <script src="firebase-adapter.js?v=15-secure-auth"></script>
+  <script src="firebase-adapter.js?v=17-schedule-color-admin"></script>
   <script src="pwa.js?v=14"></script>
-  <script src="class-chat-admin.js?v=6-profile-colors"></script>
-  <script src="admin.js?v=secure-firebase-auth"></script>
+  <script src="admin.js?v=schedule-color-admin"></script>
 </body>
 </html>

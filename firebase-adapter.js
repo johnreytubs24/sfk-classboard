@@ -9,7 +9,7 @@
     },
     Schedule: {
       collection: "schedule",
-      headers: ["Day", "StartTime", "EndTime", "Subject", "Teacher", "Room", "Type", "Publish"]
+      headers: ["Day", "StartTime", "EndTime", "Subject", "Teacher", "Room", "Color", "Publish"]
     },
     Announcements: {
       collection: "announcements",
@@ -50,6 +50,7 @@
   };
 
   const TYPE_TO_SHEET = {
+    schedule: "Schedule",
     announcement: "Announcements",
     things: "ThingsToBring",
     reminder: "AdviserReminders",
@@ -859,6 +860,18 @@
       };
     }
 
+    if (sheetName === "Schedule") return {
+      Day: payload.Day || "",
+      StartTime: normalizeScheduleTime(payload.StartTime),
+      EndTime: normalizeScheduleTime(payload.EndTime),
+      Subject: payload.Subject || "",
+      Teacher: payload.Teacher || "",
+      Room: payload.Room || "",
+      Color: normalizeScheduleColor(payload.Color || payload.ColorHex || payload.SubjectColor || ""),
+      Type: inferScheduleType(payload.Subject),
+      Publish: payload.Publish || "YES"
+    };
+
     if (sheetName === "ThingsToBring") return { Date: normalizeInputDate(payload.Date), Subject: payload.Subject || "", Item: payload.Item || "", Publish: payload.Publish || "YES" };
     if (sheetName === "AdviserReminders") return { Date: normalizeInputDate(payload.Date), Reminder: payload.Reminder || "", Publish: payload.Publish || "YES" };
     if (sheetName === "PrayerLeaders") return { Date: normalizeInputDate(payload.Date), PrayerLeader: payload.PrayerLeader || "", Publish: payload.Publish || "YES" };
@@ -868,6 +881,46 @@
     if (sheetName === "DailyInfo") return { Day: payload.Day || "", EntryGate: payload.EntryGate || "", ExitGate: payload.ExitGate || "", Uniform: payload.Uniform || "", Publish: payload.Publish || "YES" };
 
     return payload;
+  }
+
+  function inferScheduleType(subject) {
+    const text = String(subject || "").trim().toLowerCase();
+    if (!text) return "Class";
+    if (text.includes("assembly")) return "Assembly";
+    if (text.includes("break")) return "Break";
+    if (text.includes("lunch")) return "Lunch";
+    if (text.includes("mass")) return "Mass";
+    if (text.includes("homeroom")) return "Homeroom";
+    if (text.includes("no class")) return "No Classes";
+    if (text.includes("activity") || text.includes("performance task") || text.includes("peta")) return "Activity";
+    return "Class";
+  }
+
+  function normalizeScheduleColor(value) {
+    const text = String(value || "").trim();
+    if (!text) return "";
+
+    const hex = text.match(/^#?([0-9a-fA-F]{6})$/);
+    if (hex) return `#${hex[1].toUpperCase()}`;
+
+    return text.replace(/\s+/g, " ");
+  }
+
+  function normalizeScheduleTime(value) {
+    const text = String(value || "").trim();
+    if (!text) return "";
+
+    const twentyFourHour = text.match(/^(\d{1,2}):(\d{2})$/);
+    if (twentyFourHour) {
+      let hour = Number(twentyFourHour[1]);
+      const minute = twentyFourHour[2];
+      const meridiem = hour >= 12 ? "PM" : "AM";
+      if (hour === 0) hour = 12;
+      else if (hour > 12) hour -= 12;
+      return `${hour}:${minute} ${meridiem}`;
+    }
+
+    return text.replace(/\s+/g, " ").toUpperCase();
   }
 
   function withMeta(row, includeCreated = true) {
