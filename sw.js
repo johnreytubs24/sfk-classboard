@@ -1,4 +1,4 @@
-const CACHE_NAME = "sfk-classboard-v190-capsule-volume-memories-restore";
+const CACHE_NAME = "sfk-classboard-v191-memory-upload-fallback";
 const APP_SHELL = [
   "./",
   "./index.html",

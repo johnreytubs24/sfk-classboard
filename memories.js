@@ -4799,37 +4799,74 @@ async function submitMemoryPost(event) {
     message.textContent = "Sharing this memory with SFK...";
 
     let uploadSessionId = "";
+    let uploadedMedia = [];
+    let canUseSplitPhotoUpload = false;
+    const memoryId = `MEM-${new Date().toISOString().replace(/[-:.TZ]/g, "").slice(0, 14)}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+
     if (mediaFiles.length > 0) {
-      message.textContent = "Securing photo upload...";
-      const session = await postMemoryApi("memoryUploadSession", {
-        Role: memoryState.auth.role
-      });
-      if (!session.success || !session.sessionId) {
-        throw new Error(session.message || "Unable to prepare photo upload. Please refresh and try again.");
+      button.textContent = "Checking upload mode...";
+      message.textContent = "Preparing photo upload...";
+
+      try {
+        const session = await postMemoryApi("memoryUploadSession", {
+          Role: memoryState.auth.role
+        });
+
+        if (session.success && session.sessionId) {
+          uploadSessionId = session.sessionId;
+          canUseSplitPhotoUpload = true;
+        } else if (isUnsupportedMemoryApiType(session.message)) {
+          // The deployed Apps Script is older and does not know memoryUploadSession yet.
+          // Fall back to the original one-step memoryCreate upload so posting still works.
+          canUseSplitPhotoUpload = false;
+        } else {
+          throw new Error(session.message || "Unable to prepare photo upload. Please refresh and try again.");
+        }
+      } catch (sessionError) {
+        if (isUnsupportedMemoryApiType(sessionError.message)) {
+          canUseSplitPhotoUpload = false;
+        } else {
+          throw sessionError;
+        }
       }
-      uploadSessionId = session.sessionId;
     }
 
-    const memoryId = `MEM-${new Date().toISOString().replace(/[-:.TZ]/g, "").slice(0, 14)}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-    let uploadedMedia = [];
-
-    if (mediaFiles.length > 0) {
+    if (mediaFiles.length > 0 && canUseSplitPhotoUpload) {
       button.textContent = "Uploading photos...";
       message.textContent = "Uploading photo attachment first...";
-      const uploadResult = await postMemoryApi("memoryUploadAssets", {
-        Role: memoryState.auth.role,
-        MemoryID: memoryId,
-        MediaFiles: mediaFiles,
-        ...(uploadSessionId ? { UploadSessionID: uploadSessionId } : {})
-      });
-      if (!uploadResult.success) {
-        throw new Error(uploadResult.message || "Photo attachment could not be uploaded.");
+
+      try {
+        const uploadResult = await postMemoryApi("memoryUploadAssets", {
+          Role: memoryState.auth.role,
+          MemoryID: memoryId,
+          MediaFiles: mediaFiles,
+          ...(uploadSessionId ? { UploadSessionID: uploadSessionId } : {})
+        });
+
+        if (!uploadResult.success) {
+          if (isUnsupportedMemoryApiType(uploadResult.message)) {
+            canUseSplitPhotoUpload = false;
+            uploadedMedia = [];
+          } else {
+            throw new Error(uploadResult.message || "Photo attachment could not be uploaded.");
+          }
+        } else {
+          uploadedMedia = Array.isArray(uploadResult.media) ? uploadResult.media : [];
+        }
+      } catch (uploadError) {
+        if (isUnsupportedMemoryApiType(uploadError.message)) {
+          canUseSplitPhotoUpload = false;
+          uploadedMedia = [];
+        } else {
+          throw uploadError;
+        }
       }
-      uploadedMedia = Array.isArray(uploadResult.media) ? uploadResult.media : [];
     }
 
     button.textContent = "Posting...";
-    message.textContent = "Saving this memory...";
+    message.textContent = mediaFiles.length > 0 && !canUseSplitPhotoUpload
+      ? "Saving this memory using compatibility upload..."
+      : "Saving this memory...";
 
     const payload = {
       Role: memoryState.auth.role,
@@ -4839,7 +4876,7 @@ async function submitMemoryPost(event) {
       PostedBy: document.getElementById("memoryPostedBy").value.trim(),
       Caption: caption,
       VideoURL: videoUrl,
-      MediaFiles: [],
+      MediaFiles: canUseSplitPhotoUpload ? [] : mediaFiles,
       UploadedMedia: uploadedMedia,
       UploadedMediaJSON: JSON.stringify(uploadedMedia),
       MusicURL: musicUrl,
@@ -5413,6 +5450,16 @@ function getInitials(value) {
   if (parts.length === 0) return "SFK";
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function isUnsupportedMemoryApiType(message) {
+  const compact = String(message || "").toLowerCase().replace(/[\s_-]+/g, "");
+  return compact.includes("unknownrequesttype:memoryuploadsession")
+    || compact.includes("unknownfirebaserequesttype:memoryuploadsession")
+    || compact.includes("unknownrequesttype:memoryuploadassets")
+    || compact.includes("unknownfirebaserequesttype:memoryuploadassets")
+    || compact.includes("invalidapiendpoint")
+    || compact.includes("missingrequesttype");
 }
 
 async function postMemoryApi(type, payload) {
