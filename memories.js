@@ -4844,22 +4844,19 @@ async function submitMemoryPost(event) {
         });
 
         if (!uploadResult.success) {
-          if (isUnsupportedMemoryApiType(uploadResult.message)) {
-            canUseSplitPhotoUpload = false;
-            uploadedMedia = [];
-          } else {
-            throw new Error(uploadResult.message || "Photo attachment could not be uploaded.");
-          }
+          // Do not stop the post here. If Drive/Apps Script upload fails, the
+          // Firebase adapter will save optimized photos safely in Firestore.
+          canUseSplitPhotoUpload = false;
+          uploadedMedia = [];
         } else {
           uploadedMedia = Array.isArray(uploadResult.media) ? uploadResult.media : [];
         }
       } catch (uploadError) {
-        if (isUnsupportedMemoryApiType(uploadError.message)) {
-          canUseSplitPhotoUpload = false;
-          uploadedMedia = [];
-        } else {
-          throw uploadError;
-        }
+        // Do not fail the whole memory post because of Apps Script/Drive auth.
+        // Continue with the compatibility payload so Firebase can use its
+        // Firestore-photo fallback.
+        canUseSplitPhotoUpload = false;
+        uploadedMedia = [];
       }
     }
 

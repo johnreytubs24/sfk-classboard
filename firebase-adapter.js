@@ -95,7 +95,10 @@
 
       if (options && String(options.method || "GET").toUpperCase() === "POST") {
         const body = JSON.parse(options.body || "{}");
-        if (body.type === "musicMetadataBatch") {
+        // These request types must go directly to Apps Script/Drive.
+        // If they are intercepted here, the page shows errors like
+        // "Unknown Firebase request type: memoryUploadSession" and photo uploads fail.
+        if (["musicMetadataBatch", "memoryUploadSession", "memoryUploadAssets"].includes(body.type)) {
           return originalFetch(input, options);
         }
         return jsonResponse(await handlePost(body, url));
@@ -253,25 +256,59 @@
   }
 
   async function getMemories() {
-    const memories = (await getPublishedRows("Memories")).map(row => {
+    const rows = await getPublishedRows("Memories");
+    const memories = await Promise.all(rows.map(async row => {
       const count = readHeartCount(row);
+      const id = row.ID || row.MemoryID || row.memoryId || row.id || row.docId;
+      let media = Array.isArray(row.media) ? row.media : parseJsonArray(row.MediaJSON);
+
+      // New reliable fallback: if photos were stored directly in Firestore
+      // because Apps Script/Drive upload failed, attach them here before the
+      // Memories page renders. This keeps the public viewer unchanged.
+      const firestoreMedia = await getFirestoreMemoryMedia(id);
+      if (firestoreMedia.length > 0) media = firestoreMedia;
+
       return {
         ...row,
-        ID: row.ID || row.MemoryID || row.memoryId || row.id || row.docId,
-        id: row.ID || row.MemoryID || row.memoryId || row.id || row.docId,
+        ID: id,
+        id,
         HeartCount: count,
         heartCount: count,
         Hearts: count,
         hearts: count,
-        media: Array.isArray(row.media) ? row.media : parseJsonArray(row.MediaJSON),
+        media,
         music: row.music && typeof row.music === "object" ? row.music : parseJsonObject(row.MusicJSON)
       };
-    });
+    }));
 
     return {
       status: "success",
       memories
     };
+  }
+
+  async function getFirestoreMemoryMedia(memoryId) {
+    const id = String(memoryId || "").trim();
+    if (!id) return [];
+
+    try {
+      const snap = await db.collection("memoryMedia")
+        .where("MemoryID", "==", id)
+        .orderBy("Index", "asc")
+        .get();
+
+      const items = [];
+      snap.forEach(doc => {
+        const data = doc.data() || {};
+        const item = data.item || data.MediaItem || null;
+        if (item && typeof item === "object") items.push(item);
+      });
+      return items;
+    } catch (error) {
+      // If the new rule/index is not published yet, do not break Memories.
+      console.warn("Unable to load Firestore-stored memory media:", error);
+      return [];
+    }
   }
 
   async function getRows(sheetName) {
@@ -592,10 +629,46 @@
   }
 
   async function createMemory(payload, sourceUrl) {
-    const id = generateId("memory");
-    const uploaded = await uploadMemoryAssets(payload, id, sourceUrl);
-    const media = uploaded.media || [];
-    const music = uploaded.music || (payload.MusicFile ? null : buildMemoryMusic(payload));
+    const id = String(payload.MemoryID || payload.ID || generateId("memory")).trim() || generateId("memory");
+    const hasMediaFiles = Array.isArray(payload.MediaFiles) && payload.MediaFiles.length > 0;
+    let media = normalizeUploadedMemoryMedia(payload);
+    let music = payload.MusicFile ? null : buildMemoryMusic(payload);
+    let mediaSource = media.length > 0 ? "drive" : "";
+    let mediaCount = media.length;
+
+    if (media.length === 0 || (payload.MusicFile && payload.MusicFile.data)) {
+      try {
+        const uploaded = await uploadMemoryAssets(payload, id, sourceUrl);
+        if (Array.isArray(uploaded.media) && uploaded.media.length > 0) {
+          media = uploaded.media;
+          mediaSource = "drive";
+          mediaCount = media.length;
+        }
+        if (uploaded.music) music = uploaded.music;
+      } catch (error) {
+        // Reliable no-Drive fallback for photos. This avoids the repeated
+        // "photo upload authorization failed" issue by storing each optimized
+        // photo in its own Firestore document. Videos/audio still need links or
+        // Apps Script/Drive because they are too large for Firestore documents.
+        if (hasMediaFiles && canStoreAllMemoryFilesInFirestore(payload.MediaFiles)) {
+          const stored = await storeMemoryMediaFiles(id, payload.MediaFiles);
+          media = [];
+          mediaSource = "firestoreMedia";
+          mediaCount = stored.count;
+        } else {
+          throw error;
+        }
+      }
+    }
+
+    if (media.length === 0 && mediaSource !== "firestoreMedia" && hasMediaFiles) {
+      if (canStoreAllMemoryFilesInFirestore(payload.MediaFiles)) {
+        const stored = await storeMemoryMediaFiles(id, payload.MediaFiles);
+        media = [];
+        mediaSource = "firestoreMedia";
+        mediaCount = stored.count;
+      }
+    }
 
     const row = {
       ID: id,
@@ -605,6 +678,9 @@
       PostedBy: payload.PostedBy || payload.Author || payload.author || "SFK",
       Role: payload.Role || payload.role || "",
       media,
+      MediaJSON: media.length > 0 ? JSON.stringify(media) : "",
+      MediaSource: mediaSource,
+      MediaCount: mediaCount,
       music,
       MusicTitle: String(payload.MusicTitle || payload.MusicDisplayTitle || payload.MusicName || "").trim(),
       MusicJSON: music ? JSON.stringify(music) : "",
@@ -619,8 +695,76 @@
     const linkedVideo = String(payload.VideoURL || "").trim();
     if (linkedVideo) row.VideoURL = linkedVideo;
 
-    await db.collection(SHEETS.Memories.collection).doc(id).set(withMeta(row));
+    await db.collection(SHEETS.Memories.collection).doc(id).set(withMeta(cleanFirestoreData(row)));
     return { success: true, id, message: "Memory posted." };
+  }
+
+  function normalizeUploadedMemoryMedia(payload) {
+    if (Array.isArray(payload.UploadedMedia)) {
+      return payload.UploadedMedia.filter(isUsableMemoryMediaItem);
+    }
+
+    const parsed = parseJsonArray(payload.UploadedMediaJSON || payload.UploadedMediaText || "[]");
+    return parsed.filter(isUsableMemoryMediaItem);
+  }
+
+  function isUsableMemoryMediaItem(item) {
+    return Boolean(item && typeof item === "object" && (
+      item.url || item.viewerUrl || item.fullUrl || item.downloadUrl || item.streamUrl
+    ));
+  }
+
+  function canStoreAllMemoryFilesInFirestore(files) {
+    const list = Array.isArray(files) ? files : [];
+    if (list.length === 0) return false;
+
+    return list.every(file => {
+      const mimeType = String(file && file.mimeType || "").toLowerCase();
+      const data = String(file && file.data || "");
+      return mimeType.startsWith("image/") && data.length > 0 && data.length <= 900000;
+    });
+  }
+
+  async function storeMemoryMediaFiles(memoryId, files) {
+    const id = String(memoryId || "").trim();
+    const list = Array.isArray(files) ? files : [];
+    if (!id || list.length === 0) return { count: 0 };
+
+    const batch = db.batch();
+    let count = 0;
+
+    list.forEach((file, index) => {
+      const mimeType = String(file.mimeType || "image/jpeg").toLowerCase();
+      const data = String(file.data || "");
+      if (!mimeType.startsWith("image/") || !data) return;
+      if (data.length > 900000) {
+        throw new Error("One selected photo is still too large after optimization. Please choose a smaller photo.");
+      }
+
+      const dataUrl = `data:${mimeType};base64,${data}`;
+      const item = {
+        kind: "image",
+        url: dataUrl,
+        viewerUrl: dataUrl,
+        fullUrl: dataUrl,
+        name: file.name || `SFK memory photo ${index + 1}`,
+        mimeType,
+        muted: true,
+        storedIn: "firestore"
+      };
+
+      const docId = `${id}_${String(index).padStart(2, "0")}`;
+      batch.set(db.collection("memoryMedia").doc(docId), withMeta(cleanFirestoreData({
+        MemoryID: id,
+        Index: index,
+        item,
+        Publish: "YES"
+      })));
+      count += 1;
+    });
+
+    await batch.commit();
+    return { count };
   }
 
   async function uploadMemoryAssets(payload, memoryId, sourceUrl) {
@@ -681,7 +825,14 @@
 
   async function deleteMemory(id) {
     if (!id) return { success: false, message: "Missing memory ID." };
-    await db.collection(SHEETS.Memories.collection).doc(String(id)).delete();
+    const cleanId = String(id);
+    const mediaSnap = await db.collection("memoryMedia").where("MemoryID", "==", cleanId).get();
+    if (!mediaSnap.empty) {
+      const batch = db.batch();
+      mediaSnap.forEach(doc => batch.delete(doc.ref));
+      await batch.commit();
+    }
+    await db.collection(SHEETS.Memories.collection).doc(cleanId).delete();
     return { success: true, message: "Memory deleted." };
   }
 

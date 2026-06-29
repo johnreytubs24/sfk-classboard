@@ -1,4 +1,4 @@
-const CACHE_NAME = "sfk-classboard-v191-memory-upload-fallback";
+const CACHE_NAME = "sfk-classboard-v192-memory-firestore-photo-fallback";
 const APP_SHELL = [
   "./",
   "./index.html",
