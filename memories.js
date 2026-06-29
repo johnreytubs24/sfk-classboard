@@ -5379,13 +5379,23 @@ function getInitials(value) {
 }
 
 async function postMemoryApi(type, payload) {
-  const authToken = await window.SFKAuth?.getIdToken();
+  let authToken = "";
+  try {
+    // Always request a fresh Firebase ID token for Apps Script writes.
+    // This prevents a stale/expired token from making Admin/Officer posts look unauthorized.
+    authToken = await window.SFKAuth?.getIdToken(true);
+  } catch (error) {
+    authToken = "";
+  }
+
+  const roleHint = memoryState.auth?.role || payload?.Role || "";
   const response = await fetch(MEMORIES_API_URL, {
     method: "POST",
     body: JSON.stringify({
       type,
       payload: {
         ...(payload || {}),
+        ...(roleHint ? { AuthRoleHint: roleHint } : {}),
         ...(authToken ? { AuthToken: authToken } : {})
       }
     })
