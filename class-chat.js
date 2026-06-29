@@ -15,14 +15,11 @@
     "#73B9FF", "#68D9B0", "#FF9E45", "#A9B1BD"
   ];
   const CHAT_THEME_KEY = "sfkClassChatTheme";
-  const CAPSULE_THEME_KEY = "sfkTimeCapsuleTheme";
   const CHAT_ACCENT_PREFIX = "sfkClassChatAccent:";
   const CHAT_FONT_SIZE_KEY = "sfkClassChatFontSize";
-  const CAPSULE_FONT_SIZE_KEY = "sfkTimeCapsuleFontSize";
   const CHAT_LAST_COUNT_KEY = "sfkClassChatLastReadCount";
   const CHAT_LAST_TIME_KEY = "sfkClassChatLastReadTime";
   const CHAT_DRAFT_PREFIX = "sfkClassChatDraft:";
-  const DEFAULT_CAPSULE_UNLOCK_AT = new Date(2027, 3, 3, 12, 0, 0);
   const STAFF_EMAILS = {
     admin: String(window.SFK_AUTH_ACCOUNTS?.admin || "").trim().toLowerCase(),
     officer: String(window.SFK_AUTH_ACCOUNTS?.officer || "").trim().toLowerCase()
@@ -93,10 +90,6 @@
   let accentCustomColorSelected = false;
   let loadingEarlierMessages = false;
   let hasMoreMessages = true;
-  let timeCapsulePendingOpen = false;
-  let capsuleLoginUnlockAt = new Date(DEFAULT_CAPSULE_UNLOCK_AT);
-  let capsuleLoginUnsubscribe = null;
-  let capsuleLoginTimer = null;
   let currentWatchParty = null;
   let watchRequests = [];
   let ownWatchRequest = null;
@@ -120,6 +113,9 @@
   let watchEndUpdatePending = false;
   let watchViewers = [];
   let watchViewerSessionId = "";
+  let watchLocalHostVolume = 1;
+  let watchVolumeUpdateTimer = null;
+  let applyingWatchVolume = false;
 
   const elements = {};
 
@@ -132,11 +128,7 @@
     applySavedFontSize();
     startUnreadBadgeListener();
 
-    elements.open.addEventListener("click", () => {
-      timeCapsulePendingOpen = false;
-      openChat();
-    });
-    elements.timeCapsuleOpen?.addEventListener("click", openTimeCapsuleFromBoard);
+    elements.open.addEventListener("click", openChat);
     elements.layer.querySelectorAll("[data-chat-close]").forEach((button) => {
       button.addEventListener("click", requestCloseChat);
     });
@@ -149,6 +141,9 @@
     elements.watchQueueList.addEventListener("click", handleWatchQueueAction);
     elements.watchControls.addEventListener("click", handleWatchControls);
     elements.watchSeek.addEventListener("change", handleWatchSeek);
+    elements.watchVolumeSync.addEventListener("change", handleWatchVolumeSyncChange);
+    elements.watchVolume.addEventListener("input", handleWatchVolumeInput);
+    elements.watchVolume.addEventListener("change", handleWatchVolumeCommit);
     elements.watchFullscreen.addEventListener("click", toggleWatchFullscreen);
     document.addEventListener("fullscreenchange", syncWatchFullscreenButton);
     document.addEventListener("webkitfullscreenchange", syncWatchFullscreenButton);
@@ -246,11 +241,9 @@
 
   function cacheElements() {
     elements.open = document.getElementById("classChatOpen");
-    elements.timeCapsuleOpen = document.getElementById("timeCapsuleOpen");
     elements.unread = document.getElementById("classChatUnread");
     elements.layer = document.getElementById("classChatLayer");
     elements.panel = document.querySelector(".classChatPanel");
-    elements.title = document.getElementById("classChatTitle");
     elements.status = document.getElementById("classChatStatus");
     elements.logout = document.getElementById("classChatLogout");
     elements.watchOpen = document.getElementById("classChatWatchOpen");
@@ -263,7 +256,6 @@
     elements.moreToggle = document.getElementById("classChatMoreToggle");
     elements.moreTools = document.getElementById("classChatMoreTools");
     elements.leave = document.getElementById("classChatLeave");
-    elements.leaveLabel = document.getElementById("classChatLeaveLabel");
     elements.searchOpen = document.getElementById("classChatSearchOpen");
     elements.savedOpen = document.getElementById("classChatSavedOpen");
     elements.savedLabel = document.getElementById("classChatSavedLabel");
@@ -337,16 +329,6 @@
     elements.watchFullscreenToggle = document.getElementById("classChatWatchFullscreenToggle");
     elements.blockedKeywords = document.getElementById("classChatBlockedKeywords");
     elements.login = document.getElementById("classChatLogin");
-    elements.loginTitle = document.getElementById("classChatLoginTitle");
-    elements.loginDescription = document.getElementById("classChatLoginDescription");
-    elements.studentPinLabel = document.getElementById("classChatStudentPinLabel");
-    elements.studentSubmit = document.getElementById("classChatStudentSubmit");
-    elements.staffSubmit = document.getElementById("classChatStaffSubmit");
-    elements.pinNoticeTitle = document.getElementById("classChatPinNoticeTitle");
-    elements.pinNoticeText = document.getElementById("classChatPinNoticeText");
-    elements.capsuleSeal = document.getElementById("classChatCapsuleSeal");
-    elements.capsuleSealLabel = document.getElementById("classChatCapsuleSealLabel");
-    elements.capsuleCountdown = document.getElementById("classChatCapsuleCountdown");
     elements.room = document.getElementById("classChatRoom");
     elements.pinned = document.getElementById("classChatPinned");
     elements.pinnedName = document.getElementById("classChatPinnedName");
@@ -393,6 +375,13 @@
     elements.watchControls = document.getElementById("classChatWatchControls");
     elements.watchPlayPause = document.getElementById("classChatWatchPlayPause");
     elements.watchSeek = document.getElementById("classChatWatchSeek");
+    elements.watchVolumePanel = document.getElementById("classChatWatchVolumePanel");
+    elements.watchVolumeSyncLabel = document.getElementById("classChatWatchVolumeSyncLabel");
+    elements.watchVolumeSync = document.getElementById("classChatWatchVolumeSync");
+    elements.watchVolumeLabel = document.getElementById("classChatWatchVolumeLabel");
+    elements.watchVolume = document.getElementById("classChatWatchVolume");
+    elements.watchVolumeValue = document.getElementById("classChatWatchVolumeValue");
+    elements.watchVolumeHint = document.getElementById("classChatWatchVolumeHint");
     elements.watchTime = document.getElementById("classChatWatchTime");
     elements.watchRequestForm = document.getElementById("classChatWatchRequestForm");
     elements.watchFormTitle = document.getElementById("classChatWatchFormTitle");
@@ -410,8 +399,6 @@
     elements.jumpUnread = document.getElementById("classChatJumpUnread");
     elements.toast = document.getElementById("classChatToast");
     elements.exitDialog = document.getElementById("classChatExitDialog");
-    elements.exitTitle = document.getElementById("classChatExitTitle");
-    elements.exitText = document.getElementById("classChatExitText");
     elements.exitNo = document.getElementById("classChatExitNo");
     elements.exitYes = document.getElementById("classChatExitYes");
   }
@@ -455,29 +442,6 @@
     }
   }
 
-  function openTimeCapsuleFromBoard() {
-    timeCapsulePendingOpen = true;
-    applySavedCapsulePreferences();
-    elements.leaveLabel.textContent = "Leave Time Capsule";
-    openChat();
-  }
-
-  function launchTimeCapsule() {
-    if (!timeCapsulePendingOpen || !currentProfile || !db || !window.SFKTimeCapsule) return;
-    timeCapsulePendingOpen = false;
-    closeChatMenu();
-    closeUtility();
-    if (!elements.watchRoom.hidden) closeWatchParty();
-    elements.room.hidden = true;
-    window.SFKTimeCapsule.open({
-      profile: { ...currentProfile },
-      db,
-      auth,
-      panel: elements.panel,
-      onClose: () => closeChat()
-    });
-  }
-
   async function closeChat() {
     hideExitDialog();
     elements.layer.hidden = true;
@@ -488,8 +452,6 @@
     elements.toast.hidden = true;
     closeChatMenu();
     closeUtility();
-    window.SFKTimeCapsule?.destroy();
-    timeCapsulePendingOpen = false;
     clearReply();
     stopRealtimeListeners();
     await clearTyping();
@@ -511,10 +473,6 @@
   }
 
   function requestCloseChat() {
-    if (!document.getElementById("timeCapsuleRoom")?.hidden) {
-      window.SFKTimeCapsule?.close();
-      return;
-    }
     if (!elements.watchRoom.hidden) {
       closeWatchParty();
       return;
@@ -525,12 +483,6 @@
     }
     closeChatMenu();
     hideReactionTray();
-    const isCapsule = timeCapsulePendingOpen
-      || elements.panel.classList.contains("is-time-capsule-open");
-    elements.exitTitle.textContent = isCapsule ? "Exit SFK Time Capsule?" : "Exit SFK Chat?";
-    elements.exitText.textContent = isCapsule
-      ? "Do you really want to exit the SFK Time Capsule?"
-      : "Do you really want to exit SFK Chat?";
     elements.exitDialog.hidden = false;
     window.setTimeout(() => elements.exitNo.focus(), 40);
   }
@@ -599,28 +551,8 @@
   }
 
   function toggleChatTheme() {
-    if (isTimeCapsuleContext()) {
-      const nextTheme = elements.panel.classList.contains("is-time-capsule-dark") ? "light" : "dark";
-      setCapsuleTheme(nextTheme, true);
-      return;
-    }
     const nextTheme = elements.panel.classList.contains("is-dark") ? "light" : "dark";
     setChatTheme(nextTheme, true);
-  }
-
-  function setCapsuleTheme(theme, persist) {
-    const dark = theme === "dark";
-    elements.panel.classList.toggle("is-time-capsule-dark", dark);
-    elements.themeToggle.setAttribute("aria-pressed", String(dark));
-    elements.themeLabel.textContent = dark ? "Light mode" : "Dark mode";
-    elements.themeToggle.querySelector(".classChatMenuIcon").textContent = dark ? "☀" : "☽";
-    if (persist) {
-      try {
-        localStorage.setItem(CAPSULE_THEME_KEY, dark ? "dark" : "light");
-      } catch (error) {
-        // Capsule theme persistence is optional when storage is blocked.
-      }
-    }
   }
 
   function setChatTheme(theme, persist) {
@@ -650,14 +582,6 @@
   }
 
   function cycleChatFontSize() {
-    if (isTimeCapsuleContext()) {
-      const current = elements.panel.classList.contains("capsule-font-large")
-        ? "large"
-        : elements.panel.classList.contains("capsule-font-small") ? "small" : "default";
-      const next = current === "small" ? "default" : current === "default" ? "large" : "small";
-      setCapsuleFontSize(next, true);
-      return;
-    }
     const current = elements.panel.classList.contains("font-large")
       ? "large"
       : elements.panel.classList.contains("font-small") ? "small" : "default";
@@ -677,46 +601,6 @@
         // Font-size persistence is optional when storage is blocked.
       }
     }
-  }
-
-  function setCapsuleFontSize(size, persist) {
-    elements.panel.classList.toggle("capsule-font-small", size === "small");
-    elements.panel.classList.toggle("capsule-font-large", size === "large");
-    const label = size.charAt(0).toUpperCase() + size.slice(1);
-    elements.fontSizeLabel.textContent = `Text size: ${label}`;
-    if (persist) {
-      try {
-        localStorage.setItem(CAPSULE_FONT_SIZE_KEY, size);
-      } catch (error) {
-        // Capsule font-size persistence is optional when storage is blocked.
-      }
-    }
-  }
-
-  function applySavedCapsulePreferences() {
-    let theme = "light";
-    let size = "default";
-    try {
-      theme = localStorage.getItem(CAPSULE_THEME_KEY) === "dark" ? "dark" : "light";
-      const savedSize = localStorage.getItem(CAPSULE_FONT_SIZE_KEY);
-      if (["small", "default", "large"].includes(savedSize)) size = savedSize;
-    } catch (error) {
-      theme = "light";
-      size = "default";
-    }
-    elements.panel.classList.remove("is-dark", "font-small", "font-large");
-    setCapsuleTheme(theme, false);
-    setCapsuleFontSize(size, false);
-  }
-
-  function restoreChatPreferences() {
-    elements.panel.classList.remove("is-time-capsule-dark", "capsule-font-small", "capsule-font-large");
-    applySavedTheme();
-    applySavedFontSize();
-  }
-
-  function isTimeCapsuleContext() {
-    return timeCapsulePendingOpen || elements.panel.classList.contains("is-time-capsule-open");
   }
 
   function startUnreadBadgeListener() {
@@ -895,11 +779,7 @@
     elements.scheduleOpen.hidden = true;
     elements.reportsOpen.hidden = true;
     elements.auditOpen.hidden = true;
-    applyLoginPurpose();
-    elements.title.textContent = timeCapsulePendingOpen ? "SFK Time Capsule" : "SFK Class GC";
-    elements.status.textContent = timeCapsulePendingOpen
-      ? "Sign in to open the capsule"
-      : "Sign in to join the conversation";
+    elements.status.textContent = "Sign in to join the conversation";
     clearAppliedChatAccent();
     elements.messages.innerHTML = "";
     elements.studentPin.value = "";
@@ -916,8 +796,6 @@
   }
 
   function showRoom() {
-    stopCapsuleLoginStatus();
-    elements.panel.classList.remove("is-time-capsule-login");
     elements.login.hidden = true;
     elements.room.hidden = false;
     elements.logout.hidden = false;
@@ -928,7 +806,6 @@
     elements.accentOpen.hidden = false;
     elements.colorOpen.hidden = currentProfile.role !== "student";
     elements.colorMenuIcon?.style.setProperty("--profile-color", normalizeProfileColor(currentProfile.avatarColor));
-    elements.title.textContent = "SFK Class GC";
     elements.status.textContent = `${currentProfile.name} · Class member`;
     elements.controlsOpen.hidden = currentProfile.role !== "admin";
     elements.pollOpen.hidden = false;
@@ -940,10 +817,7 @@
     elements.loginMessage.textContent = "";
     startRealtimeListeners();
     restoreDraft();
-    launchTimeCapsule();
-    if (document.getElementById("timeCapsuleRoom")?.hidden !== false) {
-      window.setTimeout(() => elements.input.focus(), 80);
-    }
+    window.setTimeout(() => elements.input.focus(), 80);
   }
 
   function selectRole(role) {
@@ -955,78 +829,6 @@
     elements.staffForm.hidden = selectedRole !== "staff";
     elements.changePinForm.hidden = true;
     elements.loginMessage.textContent = "";
-  }
-
-  function applyLoginPurpose() {
-    const isCapsule = timeCapsulePendingOpen;
-    elements.panel.classList.toggle("is-time-capsule-login", isCapsule);
-    elements.loginTitle.textContent = isCapsule ? "Open the Time Capsule" : "Class conversation";
-    elements.loginDescription.textContent = isCapsule
-      ? "Use your assigned account to seal and view SFK memories."
-      : "Use your assigned chat account. Your name will appear automatically.";
-    elements.studentPinLabel.textContent = isCapsule ? "Personal PIN" : "Personal Chat PIN";
-    elements.studentSubmit.textContent = isCapsule ? "Open Time Capsule" : "Open class chat";
-    elements.staffSubmit.textContent = isCapsule ? "Open Time Capsule" : "Open class chat";
-    elements.pinNoticeTitle.textContent = isCapsule
-      ? "Create your personal PIN"
-      : "Create your personal Chat PIN";
-    elements.pinNoticeText.textContent = isCapsule
-      ? "Replace the default PIN before opening the Time Capsule."
-      : "Replace the default PIN before opening the class conversation.";
-    elements.capsuleSeal.hidden = !isCapsule;
-    elements.leaveLabel.textContent = isCapsule ? "Leave Time Capsule" : "Leave chat";
-    if (isCapsule) {
-      applySavedCapsulePreferences();
-      startCapsuleLoginStatus();
-    } else {
-      stopCapsuleLoginStatus();
-      restoreChatPreferences();
-    }
-  }
-
-  function startCapsuleLoginStatus() {
-    stopCapsuleLoginStatus();
-    capsuleLoginUnlockAt = new Date(DEFAULT_CAPSULE_UNLOCK_AT);
-    updateCapsuleLoginCountdown();
-    capsuleLoginTimer = window.setInterval(updateCapsuleLoginCountdown, 1000);
-    if (!db) return;
-    capsuleLoginUnsubscribe = db.collection("settings").doc("timeCapsulePublic")
-      .onSnapshot((snapshot) => {
-        const data = snapshot.exists ? snapshot.data() || {} : {};
-        const unlockAt = data.UnlockAt?.toDate?.();
-        if (unlockAt instanceof Date && Number.isFinite(unlockAt.getTime())) {
-          capsuleLoginUnlockAt = unlockAt;
-        }
-        updateCapsuleLoginCountdown();
-      }, () => {
-        updateCapsuleLoginCountdown();
-      });
-  }
-
-  function stopCapsuleLoginStatus() {
-    capsuleLoginUnsubscribe?.();
-    capsuleLoginUnsubscribe = null;
-    window.clearInterval(capsuleLoginTimer);
-    capsuleLoginTimer = null;
-  }
-
-  function updateCapsuleLoginCountdown() {
-    if (!elements.capsuleCountdown || !elements.capsuleSealLabel) return;
-    const difference = capsuleLoginUnlockAt.getTime() - Date.now();
-    if (difference <= 0) {
-      elements.capsuleSealLabel.textContent = "CAPSULE UNLOCKED";
-      elements.capsuleCountdown.textContent = "Sign in to open our SFK memories.";
-      elements.capsuleSeal.classList.add("is-unlocked");
-      return;
-    }
-    elements.capsuleSeal.classList.remove("is-unlocked");
-    elements.capsuleSealLabel.textContent = "SEALED FOR NOW";
-    const days = Math.floor(difference / 86400000);
-    const hours = Math.floor((difference % 86400000) / 3600000);
-    const minutes = Math.floor((difference % 3600000) / 60000);
-    const seconds = Math.floor((difference % 60000) / 1000);
-    elements.capsuleCountdown.textContent =
-      `${days}d ${hours}h ${minutes}m ${seconds}s until unlock`;
   }
 
   async function signInStudent(event) {
@@ -1096,9 +898,7 @@
   }
 
   async function performLogin(loginAction) {
-    elements.loginMessage.textContent = timeCapsulePendingOpen
-      ? "Opening Time Capsule..."
-      : "Opening class chat...";
+    elements.loginMessage.textContent = "Opening class chat...";
     setLoginDisabled(true);
     try {
       await loginAction();
@@ -1157,9 +957,7 @@
     elements.changePinForm.hidden = false;
     elements.roleTabsWrap.hidden = true;
     elements.loginMessage.textContent = "";
-    elements.status.textContent = timeCapsulePendingOpen
-      ? "Create your personal PIN"
-      : "Create your personal Chat PIN";
+    elements.status.textContent = "Create your personal Chat PIN";
     const currentColor = normalizeProfileColor(currentProfile.avatarColor);
     firstCustomColorSelected = !PROFILE_COLORS.includes(currentColor);
     elements.firstCustomColor.value = currentColor;
@@ -1650,6 +1448,7 @@
     window.clearInterval(scheduledRefreshTimer);
     window.clearInterval(watchSyncTimer);
     window.clearInterval(watchPresenceTimer);
+    window.clearTimeout(watchVolumeUpdateTimer);
     messagesUnsubscribe = null;
     typingUnsubscribe = null;
     pinnedUnsubscribe = null;
@@ -1665,6 +1464,7 @@
     scheduledRefreshTimer = null;
     watchSyncTimer = null;
     watchPresenceTimer = null;
+    watchVolumeUpdateTimer = null;
     watchViewers = [];
     watchViewerSessionId = "";
     loadingEarlierMessages = false;
@@ -2491,6 +2291,8 @@
       || currentWatchParty.Provider === "bilibili"
       || currentWatchParty.Provider === "vimeo"
       || currentWatchParty.Provider === "website";
+    syncWatchVolumeControls();
+    applyWatchSyncedVolume(false);
     elements.watchFullscreen.hidden = !active || currentConfig.WatchPartyFullscreenAllowed === false;
     const staffCanStart = isWatchStaff();
     elements.watchFormTitle.textContent = staffCanStart ? "Start Watch Party" : "Request to Host";
@@ -2638,6 +2440,7 @@
     elements.watchPlayer.innerHTML = "";
     elements.watchPlayer.appendChild(iframe);
     watchPlayer = iframe;
+    applyWatchSyncedVolume(true);
     renderWatchParty();
   }
 
@@ -2703,6 +2506,15 @@
     video.addEventListener("seeked", () => {
       if (canControlWatchParty() && !suppressWatchPlayerEvents) {
         updateWatchPartyState(currentWatchParty.PlaybackState, video.currentTime);
+      }
+    });
+    video.addEventListener("volumechange", () => {
+      if (applyingWatchVolume) return;
+      const nextVolume = normalizeWatchVolume(video.muted ? 0 : video.volume);
+      if (canControlWatchParty()) {
+        watchLocalHostVolume = nextVolume;
+        syncWatchVolumeControls();
+        if (currentWatchParty?.VolumeSyncEnabled === true) scheduleWatchVolumePublish();
       }
     });
     video.addEventListener("ended", () => {
@@ -2917,6 +2729,7 @@
     tiktokNeedsSoundUnlock = false;
     tiktokAutoUnmuteAttempted = false;
     watchEndUpdatePending = false;
+    applyingWatchVolume = false;
   }
 
   function joinWatchParty() {
@@ -2980,6 +2793,13 @@
     if (!watchPlayer) return;
     if (watchPlayerProvider === "native" && watchPlayer.tagName === "VIDEO") {
       if (command === "seek") watchPlayer.currentTime = Math.max(0, Number(value || 0));
+      if (command === "volume") {
+        const nextVolume = normalizeWatchVolume(value);
+        applyingWatchVolume = true;
+        watchPlayer.volume = nextVolume;
+        watchPlayer.muted = nextVolume <= 0;
+        window.setTimeout(() => { applyingWatchVolume = false; }, 80);
+      }
       if (command === "pause") watchPlayer.pause();
       if (command === "play") {
         watchPlayer.play().catch(() => {
@@ -2995,7 +2815,8 @@
       const commands = {
         play: ["playVideo", []],
         pause: ["pauseVideo", []],
-        seek: ["seekTo", [Number(value || 0), true]]
+        seek: ["seekTo", [Number(value || 0), true]],
+        volume: ["setVolume", [Math.round(normalizeWatchVolume(value) * 100)]]
       };
       const entry = commands[command];
       if (!entry) return;
@@ -3013,6 +2834,113 @@
         "x-tiktok-player": true
       }, "*");
     }
+  }
+
+
+  function supportsWatchVolumeSync() {
+    const provider = currentWatchParty?.Provider || "";
+    return ["youtube", "drive", "direct", "hls", "dash"].includes(provider)
+      && watchPlayerProvider !== "drive-preview"
+      && !String(watchPlayerProvider || "").endsWith("-unavailable");
+  }
+
+  function normalizeWatchVolume(value) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return 1;
+    return Math.min(1, Math.max(0, number));
+  }
+
+  function currentWatchVolumeLevel() {
+    return normalizeWatchVolume(currentWatchParty?.VolumeLevel ?? watchLocalHostVolume ?? 1);
+  }
+
+  function syncWatchVolumeControls() {
+    if (!elements.watchVolumePanel) return;
+    const active = currentWatchParty?.Active === true;
+    const canControl = active && canControlWatchParty();
+    const supported = active && supportsWatchVolumeSync();
+    elements.watchVolumePanel.hidden = !active || !supported;
+    if (!active || !supported) return;
+    const synced = currentWatchParty?.VolumeSyncEnabled === true;
+    const level = synced ? currentWatchVolumeLevel() : normalizeWatchVolume(watchLocalHostVolume);
+    elements.watchVolumeSyncLabel.hidden = !canControl;
+    elements.watchVolumeSync.checked = synced;
+    elements.watchVolumeLabel.textContent = canControl ? "Volume" : "My volume";
+    elements.watchVolume.disabled = synced && !canControl;
+    elements.watchVolume.value = String(Math.round(level * 100));
+    elements.watchVolumeValue.textContent = `${Math.round(level * 100)}%`;
+    elements.watchVolumeHint.textContent = canControl
+      ? (synced
+        ? "Sync is ON · viewers follow the host volume."
+        : "Sync is OFF · this changes only the host player.")
+      : (synced
+        ? "Sync is ON · volume follows the host."
+        : "Sync is OFF · adjust only your player.");
+    elements.watchVolumePanel.classList.toggle("is-syncing", synced);
+  }
+
+  function applyWatchSyncedVolume(force) {
+    if (!currentWatchParty?.Active || !watchPlayer || !supportsWatchVolumeSync()) return;
+    if (canControlWatchParty()) {
+      const hostLevel = currentWatchParty.VolumeSyncEnabled === true
+        ? currentWatchVolumeLevel()
+        : normalizeWatchVolume(watchLocalHostVolume);
+      sendWatchPlayerCommand("volume", hostLevel);
+      return;
+    }
+    if (currentWatchParty.VolumeSyncEnabled !== true) return;
+    sendWatchPlayerCommand("volume", currentWatchVolumeLevel());
+  }
+
+  function handleWatchVolumeInput() {
+    if (!currentWatchParty?.Active || !supportsWatchVolumeSync() || elements.watchVolume.disabled) return;
+    const level = normalizeWatchVolume(Number(elements.watchVolume.value || 0) / 100);
+    watchLocalHostVolume = level;
+    elements.watchVolumeValue.textContent = `${Math.round(level * 100)}%`;
+    elements.watchVolumeHint.textContent = canControlWatchParty()
+      ? (elements.watchVolumeSync.checked
+        ? "Sync is ON · viewers follow the host volume."
+        : "Sync is OFF · this changes only the host player.")
+      : "Sync is OFF · adjust only your player.";
+    sendWatchPlayerCommand("volume", level);
+    if (canControlWatchParty() && elements.watchVolumeSync.checked) scheduleWatchVolumePublish();
+  }
+
+  function handleWatchVolumeCommit() {
+    if (!canControlWatchParty()) return;
+    if (elements.watchVolumeSync.checked) scheduleWatchVolumePublish(0);
+  }
+
+  function handleWatchVolumeSyncChange() {
+    if (!canControlWatchParty()) return;
+    const syncEnabled = elements.watchVolumeSync.checked;
+    const level = normalizeWatchVolume(Number(elements.watchVolume.value || 0) / 100);
+    watchLocalHostVolume = level;
+    elements.watchVolumeHint.textContent = syncEnabled
+      ? "Sync is ON · viewers follow the host volume."
+      : "Sync is OFF · this changes only the host player.";
+    elements.watchVolumePanel.classList.toggle("is-syncing", syncEnabled);
+    sendWatchPlayerCommand("volume", level);
+    publishWatchVolume(syncEnabled, level);
+  }
+
+  function scheduleWatchVolumePublish(delay = 260) {
+    if (!canControlWatchParty() || !elements.watchVolumeSync.checked) return;
+    window.clearTimeout(watchVolumeUpdateTimer);
+    watchVolumeUpdateTimer = window.setTimeout(() => {
+      publishWatchVolume(true, normalizeWatchVolume(Number(elements.watchVolume.value || 0) / 100));
+    }, delay);
+  }
+
+  async function publishWatchVolume(syncEnabled, volumeLevel) {
+    if (!canControlWatchParty()) return;
+    await db.collection("chatWatchParty").doc("main").update({
+      VolumeSyncEnabled: syncEnabled === true,
+      VolumeLevel: normalizeWatchVolume(volumeLevel),
+      UpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).catch((error) => {
+      window.alert(readableError(error));
+    });
   }
 
   function applyWatchStateToPlayer(force) {
@@ -3033,6 +2961,7 @@
       sendWatchPlayerCommand("seek", target);
       watchPlayerTime = target;
     }
+    applyWatchSyncedVolume(force);
     if (watchJoined) {
       sendWatchPlayerCommand(currentWatchParty.PlaybackState === "playing" ? "play" : "pause");
     } else {
@@ -3060,6 +2989,7 @@
         func: "addEventListener",
         args: ["onStateChange"]
       }), "*");
+      applyWatchSyncedVolume(true);
     }
     if (watchPlayerProvider === "youtube"
         && data?.event === "onStateChange"
@@ -3428,6 +3358,8 @@
       Title: request.Title || "SFK Watch Party",
       PlaybackState: "paused",
       Position: 0,
+      VolumeSyncEnabled: false,
+      VolumeLevel: 1,
       StateUpdatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       HostUID: request.RequesterUID,
       HostName: request.RequesterName,

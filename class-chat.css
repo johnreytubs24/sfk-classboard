@@ -2537,6 +2537,73 @@
   text-align: center;
 }
 
+
+.classChatWatchVolume {
+  margin-top: 9px;
+  border: 1px solid #ddd6c8;
+  border-radius: 12px;
+  padding: 10px;
+  background: #fff;
+}
+
+.classChatWatchVolume[hidden] {
+  display: none !important;
+}
+
+.classChatWatchVolumeSwitch,
+.classChatWatchVolumeRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.classChatWatchVolumeSwitch {
+  justify-content: center;
+  color: #252018;
+  font-size: .68rem;
+  font-weight: 900;
+}
+
+.classChatWatchVolumeSwitch input {
+  width: auto;
+  margin: 0;
+  accent-color: #f7c600;
+}
+
+.classChatWatchVolumeRow {
+  margin-top: 6px;
+}
+
+.classChatWatchVolumeRow > span,
+.classChatWatchVolumeValue,
+.classChatWatchVolumeRow > strong {
+  color: #716c63;
+  font-size: .66rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.classChatWatchVolumeRow input {
+  flex: 1;
+  margin: 0;
+}
+
+.classChatWatchVolumeRow input:disabled {
+  opacity: .65;
+}
+
+.classChatWatchVolume > small {
+  display: block;
+  margin-top: 5px;
+  color: #716c63;
+  font-size: .62rem;
+  text-align: center;
+}
+
+.classChatWatchVolume.is-syncing .classChatWatchVolumeSwitch span {
+  color: #111;
+}
+
 .classChatWatchRequestCard,
 .classChatWatchQueue {
   margin-top: 12px;
@@ -3141,12 +3208,16 @@ body.classChatIsOpen {
 .classChatPanel.is-dark .classChatWatchNow small,
 .classChatPanel.is-dark .classChatWatchRequestCard > div small,
 .classChatPanel.is-dark .classChatWatchQueue article small,
-.classChatPanel.is-dark .classChatWatchControls > small {
+.classChatPanel.is-dark .classChatWatchControls > small,
+.classChatPanel.is-dark .classChatWatchVolume > small,
+.classChatPanel.is-dark .classChatWatchVolumeRow > span,
+.classChatPanel.is-dark .classChatWatchVolumeRow > strong {
   color: #aaa59d;
 }
 
 .classChatPanel.is-dark .classChatWatchNow,
 .classChatPanel.is-dark .classChatWatchControls,
+.classChatPanel.is-dark .classChatWatchVolume,
 .classChatPanel.is-dark .classChatWatchRequestCard,
 .classChatPanel.is-dark .classChatWatchQueue {
   border-color: #383838;
@@ -3159,6 +3230,14 @@ body.classChatIsOpen {
   border-color: #4a4a4a;
   background: #292929;
   color: #fff;
+}
+
+.classChatPanel.is-dark .classChatWatchVolumeSwitch {
+  color: #fff;
+}
+
+.classChatPanel.is-dark .classChatWatchVolume.is-syncing .classChatWatchVolumeSwitch span {
+  color: #f7c600;
 }
 
 .classChatPanel.is-dark .classChatWatchControls #classChatWatchPlayPause,

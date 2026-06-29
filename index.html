@@ -15,7 +15,6 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png?v=3" />
   <link rel="stylesheet" href="style.css?v=74-clock-access-menu" />
   <link rel="stylesheet" href="class-chat.css?v=46-watch-request-queue" />
-  <link rel="stylesheet" href="time-capsule.css?v=5-capsule-menu" />
   <script src="orientation-lock.js?v=4-watch-party-landscape" defer></script>
 
   <style id="sfkStartIntroStyle">
@@ -699,15 +698,10 @@
       <div class="card sideCard">
         <div class="cardHeader adviserReminderHeader">
           <h2>Adviser Reminders</h2>
-          <div class="adviserHeaderActions">
-            <button id="timeCapsuleOpen" class="timeCapsuleOpen" type="button" aria-label="Open SFK Time Capsule" title="SFK Time Capsule">
-              <span aria-hidden="true">&#9829;</span><i aria-hidden="true"></i>
-            </button>
-            <button id="classChatOpen" class="classChatOpen" type="button" aria-label="Open class group chat" title="Class group chat">
-              <span class="classChatGlyph" aria-hidden="true"></span>
-              <span id="classChatUnread" class="classChatUnread" hidden>0</span>
-            </button>
-          </div>
+          <button id="classChatOpen" class="classChatOpen" type="button" aria-label="Open class group chat" title="Class group chat">
+            <span class="classChatGlyph" aria-hidden="true"></span>
+            <span id="classChatUnread" class="classChatUnread" hidden>0</span>
+          </button>
         </div>
         <div id="reminderList"></div>
       </div>
@@ -748,7 +742,7 @@
       <header class="classChatTopbar">
         <button class="classChatBack" type="button" data-chat-close aria-label="Close class chat">&#8592;</button>
         <div class="classChatIdentity">
-          <span id="classChatHeaderMark" class="classChatAvatar">SFK</span>
+          <span class="classChatAvatar">SFK</span>
           <div>
             <h2 id="classChatTitle">SFK Class GC</h2>
             <p id="classChatStatus">Sign in to join the conversation</p>
@@ -814,7 +808,7 @@
         </div>
         <button id="classChatLeave" type="button">
           <span class="classChatMenuIcon" aria-hidden="true">&#8594;</span>
-          <span id="classChatLeaveLabel">Leave chat</span>
+          <span>Leave chat</span>
         </button>
       </div>
 
@@ -1030,7 +1024,7 @@
       <div id="classChatExitDialog" class="classChatExitDialog" hidden>
         <div class="classChatExitCard" role="alertdialog" aria-modal="true" aria-labelledby="classChatExitTitle">
           <h3 id="classChatExitTitle">Exit SFK Chat?</h3>
-          <p id="classChatExitText">Do you really want to exit SFK Chat?</p>
+          <p>Do you really want to exit SFK Chat?</p>
           <div>
             <button id="classChatExitNo" type="button">No</button>
             <button id="classChatExitYes" type="button">Yes</button>
@@ -1040,16 +1034,9 @@
 
       <div id="classChatLogin" class="classChatLogin">
         <div class="classChatWelcome">
-          <span id="classChatWelcomeMark" class="classChatWelcomeMark">SFK</span>
-          <h3 id="classChatLoginTitle">Class conversation</h3>
-          <p id="classChatLoginDescription">Use your assigned chat account. Your name will appear automatically.</p>
-          <div id="classChatCapsuleSeal" class="classChatCapsuleSeal" hidden>
-            <span class="classChatCapsuleLock" aria-hidden="true"><i></i></span>
-            <div>
-              <strong id="classChatCapsuleSealLabel">SEALED FOR NOW</strong>
-              <small id="classChatCapsuleCountdown">Preparing unlock countdown...</small>
-            </div>
-          </div>
+          <span class="classChatWelcomeMark">SFK</span>
+          <h3>Class conversation</h3>
+          <p>Use your assigned chat account. Your name will appear automatically.</p>
         </div>
 
         <div class="classChatRoleTabs" role="tablist" aria-label="Chat account type">
@@ -1060,9 +1047,9 @@
         <form id="classChatStudentForm" class="classChatAuthForm">
           <label for="classChatStudentId">Student ID</label>
           <input id="classChatStudentId" type="text" inputmode="numeric" autocomplete="username" required />
-          <label id="classChatStudentPinLabel" for="classChatStudentPin">Personal Chat PIN</label>
+          <label for="classChatStudentPin">Personal Chat PIN</label>
           <input id="classChatStudentPin" type="password" inputmode="numeric" autocomplete="current-password" minlength="6" required />
-          <button id="classChatStudentSubmit" type="submit">Open class chat</button>
+          <button type="submit">Open class chat</button>
         </form>
 
         <form id="classChatStaffForm" class="classChatAuthForm" hidden>
@@ -1073,13 +1060,13 @@
           </select>
           <label for="classChatStaffPin">Account PIN</label>
           <input id="classChatStaffPin" type="password" autocomplete="current-password" required />
-          <button id="classChatStaffSubmit" type="submit">Open class chat</button>
+          <button type="submit">Open class chat</button>
         </form>
 
         <form id="classChatChangePinForm" class="classChatAuthForm classChatChangePinForm" hidden>
           <div class="classChatPinNotice">
-            <strong id="classChatPinNoticeTitle">Create your personal Chat PIN</strong>
-            <span id="classChatPinNoticeText">Replace the default PIN before opening the class conversation.</span>
+            <strong>Create your personal Chat PIN</strong>
+            <span>Replace the default PIN before opening the class conversation.</span>
           </div>
           <label for="classChatNewPin">New 6-digit PIN</label>
           <input id="classChatNewPin" type="password" inputmode="numeric" autocomplete="new-password" pattern="[0-9]{6}" maxlength="6" required />
@@ -1173,6 +1160,19 @@
             <small id="classChatWatchTime">0:00 / 0:00</small>
           </div>
 
+          <div id="classChatWatchVolumePanel" class="classChatWatchVolume" hidden>
+            <label id="classChatWatchVolumeSyncLabel" class="classChatWatchVolumeSwitch">
+              <input id="classChatWatchVolumeSync" type="checkbox" />
+              <span>Sync volume to viewers</span>
+            </label>
+            <div class="classChatWatchVolumeRow">
+              <span id="classChatWatchVolumeLabel">Volume</span>
+              <input id="classChatWatchVolume" type="range" min="0" max="100" value="100" step="1" aria-label="Watch Party volume" />
+              <strong id="classChatWatchVolumeValue">100%</strong>
+            </div>
+            <small id="classChatWatchVolumeHint">Sync is OFF · this changes only your player.</small>
+          </div>
+
           <section class="classChatWatchRequestCard">
             <div>
               <strong id="classChatWatchFormTitle">Request to Host</strong>
@@ -1193,116 +1193,6 @@
             </header>
             <div id="classChatWatchQueueList"></div>
           </section>
-        </div>
-      </section>
-
-      <section id="timeCapsuleRoom" class="timeCapsuleRoom" hidden aria-labelledby="timeCapsuleTitle">
-        <header class="timeCapsuleHeader">
-          <button id="timeCapsuleBack" type="button" aria-label="Back to ClassBoard">&#8592;</button>
-          <span class="timeCapsuleHeart" aria-hidden="true">&#9829;<i></i></span>
-          <div>
-            <h2 id="timeCapsuleTitle">SFK Time Capsule</h2>
-            <p id="timeCapsuleHeaderStatus">Loading capsule...</p>
-          </div>
-          <button id="timeCapsuleAdminToggle" class="timeCapsuleAdminToggle" type="button" hidden>Manage</button>
-        </header>
-
-        <div class="timeCapsuleBody">
-          <section class="timeCapsuleHero">
-            <div id="timeCapsuleLockMark" class="timeCapsuleLockMark" aria-hidden="true"><span>&#9829;</span><i></i></div>
-            <div>
-              <span id="timeCapsuleEyebrow">SEALED FOR NOW</span>
-              <h3 id="timeCapsuleHeroTitle">Our memories are growing.</h3>
-              <p id="timeCapsuleCountdown">Preparing countdown...</p>
-            </div>
-            <button id="timeCapsulePresent" type="button" hidden>View Capsule</button>
-          </section>
-
-          <div class="timeCapsuleStats">
-            <span><strong id="timeCapsuleEntryCount">0</strong><small>My entries</small></span>
-            <span><strong id="timeCapsuleClassCount">0</strong><small>Sealed entries</small></span>
-            <span><strong id="timeCapsuleContributorCount">0</strong><small>Contributors</small></span>
-          </div>
-
-          <section id="timeCapsuleComposeCard" class="timeCapsuleComposeCard">
-            <header>
-              <div><strong>Leave something for our future selves</strong><small>Add as many memories, messages, and moments as you want.</small></div>
-              <button id="timeCapsuleComposeToggle" type="button" aria-expanded="false" aria-label="Add a capsule entry">+</button>
-            </header>
-            <form id="timeCapsuleForm" hidden>
-              <input id="timeCapsuleEditId" type="hidden" />
-              <label>Entry type
-                <select id="timeCapsuleType">
-                  <option value="memory">Favorite memory</option>
-                  <option value="message">Message</option>
-                  <option value="goal">Goal</option>
-                  <option value="prediction">Prediction</option>
-                  <option value="photo">Photo memory</option>
-                </select>
-              </label>
-              <div class="timeCapsulePrompt" aria-live="polite">
-                <span aria-hidden="true">&#9829;</span>
-                <div><strong>A little prompt</strong><small id="timeCapsulePromptText">What moment from this class do you never want to forget?</small></div>
-              </div>
-              <label>Your entry
-                <textarea id="timeCapsuleText" maxlength="1200" rows="5" placeholder="Write something for our future selves..."></textarea>
-                <small id="timeCapsuleCharacterCount" class="timeCapsuleCharacterCount">0 / 1200</small>
-              </label>
-              <label>Photo link <small>Optional public HTTPS image link</small>
-                <input id="timeCapsuleImageUrl" type="url" maxlength="2000" placeholder="https://..." />
-              </label>
-              <div class="timeCapsuleFormActions">
-                <button id="timeCapsuleCancelEdit" type="button" hidden>Cancel edit</button>
-                <button id="timeCapsuleSubmit" type="submit">Seal Entry</button>
-              </div>
-              <p id="timeCapsuleFormMessage" role="status"></p>
-            </form>
-          </section>
-
-          <section class="timeCapsuleEntriesSection">
-            <header>
-              <div><strong id="timeCapsuleEntriesTitle">My Sealed Entries</strong><small id="timeCapsuleEntriesHint">Only you and the Adviser can view these before unlock day.</small></div>
-            </header>
-            <div id="timeCapsuleEntries" class="timeCapsuleEntries"></div>
-          </section>
-
-          <section id="timeCapsuleAdminPanel" class="timeCapsuleAdminPanel" hidden>
-            <header><div><strong>Manage Time Capsule</strong><small>Review entries and control submission and unlock dates.</small></div></header>
-            <form id="timeCapsuleSettingsForm">
-              <label>Submission deadline<input id="timeCapsuleDeadline" type="datetime-local" required /></label>
-              <label>Unlock date<input id="timeCapsuleUnlockAt" type="datetime-local" required /></label>
-              <label class="timeCapsuleSwitch"><span><strong>Accept submissions</strong><small>Students and officers can add entries.</small></span><input id="timeCapsuleAllowSubmissions" type="checkbox" checked /></label>
-              <div class="timeCapsuleFormActions">
-                <button id="timeCapsuleUnlockNow" type="button">Unlock now</button>
-                <button type="submit">Save Settings</button>
-              </div>
-              <p id="timeCapsuleSettingsMessage" role="status"></p>
-            </form>
-            <div class="timeCapsuleReviewHeader">
-              <strong>Review Entries</strong>
-              <select id="timeCapsuleReviewFilter" aria-label="Filter capsule entries">
-                <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
-                <option value="all">All entries</option>
-              </select>
-            </div>
-            <div id="timeCapsuleReviewList" class="timeCapsuleReviewList"></div>
-          </section>
-        </div>
-
-        <div id="timeCapsulePresentation" class="timeCapsulePresentation" hidden>
-          <header>
-            <button id="timeCapsulePresentationClose" type="button" aria-label="Close presentation">&times;</button>
-            <div><strong>SFK Year-End Capsule</strong><small id="timeCapsuleSlideCount">1 / 1</small></div>
-            <button id="timeCapsulePrint" type="button">Print</button>
-          </header>
-          <div id="timeCapsuleSlide" class="timeCapsuleSlide"></div>
-          <footer>
-            <button id="timeCapsulePrevious" type="button" aria-label="Previous entry">&#8592;</button>
-            <button id="timeCapsulePlay" type="button" aria-label="Play presentation">&#9654;</button>
-            <button id="timeCapsuleNext" type="button" aria-label="Next entry">&#8594;</button>
-          </footer>
         </div>
       </section>
 
@@ -1367,8 +1257,7 @@
   <script src="script.js?v=73-clock-access-menu"></script>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.6.16/dist/hls.min.js"></script>
   <script src="https://cdn.dashjs.org/v5.2.0/legacy/umd/dash.all.min.js"></script>
-  <script src="time-capsule.js?v=5-totals-retry"></script>
-  <script src="class-chat.js?v=63-capsule-menu"></script>
+  <script src="class-chat.js?v=57-watch-viewer-presence-fix"></script>
   <script src="pwa.js?v=3"></script>
 </body>
 </html>

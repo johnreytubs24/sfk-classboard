@@ -1,9 +1,12 @@
-const CACHE_NAME = "sfk-classboard-v112-memory-auth-refresh-fix";
+const CACHE_NAME = "sfk-classboard-v177-watch-volume-sync";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./style.css",
   "./script.js",
+  "./class-chat.css",
+  "./class-chat.js",
+  "./class-chat-admin.js",
   "./pwa.js",
   "./firebase-config.js",
   "./firebase-adapter.js",
