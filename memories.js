@@ -5463,21 +5463,23 @@ function isUnsupportedMemoryApiType(message) {
 }
 
 async function postMemoryApi(type, payload) {
+  const uploadSessionId = payload?.UploadSessionID || payload?.MemoryUploadSession || "";
+  const usingUploadSession = Boolean(uploadSessionId) && (type === "memoryUploadAssets" || type === "memoryCreate");
   let authToken = "";
-  try {
-    // Always request a fresh Firebase ID token for Apps Script writes.
-    // For media uploads, the token is also sent in the URL query so Apps Script
-    // can verify the user before reading a large Base64 payload.
-    authToken = await window.SFKAuth?.getIdToken(true);
-  } catch (error) {
-    authToken = "";
+
+  if (!usingUploadSession) {
+    try {
+      // Always request a fresh Firebase ID token for normal Apps Script writes.
+      authToken = await window.SFKAuth?.getIdToken(true);
+    } catch (error) {
+      authToken = "";
+    }
   }
 
   const roleHint = memoryState.auth?.role || payload?.Role || "";
-  const uploadSessionId = payload?.UploadSessionID || payload?.MemoryUploadSession || "";
   const url = new URL(MEMORIES_API_URL);
   if (authToken) url.searchParams.set("authToken", authToken);
-  if (roleHint) url.searchParams.set("authRoleHint", roleHint);
+  if (authToken && roleHint) url.searchParams.set("authRoleHint", roleHint);
   if (uploadSessionId) url.searchParams.set("uploadSessionId", uploadSessionId);
 
   const response = await fetch(url.toString(), {
@@ -5486,7 +5488,7 @@ async function postMemoryApi(type, payload) {
       type,
       payload: {
         ...(authToken ? { AuthToken: authToken } : {}),
-        ...(roleHint ? { AuthRoleHint: roleHint } : {}),
+        ...(authToken && roleHint ? { AuthRoleHint: roleHint } : {}),
         ...(payload || {})
       }
     })
